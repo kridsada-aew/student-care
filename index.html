@@ -407,6 +407,20 @@
       .dlg-overlay.open, .dlg-overlay.closing, .dlg-win, .dlg-overlay.closing .dlg-win,
       .hl, .hwave { animation: none; }
     }
+
+    /* ---------- หน้าปิดปรับปรุง (ค้อน + ประแจ) ---------- */
+    .mt-overlay {
+      position: fixed; inset: 0; z-index: 300; display: none;
+      align-items: center; justify-content: center; padding: 16px; background: #f3f4f6;
+    }
+    .mt-overlay.open { display: flex; }
+    .mt-card {
+      width: 100%; max-width: 420px; background: #fff; padding: 28px 24px;
+      border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center;
+    }
+    .mt-icon { font-size: 44px; }
+    .mt-card h2 { margin: 12px 0 8px; font-size: 22px; }
+    .mt-card p { margin: 0; color: var(--muted); line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -489,6 +503,15 @@
           <div id="apptBox"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ---------- หน้าปิดปรับปรุง ---------- -->
+  <div class="mt-overlay" id="maint" role="alertdialog" aria-modal="true" aria-labelledby="mtTitle">
+    <div class="mt-card">
+      <div class="mt-icon" aria-hidden="true">🛠</div>
+      <h2 id="mtTitle">ปิดปรับปรุงชั่วคราว</h2>
+      <p id="mtMsg"></p>
     </div>
   </div>
 
@@ -778,6 +801,18 @@ function welcome(name) {
   h.appendChild(e);
 }
 
+// ตรวจว่าคำตอบจากเซิร์ฟเวอร์คือ "ปิดปรับปรุง"
+function isMaint(res) {
+  return !!(res && (res.maintenance || /ปรับปรุง/.test(String(res.message || ''))));
+}
+
+// แสดงหน้าปิดปรับปรุงเต็มจอ (พร้อมออกจากระบบและล้างข้อมูลในหน้า)
+function showMaintenance(msg) {
+  doLogout('');
+  $('mtMsg').textContent = msg || 'ระบบปิดปรับปรุงชั่วคราว กรุณากลับมาใหม่ภายหลัง';
+  $('maint').classList.add('open');
+}
+
 /* ---------- Login ---------- */
 function doLogin() {
   const btn = $('btn');
@@ -798,6 +833,7 @@ function doLogin() {
         setBox('msg', 'เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่อีกครั้งในอีกสักครู่', 'err');
         return;
       }
+      if (isMaint(res)) { showMaintenance(res.message); return; }
       if (!res.ok) { setBox('msg', res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง', 'err'); return; }
       setBox('msg', '');
       showHome(res);
@@ -1246,7 +1282,8 @@ function submitBook(keys, type) {
         setBMsg('ตอนนี้มีคนจองจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยืนยันการจองอีกครั้งในอีกสักครู่', 'err');
         return;
       }
-      if (res.expired || res.maintenance) { doLogout(res.message); return; }
+      if (isMaint(res)) { showMaintenance(res.message); return; }
+      if (res.expired) { doLogout(res.message); return; }
       if (res.slots) slots = res.slots;
       if (res.appts) appts = res.appts;
 
@@ -1324,7 +1361,8 @@ function doCancel(key) {
         setAMsg('ตอนนี้มีผู้ใช้งานจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยกเลิกอีกครั้งในอีกสักครู่', 'err');
         return;
       }
-      if (res.expired || res.maintenance) { doLogout(res.message); return; }
+      if (isMaint(res)) { showMaintenance(res.message); return; }
+      if (res.expired) { doLogout(res.message); return; }
       if (res.slots) slots = res.slots;
       if (res.appts) appts = res.appts;
 
