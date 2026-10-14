@@ -538,7 +538,8 @@ const RPC = {
   login:             { name: 'app_login',  params: ['p_student_id', 'p_email'] },
   bookAppointment:   { name: 'app_book',   params: ['p_token', 'p_dates', 'p_type'] },
   cancelAppointment: { name: 'app_cancel', params: ['p_token', 'p_date'] },
-  logout:            { name: 'app_logout', params: ['p_token'] }
+  logout:            { name: 'app_logout', params: ['p_token'] },
+  status:            { name: 'app_status', params: [] }
 };
 
 function callRpc(fn, args) {
@@ -808,10 +809,25 @@ function isMaint(res) {
 
 // แสดงหน้าปิดปรับปรุงเต็มจอ (พร้อมออกจากระบบและล้างข้อมูลในหน้า)
 function showMaintenance(msg) {
+  if ($('maint').classList.contains('open')) return;
   doLogout('');
   $('mtMsg').textContent = msg || 'ระบบปิดปรับปรุงชั่วคราว กรุณากลับมาใหม่ภายหลัง';
   $('maint').classList.add('open');
 }
+
+// เช็กสถานะปิดปรับปรุงตั้งแต่เปิดหน้า และเช็กซ้ำทุก 60 วินาที
+function checkStatus() {
+  callRpc('status', []).then(function (res) {
+    if (!res) return;
+    if (res.maintenance) {
+      showMaintenance(res.message);
+    } else if ($('maint').classList.contains('open')) {
+      location.reload(); // เปิดระบบแล้ว -> โหลดหน้าใหม่
+    }
+  }).catch(function () {}); // เช็กไม่ได้ก็ไม่ต้องทำอะไร (ฝั่งล็อกอิน/จองยังบล็อกให้อยู่)
+}
+checkStatus();
+setInterval(checkStatus, 60000);
 
 /* ---------- Login ---------- */
 function doLogin() {
