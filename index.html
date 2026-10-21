@@ -302,16 +302,21 @@
     /* ---------- ลากลูกเต๋า + มินิเกม ---------- */
     .cube-wrap { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
     .cube-wrap.grab, .cube-wrap.grab .face { cursor: grabbing; }
-    .gm-top { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+    .gm-top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); }
     .gm-top b { color: var(--ink); }
-    .gm-q { margin: 16px 0; min-height: 64px; display: flex; align-items: center; justify-content: center;
-            text-align: center; font-size: 22px; font-weight: 600; line-height: 1.4; }
-    .gm-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .gm-opts:not(:empty) { margin-bottom: 14px; }
-    .gm-opts button { padding: 14px; font-size: 18px; font-weight: 500; color: var(--ink); background: #fff;
-                      border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
-    .gm-opts button.ok { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
-    .gm-opts button.no { border-color: var(--err); background: var(--err-bg); color: var(--err); }
+    .gm-q { margin: 12px 0; min-height: 26px; text-align: center; font-size: 15px; font-weight: 500; line-height: 1.5; }
+    .gm-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .gm-board:empty { display: none; }
+    .mc { aspect-ratio: 1; padding: 0; border: 0; background: none; perspective: 600px; cursor: pointer; }
+    .mc .in { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .3s; }
+    .mc.open .in, .mc.done .in { transform: rotateY(180deg); }
+    .mc .f { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+             border-radius: 14px; backface-visibility: hidden; font-size: 30px; }
+    .mc .b { color: #fff; font-weight: 600; background: linear-gradient(135deg, var(--primary), #7c3aed); box-shadow: 0 4px 10px rgba(79, 70, 229, .25); }
+    .mc .a { transform: rotateY(180deg); background: #fff; border: 2px solid var(--line); color: var(--ink); }
+    .mc.done .a { background: var(--ok-bg); border-color: var(--ok); }
+    .mc:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; border-radius: 14px; }
+    @media (prefers-reduced-motion: reduce) { .mc .in { transition: none; } }
 
     /* ---------- ลิงก์ (รายการ) ---------- */
     a.link {
@@ -633,11 +638,11 @@
         </div>
         <!-- หน้า 3: มินิเกม -->
         <div id="pageGame" class="pg" role="tabpanel">
-          <div class="sec first">🎮 Math Dash</div>
+          <div class="sec first">🎮 จับคู่สัญลักษณ์</div>
           <div class="panel">
-            <div class="gm-top"><span>⏱ <b id="gmTime">30</b> วิ</span><span>คะแนน <b id="gmScore">0</b></span><span>สูงสุด <b id="gmBest">0</b></span></div>
+            <div class="gm-top"><span>⏱ <b id="gmTime">0</b> วิ</span><span>เปิดไปแล้ว <b id="gmScore">0</b> ครั้ง</span><span>ดีที่สุด <b id="gmBest">-</b></span></div>
             <div class="gm-q" id="gmQ"></div>
-            <div class="gm-opts" id="gmOpts"></div>
+            <div class="gm-board" id="gmBoard"></div>
             <button class="btn primary" id="gmStart" onclick="gmStart()">เริ่มเล่น</button>
           </div>
         </div>
@@ -967,70 +972,70 @@ function endDrag(e) {
 window.addEventListener('pointerup', endDrag);
 window.addEventListener('pointercancel', endDrag);
 
-/* ---------- มินิเกม Math Dash (30 วินาที) ---------- */
-const GM_SECS = 30;
-let gmTimer = null, gmLeft = GM_SECS, gmScore = 0, gmAns = 0, gmLock = false, gmOn = false;
-function gmBest() { try { return Number(localStorage.getItem('sat_mathdash_best')) || 0; } catch (e) { return 0; } }
-function gmSaveBest(n) { try { localStorage.setItem('sat_mathdash_best', String(n)); } catch (e) {} }
-function gmRand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
-function gmQuestion() {
-  const t = gmRand(0, 3); let q, ans;
-  if (t === 0) { const x = gmRand(2, 12), a = gmRand(2, 9), b = gmRand(1, 20); q = a + 'x + ' + b + ' = ' + (a * x + b) + '  →  x = ?'; ans = x; }
-  else if (t === 1) { const p = [10, 20, 25, 50][gmRand(0, 3)], n = gmRand(2, 20) * 20; q = p + '% ของ ' + n + ' = ?'; ans = n * p / 100; }
-  else if (t === 2) { const a = gmRand(2, 9), b = gmRand(2, 3); q = a + '^' + b + ' = ?'; ans = Math.pow(a, b); }
-  else {
-    const m = gmRand(6, 20), d1 = gmRand(1, 5), d2 = gmRand(1, 5);
-    const xs = [m - d1, m + d1, m - d2, m + d2].sort(function () { return Math.random() - .5; });
-    q = 'ค่าเฉลี่ยของ ' + xs.join(', ') + ' = ?'; ans = m;
-  }
-  return { q: q, ans: ans };
+/* ---------- มินิเกมจับคู่สัญลักษณ์ (8 คู่ / 16 ใบ) ---------- */
+// เพิ่ม/เปลี่ยนสัญลักษณ์ได้ที่นี่ (ต้องมีอย่างน้อย 8 ตัว) แต่ละรอบสุ่มมาใช้ 8 ตัว
+const GM_POOL = ['🍎', '🐶', '🚀', '⚽', '🎸', '🌈', '🍕', '🐱', '⭐', '🎯', 'π', '√', '∑', '∞', 'Δ', 'θ'];
+const GM_PAIRS = 8, GM_BACK = 'การ์ดที่ปิดอยู่';
+let gmTimer = null, gmSecs = 0, gmMoves = 0, gmPairs = 0, gmFirst = null, gmLock = false, gmOn = false;
+function gmBest() { try { return Number(localStorage.getItem('sat_match_best')) || 0; } catch (e) { return 0; } }
+function gmSaveBest(n) { try { localStorage.setItem('sat_match_best', String(n)); } catch (e) {} }
+function gmBestText() { const b = gmBest(); return b ? b + ' ครั้ง' : '-'; }
+function gmShuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
 }
-function gmNext() {
-  const o = gmQuestion(); gmAns = o.ans; gmLock = false;
-  $('gmQ').textContent = o.q;
-  const set = [o.ans];
-  while (set.length < 4) { const w = o.ans + gmRand(-6, 6); if (w > 0 && set.indexOf(w) < 0) set.push(w); }
-  set.sort(function () { return Math.random() - .5; });
-  const box = $('gmOpts'); box.textContent = '';
-  set.forEach(function (v) {
+function gmStart() {
+  gmStop();
+  gmOn = true;
+  $('gmStart').style.display = 'none';
+  $('gmQ').textContent = 'เปิดการ์ดทีละ 2 ใบ หาคู่ที่เหมือนกัน';
+  const syms = gmShuffle(GM_POOL.slice()).slice(0, GM_PAIRS);
+  const deck = gmShuffle(syms.concat(syms));
+  const box = $('gmBoard');
+  box.textContent = '';
+  deck.forEach(function (sym) {
     const b = document.createElement('button');
-    b.type = 'button'; b.textContent = v;
-    b.onclick = function () { gmPick(b, v); };
+    b.type = 'button'; b.className = 'mc'; b.setAttribute('aria-label', GM_BACK);
+    b.innerHTML = '<span class="in"><span class="f b">?</span><span class="f a"></span></span>';
+    b.querySelector('.a').textContent = sym;
+    b.onclick = function () { gmFlip(b, sym); };
     box.appendChild(b);
   });
 }
-function gmPick(btn, v) {
-  if (!gmOn || gmLock) return;
-  gmLock = true;
-  const ok = v === gmAns;
-  btn.classList.add(ok ? 'ok' : 'no');
-  if (ok) { gmScore++; $('gmScore').textContent = gmScore; }
-  else Array.prototype.forEach.call($('gmOpts').children, function (b) { if (Number(b.textContent) === gmAns) b.classList.add('ok'); });
-  setTimeout(function () { if (gmOn) gmNext(); }, ok ? 250 : 700);
-}
-function gmStart() {
-  gmStop(); gmOn = true; gmScore = 0; gmLeft = GM_SECS;
-  $('gmStart').style.display = 'none';
-  gmNext();
-  gmTimer = setInterval(function () {
-    gmLeft--; $('gmTime').textContent = gmLeft;
-    if (gmLeft <= 0) gmEnd();
-  }, 1000);
+function gmFlip(b, sym) {
+  if (!gmOn || gmLock || b.classList.contains('open') || b.classList.contains('done')) return;
+  if (!gmTimer) gmTimer = setInterval(function () { gmSecs++; $('gmTime').textContent = gmSecs; }, 1000);   // เริ่มจับเวลาตอนเปิดใบแรก
+  b.classList.add('open'); b.setAttribute('aria-label', sym);
+  if (!gmFirst) { gmFirst = { b: b, sym: sym }; return; }
+  gmMoves++; $('gmScore').textContent = gmMoves;
+  const a = gmFirst; gmFirst = null;
+  if (a.sym === sym) {
+    a.b.classList.add('done'); b.classList.add('done'); gmPairs++;
+    if (gmPairs === GM_PAIRS) setTimeout(gmEnd, 450);
+  } else {
+    gmLock = true;
+    setTimeout(function () {
+      a.b.classList.remove('open'); b.classList.remove('open');
+      a.b.setAttribute('aria-label', GM_BACK); b.setAttribute('aria-label', GM_BACK);
+      gmLock = false;
+    }, 800);
+  }
 }
 function gmEnd() {
+  if (!gmOn) return;
   clearInterval(gmTimer); gmTimer = null; gmOn = false;
-  const prev = gmBest(), rec = gmScore > prev;
-  if (rec) gmSaveBest(gmScore);
-  $('gmBest').textContent = Math.max(prev, gmScore);
-  $('gmOpts').textContent = '';
-  $('gmQ').textContent = 'หมดเวลา! ได้ ' + gmScore + ' คะแนน' + (rec ? ' 🎉 สถิติใหม่' : '');
+  const prev = gmBest(), rec = !prev || gmMoves < prev;
+  if (rec) gmSaveBest(gmMoves);
+  $('gmBest').textContent = (rec ? gmMoves : prev) + ' ครั้ง';
+  $('gmQ').textContent = 'จับคู่ครบแล้ว! ใช้ ' + gmMoves + ' ครั้ง ' + gmSecs + ' วินาที' + (rec ? ' 🎉 สถิติใหม่' : '');
   $('gmStart').textContent = 'เล่นอีกครั้ง'; $('gmStart').style.display = 'block';
 }
 function gmStop() {   // เรียกตอนออกจากหน้าเกม/ออกจากระบบ: หยุดเวลาและรีเซ็ตหน้า
-  clearInterval(gmTimer); gmTimer = null; gmOn = false;
-  $('gmOpts').textContent = '';
-  $('gmQ').textContent = 'ตอบให้ได้มากที่สุดใน ' + GM_SECS + ' วินาที';
-  $('gmTime').textContent = GM_SECS; $('gmScore').textContent = 0; $('gmBest').textContent = gmBest();
+  clearInterval(gmTimer); gmTimer = null;
+  gmOn = false; gmLock = false; gmFirst = null; gmSecs = 0; gmMoves = 0; gmPairs = 0;
+  $('gmBoard').textContent = '';
+  $('gmQ').textContent = 'เปิดการ์ดทีละ 2 ใบ จับคู่สัญลักษณ์ให้ครบ ใช้ครั้งน้อยที่สุดยิ่งดี';
+  $('gmTime').textContent = '0'; $('gmScore').textContent = '0'; $('gmBest').textContent = gmBestText();
   $('gmStart').textContent = 'เริ่มเล่น'; $('gmStart').style.display = 'block';
 }
 gmStop();
