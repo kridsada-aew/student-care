@@ -299,6 +299,20 @@
     .cube-hint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 13px; color: var(--muted); pointer-events: none; }
     @media (max-width: 600px) { .stage.fixed { height: 320px; } }
 
+    /* ---------- ลากลูกเต๋า + มินิเกม ---------- */
+    .cube-wrap { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .cube-wrap.grab, .cube-wrap.grab .face { cursor: grabbing; }
+    .gm-top { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+    .gm-top b { color: var(--ink); }
+    .gm-q { margin: 16px 0; min-height: 64px; display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 22px; font-weight: 600; line-height: 1.4; }
+    .gm-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .gm-opts:not(:empty) { margin-bottom: 14px; }
+    .gm-opts button { padding: 14px; font-size: 18px; font-weight: 500; color: var(--ink); background: #fff;
+                      border: 2px solid var(--line); border-radius: 14px; cursor: pointer; }
+    .gm-opts button.ok { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
+    .gm-opts button.no { border-color: var(--err); background: var(--err-bg); color: var(--err); }
+
     /* ---------- ลิงก์ (รายการ) ---------- */
     a.link {
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -572,13 +586,14 @@
       <div class="nav" role="tablist">
         <button class="tab" id="tabLinks" role="tab" aria-selected="false" onclick="goTab(0)">🔗 ลิงก์</button>
         <button class="tab" id="tabBook" role="tab" aria-selected="false" onclick="goTab(1)">📅 จองนัด</button>
+        <button class="tab" id="tabGame" role="tab" aria-selected="false" onclick="goTab(2)">🎮 มินิเกม</button>
       </div>
 
       <div class="pages">
        <div class="stage fixed" id="stage">
         <div class="cube-wrap" id="cubeWrap" aria-hidden="true">
           <div class="cube" id="cube"></div>
-          <div class="cube-hint">แตะที่ลูกเต๋า หรือเลือกแท็บ</div>
+          <div class="cube-hint">ลากเพื่อหมุนลูกเต๋า · แตะที่หน้าเพื่อเปิด หรือเลือกแท็บ</div>
         </div>
         <!-- หน้า 1: ลิงก์ -->
         <div id="pageLinks" class="pg" role="tabpanel">
@@ -615,6 +630,16 @@
 
           <div id="amsg"></div>
           <div id="apptBox"></div>
+        </div>
+        <!-- หน้า 3: มินิเกม -->
+        <div id="pageGame" class="pg" role="tabpanel">
+          <div class="sec first">🎮 Math Dash</div>
+          <div class="panel">
+            <div class="gm-top"><span>⏱ <b id="gmTime">30</b> วิ</span><span>คะแนน <b id="gmScore">0</b></span><span>สูงสุด <b id="gmBest">0</b></span></div>
+            <div class="gm-q" id="gmQ"></div>
+            <div class="gm-opts" id="gmOpts"></div>
+            <button class="btn primary" id="gmStart" onclick="gmStart()">เริ่มเล่น</button>
+          </div>
         </div>
        </div><!-- /stage -->
       </div>
@@ -773,7 +798,8 @@ function runRetry(fn, args, opt) {
 /* ---------- ลูกเต๋านำทาง ---------- */
 const TABS = [
   { page: 'pageLinks', btn: 'tabLinks', label: 'ลิงก์',  icon: '🔗' },
-  { page: 'pageBook',  btn: 'tabBook',  label: 'จองนัด', icon: '📅' }
+  { page: 'pageBook',  btn: 'tabBook',  label: 'จองนัด', icon: '📅' },
+  { page: 'pageGame',  btn: 'tabGame',  label: 'มินิเกม', icon: '🎮' }
 ];
 // เพิ่มแท็บใหม่ (สูงสุด 6): เพิ่มรายการข้างบน + ปุ่ม .tab ใน .nav (onclick="goTab(เลขลำดับ)") + <div class="pg" id="..."> ใน #stage
 const CUBE_COLORS = [['#4f46e5','#818cf8'],['#7c3aed','#a78bfa'],['#0284c7','#38bdf8'],['#059669','#34d399'],['#d97706','#fbbf24'],['#e11d48','#fb7185']];
@@ -781,8 +807,8 @@ const CUBE_FACE = ['', 'rotateY(90deg) ', 'rotateY(180deg) ', 'rotateY(-90deg) '
 const CUBE_BASE = [[0, 0], [0, -90], [0, -180], [0, 90], [-90, 0], [90, 0]];
 const CUBE_S = 150, CUBE_P = 900;
 const stage = $('stage'), cubeWrap = $('cubeWrap'), cubeEl = $('cube');
-const cs = { rx: -22, ry: 30, z: 0 };
-let cubeMode = 'cube', openIdx = -1, zOpen = 0, loopOn = false, lastT = 0, cubeGen = 0;
+const cs = { rx: -22, ry: 30, z: 0, vy: 0.025 };
+let cubeMode = 'cube', openIdx = -1, zOpen = 0, loopOn = false, lastT = 0, cubeGen = 0, drag = null, dragMoved = false;
 
 function reduceMotion() {
   return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -797,7 +823,7 @@ function reduceMotion() {
     f.style.background = 'linear-gradient(135deg,' + c[0] + ',' + c[1] + ')';
     f.appendChild(el('span', 'fi', TABS[i] ? TABS[i].icon : '✨'));
     f.appendChild(el('span', '', TABS[i] ? TABS[i].label : 'เร็วๆ นี้'));
-    if (TABS[i]) f.onclick = function () { goTab(i); };
+    if (TABS[i]) f.onclick = function () { if (!dragMoved) goTab(i); };
     cubeEl.appendChild(f);
   }
 })();
@@ -833,8 +859,10 @@ function startLoop() {
 function loopFrame(t) {
   if (cubeMode !== 'cube' || $('homeBox').style.display === 'none') { loopOn = false; return; }
   const dt = Math.max(0, Math.min(50, t - lastT)); lastT = t;
-  cs.ry += dt * 0.025;
-  cs.rx += ((-22 + Math.sin(t / 1800) * 8) - cs.rx) * (1 - Math.exp(-dt / 300));
+  if (drag && dragMoved) { requestAnimationFrame(loopFrame); return; }   // กำลังลากอยู่ ไม่ต้องหมุนเอง
+  cs.vy += (0.025 - cs.vy) * (1 - Math.exp(-dt / 700));                  // ความเร็วค่อยๆ กลับสู่การหมุนช้าๆ
+  cs.ry += dt * cs.vy;
+  cs.rx += ((-22 + Math.sin(t / 1800) * 8) - cs.rx) * (1 - Math.exp(-dt / 1500));
   drawCube();
   requestAnimationFrame(loopFrame);
 }
@@ -843,11 +871,11 @@ function loopFrame(t) {
 function resetCube() {
   cubeGen++;
   cubeMode = 'cube'; openIdx = -1;
-  cs.rx = -22; cs.ry = 30; cs.z = 0;
+  cs.rx = -22; cs.ry = 30; cs.z = 0; cs.vy = 0.025;
   stage.classList.add('fixed');
   cubeWrap.style.opacity = 1;
   TABS.forEach(function (t) { const p = $(t.page); p.classList.remove('show'); p.style.opacity = ''; });
-  markTab(-1); drawCube(); startLoop();
+  markTab(-1); drawCube(); gmStop(); startLoop();
 }
 
 // กดแท็บ: ลูกเต๋าหมุนมาหน้านั้น -> ซูมเต็มพื้นที่
@@ -902,7 +930,7 @@ function closeToCube(after) {
   function done() {
     pg.classList.remove('show'); pg.style.opacity = '';
     cubeWrap.style.opacity = 1; cs.z = 0; drawCube();
-    openIdx = -1; cubeMode = 'cube'; startLoop();
+    openIdx = -1; cubeMode = 'cube'; gmStop(); startLoop();
     if (after) after();
   }
   if (reduceMotion()) { done(); return; }
@@ -913,6 +941,99 @@ function closeToCube(after) {
     pg.style.opacity = k; cubeWrap.style.opacity = 1 - k;
   }, done);
 }
+
+/* ---------- ลากลูกเต๋าด้วยเมาส์/นิ้ว ---------- */
+cubeWrap.addEventListener('pointerdown', function (e) {
+  if (cubeMode !== 'cube' || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now() };
+  dragMoved = false;
+});
+window.addEventListener('pointermove', function (e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!dragMoved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;   // ขยับน้อยกว่า 6px ถือว่าเป็นการแตะ
+  const now = performance.now(), dt = Math.max(1, now - drag.lt);
+  const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly;
+  dragMoved = true; cubeWrap.classList.add('grab');
+  cs.ry += dx * 0.5;
+  cs.rx = Math.max(-95, Math.min(95, cs.rx - dy * 0.5));
+  cs.vy = Math.max(-0.6, Math.min(0.6, cs.vy * 0.5 + (dx * 0.5 / dt) * 0.5));        // ปล่อยแล้วหมุนต่อด้วยแรงเฉื่อย
+  drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = now;
+  drawCube();
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag = null; cubeWrap.classList.remove('grab');
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+/* ---------- มินิเกม Math Dash (30 วินาที) ---------- */
+const GM_SECS = 30;
+let gmTimer = null, gmLeft = GM_SECS, gmScore = 0, gmAns = 0, gmLock = false, gmOn = false;
+function gmBest() { try { return Number(localStorage.getItem('sat_mathdash_best')) || 0; } catch (e) { return 0; } }
+function gmSaveBest(n) { try { localStorage.setItem('sat_mathdash_best', String(n)); } catch (e) {} }
+function gmRand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function gmQuestion() {
+  const t = gmRand(0, 3); let q, ans;
+  if (t === 0) { const x = gmRand(2, 12), a = gmRand(2, 9), b = gmRand(1, 20); q = a + 'x + ' + b + ' = ' + (a * x + b) + '  →  x = ?'; ans = x; }
+  else if (t === 1) { const p = [10, 20, 25, 50][gmRand(0, 3)], n = gmRand(2, 20) * 20; q = p + '% ของ ' + n + ' = ?'; ans = n * p / 100; }
+  else if (t === 2) { const a = gmRand(2, 9), b = gmRand(2, 3); q = a + '^' + b + ' = ?'; ans = Math.pow(a, b); }
+  else {
+    const m = gmRand(6, 20), d1 = gmRand(1, 5), d2 = gmRand(1, 5);
+    const xs = [m - d1, m + d1, m - d2, m + d2].sort(function () { return Math.random() - .5; });
+    q = 'ค่าเฉลี่ยของ ' + xs.join(', ') + ' = ?'; ans = m;
+  }
+  return { q: q, ans: ans };
+}
+function gmNext() {
+  const o = gmQuestion(); gmAns = o.ans; gmLock = false;
+  $('gmQ').textContent = o.q;
+  const set = [o.ans];
+  while (set.length < 4) { const w = o.ans + gmRand(-6, 6); if (w > 0 && set.indexOf(w) < 0) set.push(w); }
+  set.sort(function () { return Math.random() - .5; });
+  const box = $('gmOpts'); box.textContent = '';
+  set.forEach(function (v) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = v;
+    b.onclick = function () { gmPick(b, v); };
+    box.appendChild(b);
+  });
+}
+function gmPick(btn, v) {
+  if (!gmOn || gmLock) return;
+  gmLock = true;
+  const ok = v === gmAns;
+  btn.classList.add(ok ? 'ok' : 'no');
+  if (ok) { gmScore++; $('gmScore').textContent = gmScore; }
+  else Array.prototype.forEach.call($('gmOpts').children, function (b) { if (Number(b.textContent) === gmAns) b.classList.add('ok'); });
+  setTimeout(function () { if (gmOn) gmNext(); }, ok ? 250 : 700);
+}
+function gmStart() {
+  gmStop(); gmOn = true; gmScore = 0; gmLeft = GM_SECS;
+  $('gmStart').style.display = 'none';
+  gmNext();
+  gmTimer = setInterval(function () {
+    gmLeft--; $('gmTime').textContent = gmLeft;
+    if (gmLeft <= 0) gmEnd();
+  }, 1000);
+}
+function gmEnd() {
+  clearInterval(gmTimer); gmTimer = null; gmOn = false;
+  const prev = gmBest(), rec = gmScore > prev;
+  if (rec) gmSaveBest(gmScore);
+  $('gmBest').textContent = Math.max(prev, gmScore);
+  $('gmOpts').textContent = '';
+  $('gmQ').textContent = 'หมดเวลา! ได้ ' + gmScore + ' คะแนน' + (rec ? ' 🎉 สถิติใหม่' : '');
+  $('gmStart').textContent = 'เล่นอีกครั้ง'; $('gmStart').style.display = 'block';
+}
+function gmStop() {   // เรียกตอนออกจากหน้าเกม/ออกจากระบบ: หยุดเวลาและรีเซ็ตหน้า
+  clearInterval(gmTimer); gmTimer = null; gmOn = false;
+  $('gmOpts').textContent = '';
+  $('gmQ').textContent = 'ตอบให้ได้มากที่สุดใน ' + GM_SECS + ' วินาที';
+  $('gmTime').textContent = GM_SECS; $('gmScore').textContent = 0; $('gmBest').textContent = gmBest();
+  $('gmStart').textContent = 'เริ่มเล่น'; $('gmStart').style.display = 'block';
+}
+gmStop();
 
 /* ---------- ป๊อปอัป ---------- */
 let dlgLastFocus = null;
