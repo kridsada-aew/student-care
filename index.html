@@ -1870,5 +1870,166 @@ function doLogout(message) {
   setTimeout(function () { end(false); }, 3600);
 })();
 </script>
+  <style>
+/* ---------- โมบายกระดิ่ง ---------- */
+.cube { display: none; }
+.cube-wrap { touch-action: pan-y; background: linear-gradient(180deg, #fff, #eef2ff 85%); }
+.mobile { position: absolute; inset: 0; }
+.mb-hang { position: absolute; top: 0; width: 2px; margin-left: -1px; background: #94a3b8; }
+.mb-ring { position: absolute; border: 2px solid rgba(100,116,139,.55); border-radius: 50%; }
+.mb-hub { position: absolute; z-index: 5; width: 12px; height: 12px; border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed); box-shadow: 0 2px 6px rgba(79,70,229,.4); }
+.mb-svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.bl { position: absolute; left: 0; top: 0; will-change: transform; }
+.bl-sw { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.bl-str { position: absolute; left: -1px; top: 0; width: 2px; height: 64px; background: #94a3b8; }
+.bl-btn { position: absolute; left: -32px; top: 62px; width: 64px; height: 64px; padding: 0; border: 0; background: none; cursor: pointer; }
+.bl-btn svg { display: block; filter: drop-shadow(0 4px 6px rgba(15,23,42,.25)); }
+.bl-ic { position: absolute; left: 0; right: 0; top: 22px; text-align: center; font-size: 18px; line-height: 1; pointer-events: none; }
+.bl-lb { position: absolute; left: -50px; top: 130px; width: 100px; text-align: center; font-size: 14px; font-weight: 500; color: var(--ink); }
+</style>
+
+<script>
+/* ---------- โมบายกระดิ่ง (ทับลูกเต๋าเดิม) ---------- */
+const BELL_COLORS = [['#4f46e5','#818cf8'],['#7c3aed','#a78bfa'],['#0284c7','#38bdf8']];
+const BASE_VY = 0.018;   // ความเร็วหมุน 0.018 ≈ 20 วินาที/รอบ (ลดเลขนี้ = ช้าลง)
+const mb = { cx: 160, R: 100, ry: 22, y: 84 };
+const bells = [];
+let bellHover = false, mbHang, mbRing, mbHub, mbSvg;
+const mobEl = el('div', 'mobile');
+cubeWrap.insertBefore(mobEl, cubeWrap.firstChild);
+const hintEl = cubeWrap.querySelector('.cube-hint');
+if (hintEl) hintEl.textContent = 'ลากเพื่อหมุนโมบาย · แตะกระดิ่งเพื่อเปิด หรือเลือกแท็บ';
+cs.vy = BASE_VY;
+
+(function buildMobile() {
+  const NS = 'http://www.w3.org/2000/svg';
+  mbHang = el('div', 'mb-hang'); mbRing = el('div', 'mb-ring'); mbHub = el('div', 'mb-hub');
+  mbSvg = document.createElementNS(NS, 'svg'); mbSvg.setAttribute('class', 'mb-svg');
+  mobEl.appendChild(mbHang); mobEl.appendChild(mbRing); mobEl.appendChild(mbSvg); mobEl.appendChild(mbHub);
+  TABS.forEach(function (t, i) {
+    const c = BELL_COLORS[i % BELL_COLORS.length];
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('stroke', '#94a3b8'); line.setAttribute('stroke-width', '1.5');
+    mbSvg.appendChild(line);
+    const wrap = el('div', 'bl'), sw = el('div', 'bl-sw'), str = el('div', 'bl-str');
+    const btn = el('button', 'bl-btn'), lb = el('div', 'bl-lb', t.label);
+    btn.type = 'button'; btn.tabIndex = -1;
+    btn.innerHTML = '<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><defs>' +
+      '<linearGradient id="blg' + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c[1] + '"/>' +
+      '<stop offset="1" stop-color="' + c[0] + '"/></linearGradient></defs>' +
+      '<path d="M32 6c-3 0-5 2-5 4-9 3-14 11-14 21 0 9-3 12-6 16h50c-3-4-6-7-6-16 0-10-5-18-14-21 0-2-2-4-5-4z" fill="url(#blg' + i + ')"/>' +
+      '<rect x="4" y="47" width="56" height="5" rx="2.5" fill="url(#blg' + i + ')"/>' +
+      '<circle cx="32" cy="57" r="5" fill="#fbbf24"/>' +
+      '<ellipse cx="22" cy="26" rx="3" ry="9" fill="#fff" opacity=".3"/></svg>';
+    btn.appendChild(el('span', 'bl-ic', t.icon));
+    btn.setAttribute('aria-label', t.label);
+    btn.onclick = function () { if (!dragMoved) goTab(i); };
+    btn.onmouseenter = function () { bellHover = true; };
+    btn.onmouseleave = function () { bellHover = false; };
+    sw.appendChild(str); sw.appendChild(btn); sw.appendChild(lb);
+    wrap.appendChild(sw); mobEl.appendChild(wrap);
+    bells.push({ wrap: wrap, sw: sw, line: line, amp: 0, t0: 0 });
+  });
+})();
+
+function layoutMobile() {
+  const w = stage.clientWidth || 320;
+  mb.cx = w / 2;
+  mb.R = Math.max(60, Math.min(120, w * 0.3));
+  mb.ry = mb.R * 0.22;
+  mbHang.style.left = mb.cx + 'px'; mbHang.style.height = mb.y + 'px';
+  mbRing.style.left = (mb.cx - mb.R) + 'px'; mbRing.style.top = (mb.y - mb.ry) + 'px';
+  mbRing.style.width = (mb.R * 2) + 'px'; mbRing.style.height = (mb.ry * 2) + 'px';
+  mbHub.style.left = (mb.cx - 6) + 'px'; mbHub.style.top = (mb.y - 6) + 'px';
+}
+
+function drawMobile(t) {
+  const n = bells.length;
+  bells.forEach(function (b, i) {
+    const th = (cs.ry + i * 360 / n) * Math.PI / 180;
+    const s = Math.sin(th), c = Math.cos(th);
+    const x = mb.cx + mb.R * s, y = mb.y + mb.ry * c;
+    b.wrap.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + (0.86 + 0.14 * c).toFixed(3) + ')';
+    b.wrap.style.zIndex = String(10 + Math.round(c * 10));
+    b.wrap.style.opacity = (0.82 + 0.18 * (c + 1) / 2).toFixed(2);
+    const e = t - b.t0;
+    const ang = Math.sin(t / 1100 + i * 2) * 2.5 + b.amp * Math.exp(-e / 900) * Math.sin(e / 70);
+    b.sw.style.transform = 'rotate(' + ang.toFixed(2) + 'deg)';
+    b.line.setAttribute('x1', mb.cx); b.line.setAttribute('y1', mb.y);
+    b.line.setAttribute('x2', x.toFixed(1)); b.line.setAttribute('y2', y.toFixed(1));
+  });
+}
+
+function ringBell(i) { if (bells[i]) { bells[i].t0 = performance.now(); bells[i].amp = 20; } }
+
+/* ---- แทนที่ฟังก์ชันลูกเต๋าเดิม ---- */
+function drawCube() { if (bells.length) drawMobile(performance.now()); }
+
+function startLoop() {
+  layoutMobile(); drawMobile(performance.now());
+  if (loopOn || reduceMotion()) return;
+  loopOn = true; lastT = performance.now();
+  requestAnimationFrame(loopFrame);
+}
+function loopFrame(t) {
+  if ($('homeBox').style.display === 'none' || cubeMode === 'open') { loopOn = false; return; }
+  const dt = Math.max(0, Math.min(50, t - lastT)); lastT = t;
+  if (!(drag && dragMoved)) {
+    const target = bellHover ? 0.004 : BASE_VY;
+    cs.vy += (target - cs.vy) * (1 - Math.exp(-dt / 700));
+    cs.ry += dt * cs.vy;
+  }
+  drawMobile(t);
+  requestAnimationFrame(loopFrame);
+}
+
+function resetCube() {
+  cubeGen++;
+  cubeMode = 'cube'; openIdx = -1; bellHover = false;
+  cs.ry = 30; cs.vy = BASE_VY;
+  stage.classList.add('fixed');
+  cubeWrap.style.opacity = 1;
+  TABS.forEach(function (t) { const p = $(t.page); p.classList.remove('show'); p.style.opacity = ''; });
+  markTab(-1); drawCube(); gmStop(); startLoop();
+}
+
+function openFromCube(i) {
+  cubeMode = 'busy'; openIdx = i; bellHover = false; markTab(i);
+  const pg = $(TABS[i].page);
+  pg.classList.add('show');
+  ringBell(i);
+  if (reduceMotion()) { finishOpen(); return; }
+  pg.style.opacity = 0;
+  const g = cubeGen;
+  setTimeout(function () {
+    if (g !== cubeGen) return;
+    tween(450, easeOut, function (v) { pg.style.opacity = v; cubeWrap.style.opacity = 1 - v; }, finishOpen);
+  }, 380);
+}
+
+function closeToCube(after) {
+  cubeMode = 'busy';
+  const pg = $(TABS[openIdx].page);
+  const r = stage.getBoundingClientRect();
+  if (r.top < 0) { try { window.scrollTo(0, window.scrollY + r.top - 8); } catch (e) {} }
+  stage.classList.add('fixed');
+  markTab(-1);
+  startLoop();
+  function done() {
+    pg.classList.remove('show'); pg.style.opacity = '';
+    cubeWrap.style.opacity = 1;
+    openIdx = -1; cubeMode = 'cube'; gmStop(); startLoop();
+    if (after) after();
+  }
+  if (reduceMotion()) { done(); return; }
+  cubeWrap.style.opacity = 0;
+  tween(300, easeOut, function (v) { pg.style.opacity = 1 - v; cubeWrap.style.opacity = v; }, done);
+}
+
+window.addEventListener('resize', function () {
+  if ($('homeBox').style.display !== 'none' && cubeMode !== 'open') { layoutMobile(); drawMobile(performance.now()); }
+});
+</script>
 </body>
 </html>
