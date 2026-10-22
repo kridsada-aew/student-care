@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* ============ ตัวแปรสี ============ */
     :root {
       --bg1: #eef2ff; --bg2: #f8fafc;
       --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
@@ -17,9 +18,11 @@
       --online: #2563eb; --online-bg: #eff6ff;
       --onsite: #059669; --onsite-bg: #ecfdf5;
       --radius: 16px;
-      /* >>> วาง base64 โลโก้ของคุณแทนข้อความ "วางโลโก้ของคุณตรงนี้" (ให้เหลือรูปแบบ url("data:image/webp;base64,....")) <<< */
+      /* >>> แทนข้อความ "วางโลโก้ของคุณตรงนี้" ด้วย base64 โลโก้เดิมของคุณ <<< */
       --logo: url("data:image/webp;base64,วางโลโก้ของคุณตรงนี้");
     }
+
+    /* ============ พื้นฐาน ============ */
     * { box-sizing: border-box; }
     body {
       margin: 0; color: var(--ink); min-height: 100vh;
@@ -29,35 +32,57 @@
     button { font-family: inherit; }
     .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 48px; }
     .wrap.center { padding-top: 48px; }
+    .panel {
+      background: #fff; border-radius: var(--radius); padding: 16px; margin-top: 14px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+    }
+    .sec { margin: 26px 4px 6px; font-size: 16px; font-weight: 600; }
+    .sec.first { margin-top: 4px; }
+    .hint { font-size: 14px; color: var(--muted); }
 
-    /* ---------- ปุ่ม ---------- */
+    /* ============ ปุ่ม ============ */
     .btn {
       display: block; width: 100%; border: 0; border-radius: 12px;
       padding: 14px 16px; font-size: 16px; font-weight: 500; cursor: pointer;
       transition: transform .05s, box-shadow .2s;
     }
-    .btn.primary {
-      color: #fff; background: linear-gradient(135deg, var(--primary), #6366f1);
-      box-shadow: 0 6px 16px rgba(79, 70, 229, .3);
-    }
+    .btn.primary { color: #fff; background: linear-gradient(135deg, var(--primary), #6366f1); box-shadow: 0 6px 16px rgba(79, 70, 229, .3); }
     .btn.primary:active { transform: translateY(1px); }
+    .btn.ghost { background: #e2e8f0; color: #334155; }
+    .btn.danger { color: #fff; background: #dc2626; box-shadow: 0 6px 16px rgba(220, 38, 38, .25); }
     .btn:disabled { opacity: .6; cursor: progress; box-shadow: none; }
     .btn:focus-visible, .cal-day:focus-visible, .cal-nav:focus-visible, .mini:focus-visible, .tab:focus-visible,
-    .gbtn:focus-visible, .lk-back:focus-visible {
-      outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px;
+    .gbtn:focus-visible, .lk-back:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+    .mini {
+      display: inline-block; width: auto; margin: 10px 8px 0 0; padding: 7px 14px;
+      border: 0; border-radius: 10px; font-size: 14px; cursor: pointer;
+    }
+    .mini.cancel { background: var(--err-bg); color: var(--err); }
+    .mini.hist-more { display: block; width: 100%; margin: 10px 0 0; text-align: center; background: #e2e8f0; color: #334155; }
+    .pill, .dlg-link {
+      display: inline-block; margin: 8px 6px 0 0; padding: 7px 12px; border-radius: 999px;
+      font-size: 14px; font-weight: 500; text-decoration: none;
+      background: var(--primary-l); color: var(--primary-d);
     }
 
-    /* ---------- หน้า login ---------- */
-    .card {
-      background: #fff; border-radius: 20px; padding: 28px 24px;
-      box-shadow: 0 10px 30px rgba(79, 70, 229, .12);
-    }
-    .logo-img {
-      width: 150px; aspect-ratio: 158 / 82; margin: 0 auto 10px;
-      background: var(--logo) center / contain no-repeat;
-    }
+    /* ============ กล่องข้อความ ============ */
+    .msgbox { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
+    .msgbox.ok { background: var(--ok-bg); color: var(--ok); }
+    .msgbox.err { background: var(--err-bg); color: var(--err); }
+    .msgbox.info { background: var(--online-bg); color: var(--online); }
+
+    /* ============ หน้า login ============ */
+    .card { background: #fff; border-radius: 20px; padding: 28px 24px; box-shadow: 0 10px 30px rgba(79, 70, 229, .12); }
+    .logo-img { width: 150px; aspect-ratio: 158 / 82; margin: 0 auto 10px; background: var(--logo) center / contain no-repeat; }
     .center-text { text-align: center; }
-    .brand-name { font-weight: 600; font-size: 18px; }
+    .brand-name {
+      font-weight: 600; font-size: 18px;
+      background: linear-gradient(90deg, var(--ink) 0 35%, #7c3aed 50%, var(--ink) 65% 100%);
+      background-size: 250% 100%; background-position: 100% 0;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      animation: shine 4s linear infinite;
+    }
     .sub { color: var(--muted); font-size: 14px; margin: 4px 0 20px; }
     .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
     .field input {
@@ -65,18 +90,66 @@
       font-family: inherit; border: 1.5px solid var(--line); border-radius: 12px;
       background: #f8fafc; color: var(--ink);
     }
-    .field input:focus {
-      outline: none; border-color: var(--primary); background: #fff;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+    .field input:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+
+    /* ฉากหลังเคลื่อนไหว + การ์ดเรืองแสง */
+    @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+    .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .fx::before {
+      content: ''; position: absolute; inset: -40px;
+      background-image: linear-gradient(rgba(79,70,229,.07) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(79,70,229,.07) 1px, transparent 1px);
+      background-size: 40px 40px;
+      -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+      mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+      animation: gridMove 8s linear infinite;
+    }
+    .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; animation: orbDrift 14s ease-in-out infinite alternate; }
+    .orb.o1 { width: 380px; height: 380px; background: #a5b4fc; top: -100px; left: -80px; }
+    .orb.o2 { width: 340px; height: 340px; background: #c4b5fd; bottom: -90px; right: -70px; animation-duration: 18s; animation-delay: -4s; }
+    .orb.o3 { width: 260px; height: 260px; background: #7dd3fc; top: 45%; left: 55%; opacity: .4; animation-duration: 16s; animation-delay: -8s; }
+    .sym { position: absolute; bottom: -60px; color: var(--primary); font-weight: 600; opacity: 0; animation: symFloat linear infinite; }
+    #loginCard { position: relative; z-index: 1; }
+    .card.glow {
+      isolation: isolate; background: transparent;
+      transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+      transition: transform .15s ease-out;
+    }
+    .card.glow::before {
+      content: ''; position: absolute; inset: -2px; border-radius: 22px; z-index: -2;
+      background: conic-gradient(from var(--ang), #4f46e5, #7c3aed, #38bdf8, #a78bfa, #4f46e5);
+      animation: angSpin 5s linear infinite;
+    }
+    .card.glow::after { content: ''; position: absolute; inset: 0; border-radius: 20px; background: #fff; z-index: -1; }
+    #btn { position: relative; overflow: hidden; }
+    #btn::after {
+      content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
+      transform: skewX(-20deg); animation: sweep 3.2s ease-in-out 1.5s infinite;
     }
 
-    /* ---------- กล่องข้อความ ---------- */
-    .msgbox { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
-    .msgbox.ok { background: var(--ok-bg); color: var(--ok); }
-    .msgbox.err { background: var(--err-bg); color: var(--err); }
-    .msgbox.info { background: var(--online-bg); color: var(--online); }
+    /* เริ่มเล่นเมื่อ intro จบ (JS ใส่ class enter) */
+    .enter .card.glow { animation: cardIn .8s cubic-bezier(.2, 1.1, .3, 1) both; }
+    .enter .logo-img { animation: popIn .7s cubic-bezier(.2, 1.4, .4, 1) .25s both, floaty 4s ease-in-out 1s infinite; }
+    .enter .rise { animation: rise .6s ease var(--d, 0s) both; }
+    .enter .brand-name.rise { animation: rise .6s ease var(--d, 0s) both, shine 4s linear 1s infinite; }
 
-    /* ---------- ส่วนหัวหน้าหลัก ---------- */
+    @keyframes gridMove { to { transform: translate(40px, 40px); } }
+    @keyframes orbDrift { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, 40px) scale(1.15); } }
+    @keyframes symFloat {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10%, 90% { opacity: .18; }
+      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+    }
+    @keyframes angSpin { to { --ang: 360deg; } }
+    @keyframes shine { to { background-position: 0 0; } }
+    @keyframes sweep { 0% { left: -60%; } 60%, 100% { left: 130%; } }
+    @keyframes cardIn { from { opacity: 0; translate: 0 40px; scale: .94; } to { opacity: 1; translate: 0 0; scale: 1; } }
+    @keyframes popIn { from { opacity: 0; scale: .5; } to { opacity: 1; scale: 1; } }
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes rise { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
+
+    /* ============ ส่วนหัวหน้าหลัก ============ */
     .hero {
       position: relative; color: #fff; border-radius: 20px; padding: 22px 20px;
       background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -89,37 +162,31 @@
       background: rgba(255, 255, 255, .2); color: #fff; border-radius: 999px;
       padding: 6px 12px; font-size: 13px;
     }
+    .hw { display: inline-block; white-space: nowrap; }
+    .hl { display: inline-block; border-radius: 6px; animation: hlIn .5s cubic-bezier(.2, 1.3, .4, 1) both; }
+    .hwave { display: inline-block; animation: emojiIn .6s cubic-bezier(.2, 1.3, .4, 1) both; }
+    @keyframes hlIn {
+      0% { opacity: 0; transform: translateY(-12px) rotate(-60deg) scale(.5);
+           box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .25); }
+      55% { opacity: 1; transform: translateY(1px) rotate(6deg) scale(1.08);
+            box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .18); }
+      100% { opacity: 1; transform: none;
+             box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0); background: rgba(255, 255, 255, 0); }
+    }
+    @keyframes emojiIn {
+      0% { opacity: 0; transform: scale(.3) rotate(-30deg); }
+      60% { opacity: 1; transform: scale(1.2) rotate(15deg); }
+      100% { opacity: 1; transform: none; }
+    }
 
-    /* ---------- แท็บนำทาง ---------- */
+    /* ============ แท็บนำทาง ============ */
     .layout { margin-top: 16px; }
-    .nav {
-      display: flex; gap: 6px; padding: 6px; background: #fff;
-      border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
-    }
-    .tab {
-      flex: 1; border: 0; background: transparent; color: var(--muted);
-      padding: 11px 8px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer;
-    }
+    .nav { display: flex; gap: 6px; padding: 6px; background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+    .tab { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 11px 8px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
     .tab.active { background: var(--primary-l); color: var(--primary-d); }
     .pages { margin-top: 14px; }
 
-    @media (min-width: 768px) {
-      .wrap.wide { max-width: 920px; }
-      .layout { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
-      .nav { flex-direction: column; position: sticky; top: 16px; padding: 10px; }
-      .tab { flex: none; text-align: left; padding: 13px 14px; }
-      .pages { margin-top: 0; }
-    }
-
-    .panel {
-      background: #fff; border-radius: var(--radius); padding: 16px; margin-top: 14px;
-      box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
-    }
-    .sec { margin: 26px 4px 6px; font-size: 16px; font-weight: 600; }
-    .sec.first { margin-top: 4px; }
-    .hint { font-size: 14px; color: var(--muted); }
-
-    /* ---------- ลิงก์แบบแบ่งหมวด ---------- */
+    /* ============ ลิงก์ (แบ่งหมวด) ============ */
     .lk-groups .gbtn {
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
       width: 100%; margin-top: 8px; padding: 14px; text-align: left; cursor: pointer;
@@ -132,35 +199,25 @@
     .gbtn.active { border-color: var(--primary); background: var(--primary-l); color: var(--primary-d); }
     .lk-groups .nbtn { display: none; }
     .lk-groups .nbtn + .gbtn { margin-top: 0; }
-
-    .lk.picked .lk-items { display: block; }
     .lk.picked .lk-groups { display: none; }
     .lk-head { display: flex; align-items: center; gap: 10px; margin: 0 2px 4px; }
-    .lk-back {
-      width: auto; padding: 6px 12px; border: 0; border-radius: 10px;
-      background: #e2e8f0; color: #334155; font-size: 14px; cursor: pointer;
-    }
+    .lk-back { width: auto; padding: 6px 12px; border: 0; border-radius: 10px; background: #e2e8f0; color: #334155; font-size: 14px; cursor: pointer; }
     .lk-title { font-weight: 600; font-size: 17px; }
-    .lk-items a.link:first-of-type { margin-top: 8px; }
     .lk-note {
       margin-top: 12px; padding: 14px 16px; background: #fff; border-radius: 14px;
       box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
       font-size: 14px; line-height: 1.75; white-space: pre-line; overflow-wrap: break-word;
     }
-
-    @media (min-width: 768px) {
-      .lk { display: grid; grid-template-columns: 190px 1fr; gap: 16px; align-items: start; }
-      .lk .lk-items, .lk.picked .lk-items { display: block; }
-      .lk.picked .lk-groups { display: block; }
-      .lk-back { display: none; }
-      .lk.single { display: block; }
-      .lk.single .lk-groups { display: none; }
-      .lk-note:first-child { margin-top: 0; }
-      .lk-groups .nbtn { display: flex; }
-      .lk-groups .nbtn + .gbtn { margin-top: 8px; }
+    a.link {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      margin-top: 8px; padding: 14px; background: #fff; color: var(--ink);
+      border: 1px solid var(--line); border-radius: 14px; text-decoration: none;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
     }
+    a.link::after { content: '›'; font-size: 22px; color: var(--primary); }
+    a.link:active { background: var(--primary-l); }
 
-    /* ---------- ขั้นตอนการจอง ---------- */
+    /* ============ จองนัด: ขั้นตอน + ตัวเลือก ============ */
     .step { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 4px 0 10px; }
     .step .num {
       width: 24px; height: 24px; border-radius: 50%; flex: 0 0 24px; font-size: 13px;
@@ -169,15 +226,20 @@
     }
     .step small { font-weight: 400; color: var(--muted); font-size: 13px; }
     .step.second { margin-top: 18px; }
+    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .opt { position: relative; display: block; cursor: pointer; }
+    .opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .opt span { display: block; text-align: center; padding: 12px 8px; font-weight: 500; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
+    .opt small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .opt input:checked + span { border-color: var(--primary); background: var(--primary-l); color: var(--primary-d); }
+    .opt input:focus-visible + span { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+    #submitBook { margin-top: 18px; }
 
-    /* ---------- ปฏิทิน ---------- */
+    /* ============ ปฏิทิน ============ */
     .cal { background: #f8faff; border-radius: 16px; padding: 12px; }
     .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
     .cal-title { font-size: 16px; font-weight: 500; }
-    .cal-nav {
-      width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent;
-      font-size: 22px; color: var(--ink); cursor: pointer;
-    }
+    .cal-nav { width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; font-size: 22px; color: var(--ink); cursor: pointer; }
     .cal-nav:hover:not(:disabled) { background: var(--primary-l); }
     .cal-nav:disabled { opacity: .3; cursor: default; }
     .cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
@@ -194,18 +256,12 @@
       content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px;
       margin-left: -2px; border-radius: 50%; background: currentColor;
     }
-    .cal-detail {
-      margin-top: 12px; padding: 14px; border: 2px solid var(--primary); border-radius: 14px; background: #fff;
-    }
+    .cal-detail { margin-top: 12px; padding: 14px; border: 2px solid var(--primary); border-radius: 14px; background: #fff; }
     .cal-detail .d-date { font-size: 13px; color: var(--muted); }
     .cal-detail .d-lesson { font-size: 18px; font-weight: 600; line-height: 1.35; margin-top: 2px; overflow-wrap: break-word; }
     .cal-detail .d-time { margin-top: 8px; font-size: 15px; font-weight: 500; color: var(--primary-d); }
     .cal-detail .btn { margin-top: 12px; padding: 11px 14px; font-size: 15px; }
-    .cal-detail .btn.ghost { background: #e2e8f0; color: #334155; }
-    .c-seat {
-      display: inline-block; margin-top: 8px; font-size: 12px; padding: 2px 8px;
-      border-radius: 999px; background: var(--ok-bg); color: var(--ok);
-    }
+    .c-seat { display: inline-block; margin-top: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); }
     .c-seat.low { background: var(--warn-bg); color: var(--warn); }
     .c-seat.off { background: #e2e8f0; color: #64748b; }
     .cal-hint { margin-top: 10px; font-size: 14px; color: var(--muted); text-align: center; }
@@ -216,76 +272,31 @@
     }
     .tag button { border: 0; background: rgba(79,70,229,.15); color: var(--primary-d); width: 22px; height: 22px; border-radius: 50%; cursor: pointer; }
 
-    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .opt { position: relative; display: block; cursor: pointer; }
-    .opt input { position: absolute; opacity: 0; pointer-events: none; }
-    .opt span {
-      display: block; text-align: center; padding: 12px 8px; font-weight: 500;
-      border: 2px solid var(--line); border-radius: 14px; background: #fff;
-    }
-    .opt small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .opt input:checked + span { border-color: var(--primary); background: var(--primary-l); color: var(--primary-d); }
-    .opt input:focus-visible + span { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
-    #submitBook { margin-top: 18px; }
-
-    /* ---------- นัดของฉัน ---------- */
+    /* ============ นัดของฉัน + ประวัติ ============ */
     .appt {
       display: flex; gap: 12px; margin-top: 10px; padding: 12px;
       background: #fff; border-radius: var(--radius); border-left: 4px solid var(--online);
       box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
     }
     .appt.onsite { border-left-color: var(--onsite); }
-    .tile {
-      flex: 0 0 56px; text-align: center; border-radius: 12px; padding: 8px 0;
-      background: var(--online-bg); color: var(--online); align-self: flex-start;
-    }
+    .tile { flex: 0 0 56px; text-align: center; border-radius: 12px; padding: 8px 0; background: var(--online-bg); color: var(--online); align-self: flex-start; }
     .appt.onsite .tile { background: var(--onsite-bg); color: var(--onsite); }
     .tile b { display: block; font-size: 22px; line-height: 1.1; }
     .tile span { display: block; font-size: 12px; text-transform: uppercase; }
     .abody { flex: 1; min-width: 0; }
-    .badge {
-      display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 10px;
-      border-radius: 999px; background: var(--online-bg); color: var(--online);
-    }
+    .badge { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 999px; background: var(--online-bg); color: var(--online); }
     .appt.onsite .badge { background: var(--onsite-bg); color: var(--onsite); }
     .year { font-size: 12px; color: var(--muted); margin-left: 6px; }
-    .pill {
-      display: inline-block; margin: 8px 6px 0 0; padding: 7px 12px; border-radius: 999px;
-      font-size: 14px; font-weight: 500; text-decoration: none;
-      background: var(--primary-l); color: var(--primary-d);
-    }
     .lesson { margin-top: 8px; font-size: 14px; }
     .ltitle { margin-top: 8px; font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: break-word; }
     .atime { margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--primary-d); }
-    .wait {
-      margin-top: 8px; font-size: 13px; color: var(--warn); background: var(--warn-bg);
-      padding: 6px 10px; border-radius: 10px;
-    }
+    .wait { margin-top: 8px; font-size: 13px; color: var(--warn); background: var(--warn-bg); padding: 6px 10px; border-radius: 10px; }
     .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
-    .mini {
-      display: inline-block; width: auto; margin: 10px 8px 0 0; padding: 7px 14px;
-      border: 0; border-radius: 10px; font-size: 14px; cursor: pointer;
-    }
-    .mini.cancel { background: var(--err-bg); color: var(--err); }
-
-    /* ---------- ประวัติการจอง (นัดที่ผ่านไปแล้ว) ---------- */
     .appt.past { opacity: .8; border-left-color: #94a3b8; }
-    .appt.past .tile { background: #f1f5f9; color: #64748b; }
-    .appt.past .badge { background: #f1f5f9; color: #64748b; }
+    .appt.past .tile, .appt.past .badge { background: #f1f5f9; color: #64748b; }
     .done-tag { font-size: 12px; color: var(--muted); margin-left: 6px; }
-    .mini.hist-more { display: block; width: 100%; margin: 10px 0 0; text-align: center; background: #e2e8f0; color: #334155; }
 
-    /* ---------- ลิงก์ (รายการ) ---------- */
-    a.link {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      margin-top: 8px; padding: 14px; background: #fff; color: var(--ink);
-      border: 1px solid var(--line); border-radius: 14px; text-decoration: none;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
-    }
-    a.link::after { content: '›'; font-size: 22px; color: var(--primary); }
-    a.link:active { background: var(--primary-l); }
-
-    /* ---------- ป๊อปอัปแบบหน้าต่างเกม ---------- */
+    /* ============ ป๊อปอัปแบบหน้าต่างเกม ============ */
     .dlg-overlay {
       position: fixed; inset: 0; z-index: 100; display: none;
       align-items: center; justify-content: center; padding: 16px;
@@ -300,159 +311,33 @@
       animation: dlgPop .3s cubic-bezier(.2, 1.4, .4, 1);
     }
     .dlg-overlay.closing .dlg-win { animation: dlgPopOut .15s ease-in forwards; }
-    .dlg-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 12px; background: var(--ink); color: #fff;
-      font-size: 14px; font-weight: 500;
-    }
+    .dlg-bar { padding: 8px 12px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 500; }
     .dlg-content { padding: 20px 18px 18px; text-align: center; }
     .dlg-icon { font-size: 34px; line-height: 1; }
     .dlg-body { margin-top: 10px; font-size: 15px; line-height: 1.6; word-break: break-word; }
     .dlg-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
-    .dlg-list span {
-      padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 500;
-      background: var(--primary-l); color: var(--primary-d);
-    }
+    .dlg-list span { padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 500; background: var(--primary-l); color: var(--primary-d); }
+    .dlg-note { margin-top: 10px; font-size: 14px; color: var(--muted); }
+    .dlg-link { margin: 10px 0 0; }
     .dlg-actions { display: flex; gap: 10px; margin-top: 18px; }
     .dlg-actions .btn { width: auto; flex: 1; padding: 12px 8px; font-size: 15px; }
-    .btn.ghost { background: #e2e8f0; color: #334155; }
-    .btn.danger { color: #fff; background: #dc2626; box-shadow: 0 6px 16px rgba(220, 38, 38, .25); }
-    .dlg-note { margin-top: 10px; font-size: 14px; color: var(--muted); }
-    .dlg-link {
-      display: inline-block; margin-top: 10px; padding: 7px 14px; border-radius: 999px;
-      font-size: 14px; font-weight: 500; text-decoration: none;
-      background: var(--primary-l); color: var(--primary-d);
-    }
-
     @keyframes dlgFade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes dlgFadeOut { from { opacity: 1; } to { opacity: 0; } }
-    @keyframes dlgPop {
-      from { opacity: 0; transform: scale(.6) translateY(16px); }
-      to { opacity: 1; transform: none; }
-    }
-    @keyframes dlgPopOut {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: scale(.9) translateY(8px); }
-    }
+    @keyframes dlgPop { from { opacity: 0; transform: scale(.6) translateY(16px); } to { opacity: 1; transform: none; } }
+    @keyframes dlgPopOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(.9) translateY(8px); } }
 
-    /* ---------- ข้อความต้อนรับ ---------- */
-    .hw { display: inline-block; white-space: nowrap; }
-    .hl {
-      display: inline-block; border-radius: 6px;
-      animation: hlIn .5s cubic-bezier(.2, 1.3, .4, 1) both;
-    }
-    .hwave { display: inline-block; animation: emojiIn .6s cubic-bezier(.2, 1.3, .4, 1) both; }
-    @keyframes hlIn {
-      0% { opacity: 0; transform: translateY(-12px) rotate(-60deg) scale(.5);
-           box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .25); }
-      55% { opacity: 1; transform: translateY(1px) rotate(6deg) scale(1.08);
-            box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .18); }
-      100% { opacity: 1; transform: none;
-             box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0); background: rgba(255, 255, 255, 0); }
-    }
-    @keyframes emojiIn {
-      0% { opacity: 0; transform: scale(.3) rotate(-30deg); }
-      60% { opacity: 1; transform: scale(1.2) rotate(15deg); }
-      100% { opacity: 1; transform: none; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .dlg-overlay.open, .dlg-overlay.closing, .dlg-win, .dlg-overlay.closing .dlg-win,
-      .hl, .hwave { animation: none; }
-    }
-
-    /* ---------- หน้า login: ฉากหลังเคลื่อนไหว + การ์ดเรืองแสง ---------- */
-    @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-    .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-    .fx::before {
-      content: ''; position: absolute; inset: -40px;
-      background-image: linear-gradient(rgba(79,70,229,.07) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(79,70,229,.07) 1px, transparent 1px);
-      background-size: 40px 40px;
-      -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-      mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-      animation: gridMove 8s linear infinite;
-    }
-    .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55;
-           animation: orbDrift 14s ease-in-out infinite alternate; }
-    .orb.o1 { width: 380px; height: 380px; background: #a5b4fc; top: -100px; left: -80px; }
-    .orb.o2 { width: 340px; height: 340px; background: #c4b5fd; bottom: -90px; right: -70px;
-              animation-duration: 18s; animation-delay: -4s; }
-    .orb.o3 { width: 260px; height: 260px; background: #7dd3fc; top: 45%; left: 55%; opacity: .4;
-              animation-duration: 16s; animation-delay: -8s; }
-    .sym { position: absolute; bottom: -60px; color: var(--primary); font-weight: 600; opacity: 0;
-           animation: symFloat linear infinite; }
-    @keyframes gridMove { to { transform: translate(40px, 40px); } }
-    @keyframes orbDrift { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, 40px) scale(1.15); } }
-    @keyframes symFloat {
-      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-      10%, 90% { opacity: .18; }
-      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
-    }
-
-    #loginCard { position: relative; z-index: 1; }
-    .card.glow {
-      isolation: isolate; background: transparent;
-      transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-      transition: transform .15s ease-out;
-    }
-    .card.glow::before {
-      content: ''; position: absolute; inset: -2px; border-radius: 22px; z-index: -2;
-      background: conic-gradient(from var(--ang), #4f46e5, #7c3aed, #38bdf8, #a78bfa, #4f46e5);
-      animation: angSpin 5s linear infinite;
-    }
-    .card.glow::after { content: ''; position: absolute; inset: 0; border-radius: 20px; background: #fff; z-index: -1; }
-    @keyframes angSpin { to { --ang: 360deg; } }
-
-    .brand-name {
-      background: linear-gradient(90deg, var(--ink) 0 35%, #7c3aed 50%, var(--ink) 65% 100%);
-      background-size: 250% 100%; background-position: 100% 0;
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent; color: transparent;
-      animation: shine 4s linear infinite;
-    }
-    @keyframes shine { to { background-position: 0 0; } }
-
-    #btn { position: relative; overflow: hidden; }
-    #btn::after {
-      content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
-      background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
-      transform: skewX(-20deg); animation: sweep 3.2s ease-in-out 1.5s infinite;
-    }
-    @keyframes sweep { 0% { left: -60%; } 60%, 100% { left: 130%; } }
-
-    /* เริ่มเล่นตอนอนิเมชันเปิดเว็บใกล้จบ (JS ใส่ class enter) */
-    .enter .card.glow { animation: cardIn .8s cubic-bezier(.2, 1.1, .3, 1) both; }
-    .enter .logo-img { animation: popIn .7s cubic-bezier(.2, 1.4, .4, 1) .25s both, floaty 4s ease-in-out 1s infinite; }
-    .enter .rise { animation: rise .6s ease var(--d, 0s) both; }
-    .enter .brand-name.rise { animation: rise .6s ease var(--d, 0s) both, shine 4s linear 1s infinite; }
-    @keyframes cardIn { from { opacity: 0; translate: 0 40px; scale: .94; } to { opacity: 1; translate: 0 0; scale: 1; } }
-    @keyframes popIn { from { opacity: 0; scale: .5; } to { opacity: 1; scale: 1; } }
-    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-    @keyframes rise { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .fx::before, .orb, .sym, .card.glow::before, .brand-name, #btn::after,
-      .enter .card.glow, .enter .logo-img, .enter .rise, .enter .brand-name.rise { animation: none; }
-      .sym { display: none; }
-      .card.glow { transform: none; }
-    }
-
-    /* ---------- หน้าปิดปรับปรุง (ค้อน + ประแจ) ---------- */
+    /* ============ หน้าปิดปรับปรุง ============ */
     .mt-overlay {
       position: fixed; inset: 0; z-index: 300; display: none;
       align-items: center; justify-content: center; padding: 16px; background: #f3f4f6;
     }
     .mt-overlay.open { display: flex; }
-    .mt-card {
-      width: 100%; max-width: 420px; background: #fff; padding: 28px 24px;
-      border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center;
-    }
+    .mt-card { width: 100%; max-width: 420px; background: #fff; padding: 28px 24px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center; }
     .mt-icon { font-size: 44px; }
     .mt-card h2 { margin: 12px 0 8px; font-size: 22px; }
     .mt-card p { margin: 0; color: var(--muted); line-height: 1.6; }
 
-    /* ===== intro ใหม่: "Check" เลื่อนขึ้นมา ตามด้วย "Point" แล้วจางหาย ===== */
+    /* ============ intro: Check -> Point -> จางหาย ============ */
     #textIntro {
       position: fixed; inset: 0; z-index: 200; overflow: hidden; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
@@ -466,12 +351,35 @@
     }
     .ti-mask { display: block; overflow: hidden; line-height: 1.18; font-size: clamp(60px, 20vw, 120px); }
     .ti-in { display: block; transform: translateY(115%); animation: tiRise .6s cubic-bezier(.2, .85, .25, 1) var(--d, 0s) forwards; will-change: transform; }
-    .ti-skip {
-      position: absolute; left: 0; right: 0; bottom: 28px; text-align: center; font-size: 12px;
-      color: #94a3b8; letter-spacing: .04em; animation: inHint 1.6s ease both;
+    .ti-skip { position: absolute; left: 0; right: 0; bottom: 28px; text-align: center; font-size: 12px; color: #94a3b8; letter-spacing: .04em; animation: tiHint 1.6s ease both; }
+    @keyframes tiRise { to { transform: translateY(0); } }
+    @keyframes tiHint { 0% { opacity: 0; } 20%, 60% { opacity: 1; } 78%, 100% { opacity: 0; } }
+
+    /* ============ จอกว้าง (แท็บเป็นแถบข้าง) ============ */
+    @media (min-width: 768px) {
+      .wrap.wide { max-width: 920px; }
+      .layout { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
+      .nav { flex-direction: column; position: sticky; top: 16px; padding: 10px; }
+      .tab { flex: none; text-align: left; padding: 13px 14px; }
+      .pages { margin-top: 0; }
+      .lk { display: grid; grid-template-columns: 190px 1fr; gap: 16px; align-items: start; }
+      .lk.picked .lk-groups { display: block; }
+      .lk-back { display: none; }
+      .lk.single { display: block; }
+      .lk.single .lk-groups { display: none; }
+      .lk-note:first-child { margin-top: 0; }
+      .lk-groups .nbtn { display: flex; }
+      .lk-groups .nbtn + .gbtn { margin-top: 8px; }
     }
-    @keyframes tiRise { from { transform: translateY(115%); } to { transform: translateY(0); } }
-    @keyframes inHint { 0% { opacity: 0; } 20%, 60% { opacity: 1; } 78%, 100% { opacity: 0; } }
+
+    /* ============ ลดการเคลื่อนไหว (รวมทุกอนิเมชัน) ============ */
+    @media (prefers-reduced-motion: reduce) {
+      .dlg-overlay.open, .dlg-overlay.closing, .dlg-win, .dlg-overlay.closing .dlg-win, .hl, .hwave,
+      .fx::before, .orb, .sym, .card.glow::before, .brand-name, #btn::after,
+      .enter .card.glow, .enter .logo-img, .enter .rise, .enter .brand-name.rise { animation: none; }
+      .sym { display: none; }
+      .card.glow { transform: none; }
+    }
   </style>
 </head>
 <body>
@@ -563,9 +471,7 @@
   <!-- ---------- ป๊อปอัป ---------- -->
   <div class="dlg-overlay" id="dlg">
     <div class="dlg-win" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
-      <div class="dlg-bar">
-        <span id="dlgTitle"></span>
-      </div>
+      <div class="dlg-bar"><span id="dlgTitle"></span></div>
       <div class="dlg-content">
         <div class="dlg-icon" id="dlgIcon" aria-hidden="true"></div>
         <div class="dlg-body" id="dlgBody"></div>
@@ -575,7 +481,9 @@
   </div>
 
 <script>
-// ---------- ตั้งค่า Supabase ----------
+/* =====================================================
+   1) ค่าตั้งต้น + การเชื่อมต่อ Supabase
+   ===================================================== */
 const SB_URL = 'https://apzntujfqhzadgejdpwf.supabase.co';
 const SB_KEY = 'sb_publishable_6hPDr97QyuYA9gX8qCRYqw_cKQPhSGq';
 
@@ -587,6 +495,12 @@ const RPC = {
   status:            { name: 'app_status', params: [] }
 };
 
+const BOOK_LABEL = '📅 จองนัด Checkpoint กับพี่ๆ';
+const TIME_TEXT = '16:30 - 18:30';
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const HIST_SHOW = 5;   // ประวัติแสดงเริ่มต้นกี่รายการ
+const HIST_MAX = 10;   // กด "ดูเพิ่ม" แล้วแสดงได้สูงสุดกี่รายการ (ให้ตรงกับ limit ใน SQL)
+
 function callRpc(fn, args) {
   const def = RPC[fn];
   const body = {};
@@ -596,9 +510,7 @@ function callRpc(fn, args) {
   if (/^eyJ/.test(SB_KEY)) headers.Authorization = 'Bearer ' + SB_KEY;
 
   return fetch(SB_URL + '/rest/v1/rpc/' + def.name, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body)
+    method: 'POST', headers: headers, body: JSON.stringify(body)
   }).then(function (r) {
     return r.json().catch(function () { return null; }).then(function (data) {
       if (!r.ok) {
@@ -610,33 +522,64 @@ function callRpc(fn, args) {
     });
   });
 }
-let token = '';
-let slots = [];
-let appts = [];
-let selected = {};
-let busy = false;
-let linkGroups = [];
-let currentGroup = -1;
-let linkNotes = [];
-let onsite = { place: '', mapUrl: '' };
 
-const BOOK_LABEL = '📅 จองนัด Checkpoint กับพี่ๆ';
-const TIME_TEXT = '16:30 - 18:30';
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-let calY = 0, calM = -1, calDay = '';
+// เรียกซ้ำอัตโนมัติเมื่อเซิร์ฟเวอร์ยุ่ง/ล้มเหลวชั่วคราว
+function runRetry(fn, args, opt) {
+  const maxFail = opt.maxFail || 4;
+  const maxBusy = opt.maxBusy || 12;
+  let fails = 0, busies = 0;
 
-const HIST_SHOW = 5;   // ประวัติแสดงเริ่มต้นกี่รายการ
-const HIST_MAX = 10;   // กด "ดูเพิ่ม" แล้วแสดงได้สูงสุดกี่รายการ (ให้ตรงกับ limit ใน SQL)
-let histOpen = false;
+  function pause(n) { return Math.min(1200 + n * 600, 5000) + Math.random() * 1500; }
+  function wait() {
+    if (opt.onWait) opt.onWait(fails + busies);
+    setTimeout(go, pause(fails + busies));
+  }
 
-function $(id) { return document.getElementById(id); }
-
-function isHttps(u) {
-  return /^https:\/\//i.test(String(u || ''));
+  function go() {
+    callRpc(fn, args).then(function (res) {
+      if (res && res.busy) {
+        if (++busies <= maxBusy) return wait();
+        return opt.done({ ok: false, busyGiveUp: true }, null);
+      }
+      opt.done(res, null);
+    }, function (err) {
+      const retryable = !err.status || err.status >= 500 || err.status === 429;
+      if (retryable && ++fails <= maxFail) return wait();
+      opt.done(null, err);
+    });
+  }
+  go();
 }
 
-function pad2(n) { return (n < 10 ? '0' : '') + n; }
+/* =====================================================
+   2) สถานะของหน้า
+   ===================================================== */
+let token, slots, appts, selected, busy, histOpen;
+let linkGroups, currentGroup, linkNotes, onsite;
+let calY = 0, calM = -1, calDay = '';
 
+function resetState() {
+  token = '';
+  slots = []; appts = []; selected = {};
+  busy = false; histOpen = false;
+  calM = -1; calDay = '';
+  linkGroups = []; currentGroup = -1; linkNotes = [];
+  onsite = { place: '', mapUrl: '' };
+}
+resetState();
+
+/* =====================================================
+   3) ฟังก์ชันตัวช่วย
+   ===================================================== */
+function $(id) { return document.getElementById(id); }
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function isHttps(u) { return /^https:\/\//i.test(String(u || '')); }
+function reduceMotion() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+
+// วันนี้ตามเวลาไทย รูปแบบ yyyy-mm-dd
+function todayBkk() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); }
+
+// สร้าง element
 function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -644,12 +587,30 @@ function el(tag, cls, text) {
   return e;
 }
 
-function softText(el, text) {
-  el.textContent = '';
+// ปุ่มธรรมดา
+function button(cls, text, onclick) {
+  const b = el('button', cls, text);
+  b.type = 'button';
+  if (onclick) b.onclick = onclick;
+  return b;
+}
+
+// ลิงก์เปิดแท็บใหม่
+function extLink(cls, href, text) {
+  const a = el('a', cls, text);
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  return a;
+}
+
+// ใส่ <wbr> ให้ข้อความยาวตัดบรรทัดได้สวย
+function softText(node, text) {
+  node.textContent = '';
   String(text).split(/([&\/\-_+,:]+)/).forEach(function (part, i) {
     if (!part) return;
-    el.appendChild(document.createTextNode(part));
-    if (i % 2 === 1) el.appendChild(document.createElement('wbr'));
+    node.appendChild(document.createTextNode(part));
+    if (i % 2 === 1) node.appendChild(document.createElement('wbr'));
   });
 }
 
@@ -661,58 +622,16 @@ function setBox(id, text, cls) {
 function setBMsg(text, cls) { setBox('bmsg', text, cls); }
 function setAMsg(text, cls) { setBox('amsg', text, cls); }
 
-/* ---------- เรียกเซิร์ฟเวอร์ พร้อมลองใหม่อัตโนมัติ ---------- */
-function runRetry(fn, args, opt) {
-  const maxFail = opt.maxFail || 4;
-  const maxBusy = opt.maxBusy || 12;
-  let fails = 0;
-  let busies = 0;
+function typeName(type) { return type === 'online' ? 'Online' : 'Onsite'; }
 
-  function pause(n) {
-    return Math.min(1200 + n * 600, 5000) + Math.random() * 1500;
-  }
-
-  function go() {
-    callRpc(fn, args).then(function (res) {
-      if (res && res.busy) {
-        busies++;
-        if (busies <= maxBusy) {
-          if (opt.onWait) opt.onWait(fails + busies);
-          setTimeout(go, pause(fails + busies));
-          return;
-        }
-        opt.done({ ok: false, busyGiveUp: true }, null);
-        return;
-      }
-      opt.done(res, null);
-    }, function (err) {
-      const retryable = !err.status || err.status >= 500 || err.status === 429;
-      fails++;
-      if (retryable && fails <= maxFail) {
-        if (opt.onWait) opt.onWait(fails + busies);
-        setTimeout(go, pause(fails + busies));
-        return;
-      }
-      opt.done(null, err);
-    });
-  }
-
-  go();
+function labelFor(key) {
+  const hit = appts.concat(slots).filter(function (x) { return x.key === key; })[0];
+  return hit ? hit.label : key;
 }
 
-/* ---------- สลับแท็บ ---------- */
-function showTab(name) {
-  const isBook = name === 'book';
-  $('pageLinks').style.display = isBook ? 'none' : 'block';
-  $('pageBook').style.display = isBook ? 'block' : 'none';
-  $('tabLinks').classList.toggle('active', !isBook);
-  $('tabBook').classList.toggle('active', isBook);
-  $('tabLinks').setAttribute('aria-selected', isBook ? 'false' : 'true');
-  $('tabBook').setAttribute('aria-selected', isBook ? 'true' : 'false');
-  try { window.scrollTo(0, 0); } catch (e) {}
-}
-
-/* ---------- ป๊อปอัป ---------- */
+/* =====================================================
+   4) ป๊อปอัป
+   ===================================================== */
 let dlgLastFocus = null;
 let dlgTimer = null;
 
@@ -727,49 +646,23 @@ function showDialog(o) {
 
   const body = $('dlgBody');
   body.textContent = '';
-  if (o.message) {
-    const p = document.createElement('div');
-    p.textContent = o.message;
-    body.appendChild(p);
-  }
+  if (o.message) body.appendChild(el('div', '', o.message));
   if (o.lines && o.lines.length) {
-    const l = document.createElement('div');
-    l.className = 'dlg-list';
-    o.lines.forEach(function (t) {
-      const s = document.createElement('span');
-      s.textContent = t;
-      l.appendChild(s);
-    });
+    const l = el('div', 'dlg-list');
+    o.lines.forEach(function (t) { l.appendChild(el('span', '', t)); });
     body.appendChild(l);
   }
-  if (o.note) {
-    const n = document.createElement('div');
-    n.className = 'dlg-note';
-    n.textContent = o.note;
-    body.appendChild(n);
-  }
-  if (o.link && isHttps(o.link.href)) {
-    const a = document.createElement('a');
-    a.className = 'dlg-link';
-    a.href = o.link.href;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = o.link.text;
-    body.appendChild(a);
-  }
+  if (o.note) body.appendChild(el('div', 'dlg-note', o.note));
+  if (o.link && isHttps(o.link.href)) body.appendChild(extLink('dlg-link', o.link.href, o.link.text));
 
   const act = $('dlgActions');
   act.textContent = '';
   let focusBtn = null;
   (o.buttons || []).forEach(function (bt, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn ' + (bt.cls || 'primary');
-    b.textContent = bt.text;
-    b.onclick = function () {
+    const b = button('btn ' + (bt.cls || 'primary'), bt.text, function () {
       closeDialog();
       if (bt.onClick) bt.onClick();
-    };
+    });
     act.appendChild(b);
     if (bt.focus || (!focusBtn && i === 0)) focusBtn = b;
   });
@@ -792,71 +685,13 @@ function closeDialog(immediate) {
   dlgTimer = setTimeout(finish, 160);
 }
 
-$('dlg').addEventListener('click', function (e) {
-  if (e.target === $('dlg')) closeDialog();
-});
-
-document.addEventListener('keydown', function (e) {
-  const ov = $('dlg');
-  if (!ov.classList.contains('open') || ov.classList.contains('closing')) return;
-  if (e.key === 'Escape') { closeDialog(); return; }
-  if (e.key === 'Tab') {
-    const bs = ov.querySelectorAll('button, a[href]');
-    if (!bs.length) return;
-    const first = bs[0], last = bs[bs.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  }
-});
-
-/* ---------- ข้อความต้อนรับ ---------- */
-function splitChars(s) {
-  try {
-    if (window.Intl && Intl.Segmenter) {
-      return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s),
-        function (x) { return x.segment; });
-    }
-  } catch (e) {}
-  return s.match(/[^\u0E31\u0E34-\u0E3A\u0E47-\u0E4E][\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]*|[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+/gu) || [s];
-}
-
-function welcome(name) {
-  const h = $('hello');
-  h.textContent = '';
-  h.setAttribute('aria-label', 'สวัสดี ' + name);
-
-  let i = 0;
-  const words = ('สวัสดี ' + name).split(/\s+/).filter(Boolean);
-  words.forEach(function (w, wi) {
-    if (wi) h.appendChild(document.createTextNode(' '));
-    const ws = document.createElement('span');
-    ws.className = 'hw';
-    ws.setAttribute('aria-hidden', 'true');
-    splitChars(w).forEach(function (ch) {
-      const s = document.createElement('span');
-      s.className = 'hl';
-      s.textContent = ch;
-      s.style.animationDelay = (Math.min(i, 30) * 45) + 'ms';
-      i++;
-      ws.appendChild(s);
-    });
-    h.appendChild(ws);
-  });
-
-  const e = document.createElement('span');
-  e.className = 'hwave';
-  e.setAttribute('aria-hidden', 'true');
-  e.textContent = ' 👋';
-  e.style.animationDelay = (Math.min(i, 30) * 45 + 150) + 'ms';
-  h.appendChild(e);
-}
-
-// ตรวจว่าคำตอบจากเซิร์ฟเวอร์คือ "ปิดปรับปรุง"
+/* =====================================================
+   5) ปิดปรับปรุง + ตรวจคำตอบจากเซิร์ฟเวอร์
+   ===================================================== */
 function isMaint(res) {
   return !!(res && (res.maintenance || /ปรับปรุง/.test(String(res.message || ''))));
 }
 
-// แสดงหน้าปิดปรับปรุงเต็มจอ (พร้อมออกจากระบบและล้างข้อมูลในหน้า)
 function showMaintenance(msg) {
   if ($('maint').classList.contains('open')) return;
   doLogout('');
@@ -864,21 +699,28 @@ function showMaintenance(msg) {
   $('maint').classList.add('open');
 }
 
-// เช็กสถานะปิดปรับปรุงตั้งแต่เปิดหน้า และเช็กซ้ำทุก 60 วินาที
 function checkStatus() {
   callRpc('status', []).then(function (res) {
     if (!res) return;
-    if (res.maintenance) {
-      showMaintenance(res.message);
-    } else if ($('maint').classList.contains('open')) {
-      location.reload(); // เปิดระบบแล้ว -> โหลดหน้าใหม่
-    }
+    if (res.maintenance) showMaintenance(res.message);
+    else if ($('maint').classList.contains('open')) location.reload(); // เปิดระบบแล้ว -> โหลดหน้าใหม่
   }).catch(function () {}); // เช็กไม่ได้ก็ไม่ต้องทำอะไร (ฝั่งล็อกอิน/จองยังบล็อกให้อยู่)
 }
-checkStatus();
-setInterval(checkStatus, 60000);
 
-/* ---------- Login ---------- */
+// ตรวจคำตอบของ จอง/ยกเลิก ที่ใช้ร่วมกัน: คืน true ถ้าจัดการจบแล้ว (ให้หยุดทำต่อ)
+function handleReply(res, err, say, msgs) {
+  if (err || !res)  { say(msgs.fail, 'err'); return true; }
+  if (res.busyGiveUp) { say(msgs.busy, 'err'); return true; }
+  if (isMaint(res)) { showMaintenance(res.message); return true; }
+  if (res.expired)  { doLogout(res.message); return true; }
+  if (res.slots) slots = res.slots;
+  if (res.appts) appts = res.appts;
+  return false;
+}
+
+/* =====================================================
+   6) Login / Logout / แท็บ
+   ===================================================== */
 function doLogin() {
   const btn = $('btn');
   if (btn.disabled) return;
@@ -887,7 +729,6 @@ function doLogin() {
   setBox('msg', '');
 
   runRetry('login', [$('sid').value, $('email').value], {
-    maxFail: 4,
     onWait: function (n) {
       setBox('msg', 'ตอนนี้มีผู้ใช้งานจำนวนมาก กำลังลองเชื่อมต่ออีกครั้ง (' + n + ')...', 'info');
     },
@@ -907,24 +748,87 @@ function doLogin() {
 }
 
 function showHome(res) {
+  resetState();
   token = res.token;
   slots = res.slots || [];
   appts = res.appts || [];
-  selected = {};
-  histOpen = false;
-  calM = -1; calDay = '';
+  onsite = res.onsite || onsite;
   $('loginBox').style.display = 'none';
   $('homeBox').style.display = 'block';
-  onsite = res.onsite || { place: '', mapUrl: '' };
   $('onsiteHint').textContent = onsite.place ? 'มาเจอกันที่ ' + onsite.place : 'มาเจอกัน';
   welcome(res.student.name);
   renderLinks(res.links, res.notes);
   renderAppts();
-  renderChips();
+  renderCalendar();
   showTab('links');
 }
 
-/* ---------- ลิงก์ (แบ่งหมวด) ---------- */
+function doLogout(message) {
+  if (token) callRpc('logout', [token]).catch(function () {});
+  resetState();
+  closeDialog(true);
+  ['lkGroups', 'lkItems', 'apptBox', 'slotList', 'hello'].forEach(function (id) { $(id).textContent = ''; });
+  $('sid').value = '';
+  $('email').value = '';
+  closeBook();
+  setAMsg('');
+  showTab('links');
+  setBox('msg', typeof message === 'string' ? message : '', 'err');
+  $('homeBox').style.display = 'none';
+  $('loginBox').style.display = 'block';
+}
+
+function showTab(name) {
+  const isBook = name === 'book';
+  $('pageLinks').style.display = isBook ? 'none' : 'block';
+  $('pageBook').style.display = isBook ? 'block' : 'none';
+  $('tabLinks').classList.toggle('active', !isBook);
+  $('tabBook').classList.toggle('active', isBook);
+  $('tabLinks').setAttribute('aria-selected', String(!isBook));
+  $('tabBook').setAttribute('aria-selected', String(isBook));
+  try { window.scrollTo(0, 0); } catch (e) {}
+}
+
+/* =====================================================
+   7) ข้อความต้อนรับ
+   ===================================================== */
+function splitChars(s) {
+  try {
+    if (window.Intl && Intl.Segmenter) {
+      return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s),
+        function (x) { return x.segment; });
+    }
+  } catch (e) {}
+  return s.match(/[^\u0E31\u0E34-\u0E3A\u0E47-\u0E4E][\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]*|[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+/gu) || [s];
+}
+
+function welcome(name) {
+  const h = $('hello');
+  h.textContent = '';
+  h.setAttribute('aria-label', 'สวัสดี ' + name);
+
+  let i = 0;
+  ('สวัสดี ' + name).split(/\s+/).filter(Boolean).forEach(function (w, wi) {
+    if (wi) h.appendChild(document.createTextNode(' '));
+    const ws = el('span', 'hw');
+    ws.setAttribute('aria-hidden', 'true');
+    splitChars(w).forEach(function (ch) {
+      const s = el('span', 'hl', ch);
+      s.style.animationDelay = (Math.min(i++, 30) * 45) + 'ms';
+      ws.appendChild(s);
+    });
+    h.appendChild(ws);
+  });
+
+  const e = el('span', 'hwave', ' 👋');
+  e.setAttribute('aria-hidden', 'true');
+  e.style.animationDelay = (Math.min(i, 30) * 45 + 150) + 'ms';
+  h.appendChild(e);
+}
+
+/* =====================================================
+   8) ลิงก์ (แบ่งหมวด)
+   ===================================================== */
 function buildGroups(links) {
   const order = [];
   const map = Object.create(null);
@@ -945,188 +849,111 @@ function renderLinks(links, notes) {
 }
 
 function drawLinks() {
-  const lk = $('lk');
   const groupsBox = $('lkGroups');
   const itemsBox = $('lkItems');
   groupsBox.textContent = '';
   itemsBox.textContent = '';
 
-  lk.classList.toggle('picked', currentGroup >= 0);
-  lk.classList.toggle('single', linkGroups.length === 1);
+  $('lk').classList.toggle('picked', currentGroup >= 0);
+  $('lk').classList.toggle('single', linkGroups.length === 1);
 
   if (!linkGroups.length) {
-    const p = document.createElement('div');
-    p.className = 'hint';
-    p.textContent = 'ยังไม่มีลิงก์ในตอนนี้';
-    groupsBox.appendChild(p);
+    groupsBox.appendChild(el('div', 'hint', 'ยังไม่มีลิงก์ในตอนนี้'));
     return;
   }
 
-  if (linkNotes.length && linkGroups.length > 1) {
-    const nb = document.createElement('button');
-    nb.type = 'button';
-    nb.className = 'gbtn nbtn' + (currentGroup < 0 ? ' active' : '');
-    const nt = document.createElement('span');
-    nt.textContent = '📌 ข้อแนะนำ';
-    nb.appendChild(nt);
-    nb.onclick = function () { currentGroup = -1; drawLinks(); };
-    groupsBox.appendChild(nb);
+  function pick(i) { currentGroup = i; drawLinks(); }
+  function groupBtn(cls, label, i) {
+    const b = button(cls);
+    b.appendChild(el('span', '', label));
+    b.onclick = function () { pick(i); };
+    return b;
   }
 
+  if (linkNotes.length && linkGroups.length > 1) {
+    groupsBox.appendChild(groupBtn('gbtn nbtn' + (currentGroup < 0 ? ' active' : ''), '📌 ข้อแนะนำ', -1));
+  }
   linkGroups.forEach(function (g, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'gbtn' + (i === currentGroup ? ' active' : '');
-    const n = document.createElement('span');
-    n.textContent = g.name;
-    b.appendChild(n);
-    b.onclick = function () { currentGroup = i; drawLinks(); };
-    groupsBox.appendChild(b);
+    groupsBox.appendChild(groupBtn('gbtn' + (i === currentGroup ? ' active' : ''), g.name, i));
   });
 
   if (currentGroup < 0) {
-    if (linkNotes.length) {
-      linkNotes.forEach(function (n) {
-        const c = document.createElement('div');
-        c.className = 'lk-note';
-        c.textContent = n;
-        itemsBox.appendChild(c);
-      });
-    } else {
-      const p = document.createElement('div');
-      p.className = 'hint';
-      p.textContent = 'เลือกหมวดเพื่อดูลิงก์';
-      itemsBox.appendChild(p);
-    }
+    if (linkNotes.length) linkNotes.forEach(function (n) { itemsBox.appendChild(el('div', 'lk-note', n)); });
+    else itemsBox.appendChild(el('div', 'hint', 'เลือกหมวดเพื่อดูลิงก์'));
     return;
   }
 
   const g = linkGroups[currentGroup];
   if (linkGroups.length > 1) {
-    const head = document.createElement('div');
-    head.className = 'lk-head';
-    const back = document.createElement('button');
-    back.type = 'button';
-    back.className = 'lk-back';
-    back.textContent = '‹ กลับ';
-    back.onclick = function () { currentGroup = -1; drawLinks(); };
-    head.appendChild(back);
-    const t = document.createElement('div');
-    t.className = 'lk-title';
-    t.textContent = g.name;
-    head.appendChild(t);
+    const head = el('div', 'lk-head');
+    head.appendChild(button('lk-back', '‹ กลับ', function () { pick(-1); }));
+    head.appendChild(el('div', 'lk-title', g.name));
     itemsBox.appendChild(head);
   }
-  g.items.forEach(function (it) {
-    const a = document.createElement('a');
-    a.className = 'link';
-    a.href = it.url;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = it.title;
-    itemsBox.appendChild(a);
-  });
+  g.items.forEach(function (it) { itemsBox.appendChild(extLink('link', it.url, it.title)); });
 }
 
-/* ---------- นัดของฉัน ---------- */
-function miniButton(text, cls, onclick) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'mini ' + cls;
-  b.textContent = text;
-  b.onclick = onclick;
-  return b;
-}
-
-function waitLine(text) {
-  const d = document.createElement('div');
-  d.className = 'wait';
-  d.textContent = '⏳ ' + text;
-  return d;
-}
-
-function pill(href, text) {
-  const a = document.createElement('a');
-  a.className = 'pill';
-  a.href = href;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.textContent = text;
-  return a;
-}
-
+/* =====================================================
+   9) นัดของฉัน + ประวัติ
+   ===================================================== */
 function dateParts(label) {
   const p = String(label).split('/');
   return p.length === 3 ? { d: p[0], m: p[1], y: p[2] } : { d: String(label), m: '', y: '' };
 }
 
-// วันนี้ตามเวลาไทย รูปแบบ yyyy-mm-dd
-function todayBkk() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+function docPill(a) {
+  return extLink('pill', a.doc, '📄 เอกสารประกอบบทเรียน');
 }
 
 function buildApptCard(a, isPast) {
   const p = dateParts(a.label);
   const isOnline = a.type === 'online';
 
-  const card = document.createElement('div');
-  card.className = 'appt ' + (isOnline ? 'online' : 'onsite') + (isPast ? ' past' : '');
+  const card = el('div', 'appt ' + (isOnline ? 'online' : 'onsite') + (isPast ? ' past' : ''));
 
-  const tile = document.createElement('div');
-  tile.className = 'tile';
+  const tile = el('div', 'tile');
   tile.appendChild(el('b', '', p.d));
   tile.appendChild(el('span', '', p.m));
   card.appendChild(tile);
 
-  const body = document.createElement('div');
-  body.className = 'abody';
-
-  const head = document.createElement('div');
-  head.appendChild(el('span', 'badge', isOnline ? 'Online' : 'Onsite'));
+  const body = el('div', 'abody');
+  const head = el('div');
+  head.appendChild(el('span', 'badge', typeName(a.type)));
   if (p.y) head.appendChild(el('span', 'year', p.y));
   if (isPast) head.appendChild(el('span', 'done-tag', '• ผ่านไปแล้ว'));
   body.appendChild(head);
 
   if (a.lesson) {
-    const l = document.createElement('div');
-    l.className = 'ltitle';
+    const l = el('div', 'ltitle');
     softText(l, a.lesson);
     body.appendChild(l);
   }
-
   body.appendChild(el('div', 'atime', '🕓 ' + TIME_TEXT));
+  card.appendChild(body);
 
-  if (isPast) {
-    // ประวัติ: โชว์เฉพาะเอกสารที่มีลิงก์จริง ไม่โชว์ปุ่มยกเลิก/ข้อความเตือน
-    if (isHttps(a.doc)) body.appendChild(pill(a.doc, '📄 เอกสารประกอบบทเรียน'));
-    card.appendChild(body);
+  if (isPast) { // ประวัติ: โชว์เฉพาะเอกสารที่มีลิงก์จริง ไม่โชว์ปุ่มยกเลิก/ข้อความเตือน
+    if (isHttps(a.doc)) body.appendChild(docPill(a));
     return card;
   }
 
   if (isOnline) {
-    if (isHttps(a.link)) body.appendChild(pill(a.link, '👉 Link นัดหมาย online'));
-    else body.appendChild(waitLine('Link นัดหมาย online จะมีให้ในวันนั้น'));
+    body.appendChild(isHttps(a.link)
+      ? extLink('pill', a.link, '👉 Link นัดหมาย online')
+      : el('div', 'wait', '⏳ Link นัดหมาย online จะมีให้ในวันนั้น'));
   } else {
     if (onsite.place) body.appendChild(el('div', 'lesson', '📍 สถานที่: ' + onsite.place));
-    if (isHttps(onsite.mapUrl)) body.appendChild(pill(onsite.mapUrl, '🗺️ เปิดแผนที่'));
+    if (isHttps(onsite.mapUrl)) body.appendChild(extLink('pill', onsite.mapUrl, '🗺️ เปิดแผนที่'));
     body.appendChild(el('div', 'note', 'อย่าลืมมาตามนัดนะ'));
   }
 
-  if (isHttps(a.doc)) body.appendChild(pill(a.doc, '📄 เอกสารประกอบบทเรียน'));
-  else body.appendChild(waitLine('Link เอกสารประกอบบทเรียน จะมีให้ในวันนั้น'));
+  body.appendChild(isHttps(a.doc)
+    ? docPill(a)
+    : el('div', 'wait', '⏳ Link เอกสารประกอบบทเรียน จะมีให้ในวันนั้น'));
 
-  const act = document.createElement('div');
-  if (a.canCancel) {
-    act.appendChild(miniButton('ยกเลิกนัด', 'cancel', function () {
-      setAMsg('');
-      askCancel(a);
-    }));
-  } else {
-    act.appendChild(el('div', 'note', 'ถึงวันนัดแล้ว ยกเลิกในเว็บไม่ได้ กรุณาติดต่อพี่ๆ'));
-  }
-  body.appendChild(act);
+  body.appendChild(a.canCancel
+    ? button('mini cancel', 'ยกเลิกนัด', function () { setAMsg(''); askCancel(a); })
+    : el('div', 'note', 'ถึงวันนัดแล้ว ยกเลิกในเว็บไม่ได้ กรุณาติดต่อพี่ๆ'));
 
-  card.appendChild(body);
   return card;
 }
 
@@ -1149,21 +976,21 @@ function renderAppts() {
 
   if (history.length) {
     box.appendChild(el('div', 'sec', 'ประวัติการจอง'));
-    const shown = histOpen ? history : history.slice(0, HIST_SHOW);
-    shown.forEach(function (a) { box.appendChild(buildApptCard(a, true)); });
+    (histOpen ? history : history.slice(0, HIST_SHOW))
+      .forEach(function (a) { box.appendChild(buildApptCard(a, true)); });
 
     if (history.length > HIST_SHOW) {
-      box.appendChild(miniButton(
+      box.appendChild(button('mini hist-more',
         histOpen ? 'ย่อประวัติ' : 'ดูเพิ่ม (อีก ' + (history.length - HIST_SHOW) + ' รายการ)',
-        'hist-more',
-        function () { histOpen = !histOpen; renderAppts(); }
-      ));
+        function () { histOpen = !histOpen; renderAppts(); }));
     }
   }
 }
 
-/* ---------- ปฏิทินเลือกวันที่ ---------- */
-function renderChips() {
+/* =====================================================
+   10) ปฏิทินเลือกวันที่
+   ===================================================== */
+function renderCalendar() {
   const box = $('slotList');
   box.textContent = '';
   if (!slots.length) {
@@ -1186,16 +1013,15 @@ function renderChips() {
   }
   const ym = calY + '-' + pad2(calM + 1);
 
+  // หัวปฏิทิน
   const cal = el('div', 'cal');
   const head = el('div', 'cal-head');
-  const prev = el('button', 'cal-nav', '‹'); prev.type = 'button';
-  const next = el('button', 'cal-nav', '›'); next.type = 'button';
+  const prev = button('cal-nav', '‹', function () { calM--; if (calM < 0) { calM = 11; calY--; } renderCalendar(); });
+  const next = button('cal-nav', '›', function () { calM++; if (calM > 11) { calM = 0; calY++; } renderCalendar(); });
   prev.setAttribute('aria-label', 'เดือนก่อนหน้า');
   next.setAttribute('aria-label', 'เดือนถัดไป');
   prev.disabled = ym <= minYM;
   next.disabled = ym >= maxYM;
-  prev.onclick = function () { calM--; if (calM < 0) { calM = 11; calY--; } renderChips(); };
-  next.onclick = function () { calM++; if (calM > 11) { calM = 0; calY++; } renderChips(); };
   head.appendChild(prev);
   head.appendChild(el('div', 'cal-title', MONTHS[calM] + ' ' + calY));
   head.appendChild(next);
@@ -1205,28 +1031,25 @@ function renderChips() {
   ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (d) { dow.appendChild(el('span', '', d)); });
   cal.appendChild(dow);
 
+  // ตารางวัน
   const grid = el('div', 'cal-grid');
   const first = new Date(calY, calM, 1).getDay();
   const total = new Date(calY, calM + 1, 0).getDate();
-  const todayKey = (function () {
-    const n = new Date();
-    return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate());
-  })();
+  const today = todayBkk();
   for (let i = 0; i < first; i++) grid.appendChild(el('span'));
   for (let d = 1; d <= total; d++) {
     const key = calY + '-' + pad2(calM + 1) + '-' + pad2(d);
     const s = byKey[key];
-    const b = el('button', 'cal-day', String(d));
-    b.type = 'button';
-    if (key === todayKey) b.classList.add('today');
+    const b = button('cal-day', String(d));
+    if (key === today) b.classList.add('today');
     if (s) {
       b.classList.add('has');
       if (booked[key]) b.classList.add('booked');
       else if (s.full) b.classList.add('full');
       if (selected[key]) b.classList.add('sel');
       if (key === calDay) b.classList.add('active');
-      b.setAttribute('aria-pressed', key === calDay ? 'true' : 'false');
-      b.onclick = function () { calDay = key; renderChips(); };
+      b.setAttribute('aria-pressed', String(key === calDay));
+      b.onclick = function () { calDay = key; renderCalendar(); };
     } else {
       b.disabled = true;
     }
@@ -1235,37 +1058,35 @@ function renderChips() {
   cal.appendChild(grid);
   box.appendChild(cal);
 
-  const s = byKey[calDay];
-  if (s) {
+  // รายละเอียดวันที่เลือก
+  const day = byKey[calDay];
+  if (day) {
     const det = el('div', 'cal-detail');
-    det.appendChild(el('div', 'd-date', '📅 ' + s.label));
-    if (s.lesson) { const l = el('div', 'd-lesson'); softText(l, s.lesson); det.appendChild(l); }
+    det.appendChild(el('div', 'd-date', '📅 ' + day.label));
+    if (day.lesson) { const l = el('div', 'd-lesson'); softText(l, day.lesson); det.appendChild(l); }
     det.appendChild(el('div', 'd-time', '🕓 ' + TIME_TEXT));
-    const isBooked = !!booked[s.key], isFull = !isBooked && s.full;
-    const low = !isBooked && !isFull && s.left <= 5;
+    const isBooked = !!booked[day.key], isFull = !isBooked && day.full;
+    const low = !isBooked && !isFull && day.left <= 5;
     det.appendChild(el('span', 'c-seat' + (low ? ' low' : '') + (isBooked || isFull ? ' off' : ''),
-      isBooked ? '✓ จองแล้ว' : isFull ? 'เต็มแล้ว' : 'เหลือ ' + s.left + ' ที่นั่ง'));
+      isBooked ? '✓ จองแล้ว' : isFull ? 'เต็มแล้ว' : 'เหลือ ' + day.left + ' ที่นั่ง'));
     if (!isBooked && !isFull) {
-      const act = el('button', 'btn ' + (selected[s.key] ? 'ghost' : 'primary'),
-        selected[s.key] ? 'ยกเลิกการเลือกวันนี้' : 'เลือกวันนี้');
-      act.type = 'button';
-      act.onclick = function () { toggleDate(s.key); };
-      det.appendChild(act);
+      det.appendChild(button('btn ' + (selected[day.key] ? 'ghost' : 'primary'),
+        selected[day.key] ? 'ยกเลิกการเลือกวันนี้' : 'เลือกวันนี้',
+        function () { toggleDate(day.key); }));
     }
     box.appendChild(det);
   } else {
     box.appendChild(el('div', 'cal-hint', 'กดวันที่ที่มีวงกลมสีเพื่อดูบทเรียนและเวลา'));
   }
 
+  // วันที่ที่เลือกไว้
   const picked = Object.keys(selected).sort();
   if (picked.length) {
     const wrap = el('div', 'cal-picked');
     picked.forEach(function (k) {
-      const t = el('span', 'tag');
-      t.appendChild(document.createTextNode(byKey[k].label));
-      const x = el('button', '', '×'); x.type = 'button';
+      const t = el('span', 'tag', byKey[k].label);
+      const x = button('', '×', function () { toggleDate(k); });
       x.setAttribute('aria-label', 'เอาวันที่ ' + byKey[k].label + ' ออก');
-      x.onclick = function () { toggleDate(k); };
       t.appendChild(x);
       wrap.appendChild(t);
     });
@@ -1275,9 +1096,12 @@ function renderChips() {
 
 function toggleDate(key) {
   if (selected[key]) delete selected[key]; else selected[key] = true;
-  renderChips();
+  renderCalendar();
 }
 
+/* =====================================================
+   11) จอง / ยกเลิก
+   ===================================================== */
 function toggleBook() {
   const b = $('bookBox');
   const open = b.style.display === 'none';
@@ -1298,19 +1122,16 @@ function selectedType() {
   return r ? r.value : '';
 }
 
-function labelFor(key) {
-  for (let i = 0; i < appts.length; i++) if (appts[i].key === key) return appts[i].label;
-  for (let j = 0; j < slots.length; j++) if (slots[j].key === key) return slots[j].label;
-  return key;
-}
-
 function allBooked(keys, type, list) {
   return keys.every(function (k) {
     return list.some(function (a) { return a.key === k && a.type === type; });
   });
 }
 
-/* ---------- จอง / ยกเลิก ---------- */
+function placeNote(type) {
+  return type === 'onsite' && onsite.place ? '📍 สถานที่: ' + onsite.place : '';
+}
+
 function doBook() {
   const keys = Object.keys(selected).sort();
   const type = selectedType();
@@ -1322,9 +1143,9 @@ function doBook() {
   showDialog({
     icon: type === 'online' ? '💻' : '🏫',
     title: 'ยืนยันการจอง',
-    message: 'จองนัด ' + (type === 'online' ? 'Online' : 'Onsite') + ' จำนวน ' + keys.length + ' วัน เวลา ' + TIME_TEXT,
+    message: 'จองนัด ' + typeName(type) + ' จำนวน ' + keys.length + ' วัน เวลา ' + TIME_TEXT,
     lines: keys.map(labelFor),
-    note: type === 'onsite' && onsite.place ? '📍 สถานที่: ' + onsite.place : '',
+    note: placeNote(type),
     buttons: [
       { text: 'แก้ไข', cls: 'ghost' },
       { text: 'ยืนยันจอง', cls: 'primary', focus: true, onClick: function () { submitBook(keys, type); } }
@@ -1341,8 +1162,6 @@ function submitBook(keys, type) {
   setAMsg('');
 
   runRetry('bookAppointment', [token, keys, type], {
-    maxFail: 4,
-    maxBusy: 12,
     onWait: function (n) {
       btn.textContent = 'กำลังต่อคิว... (' + n + ')';
       setBMsg('ตอนนี้มีคนจองจำนวนมาก ระบบกำลังต่อคิวให้ กรุณารอสักครู่และอย่าปิดหน้านี้', 'info');
@@ -1351,18 +1170,10 @@ function submitBook(keys, type) {
       btn.disabled = false;
       btn.textContent = 'ยืนยันการจอง';
 
-      if (err || !res) {
-        setBMsg('เชื่อมต่อไม่สำเร็จ หากไม่แน่ใจว่าจองแล้วหรือยัง ให้ออกจากระบบแล้วเข้าใหม่เพื่อดู "นัดของฉัน"', 'err');
-        return;
-      }
-      if (res.busyGiveUp) {
-        setBMsg('ตอนนี้มีคนจองจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยืนยันการจองอีกครั้งในอีกสักครู่', 'err');
-        return;
-      }
-      if (isMaint(res)) { showMaintenance(res.message); return; }
-      if (res.expired) { doLogout(res.message); return; }
-      if (res.slots) slots = res.slots;
-      if (res.appts) appts = res.appts;
+      if (handleReply(res, err, setBMsg, {
+        fail: 'เชื่อมต่อไม่สำเร็จ หากไม่แน่ใจว่าจองแล้วหรือยัง ให้ออกจากระบบแล้วเข้าใหม่เพื่อดู "นัดของฉัน"',
+        busy: 'ตอนนี้มีคนจองจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยืนยันการจองอีกครั้งในอีกสักครู่'
+      })) return;
 
       let ok = !!res.ok;
       let labels = res.labels;
@@ -1373,7 +1184,7 @@ function submitBook(keys, type) {
 
       if (!ok) {
         renderAppts();
-        renderChips();
+        renderCalendar();
         setBMsg(res.message || 'จองไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
         return;
       }
@@ -1382,20 +1193,19 @@ function submitBook(keys, type) {
       calDay = '';
       closeBook();
       renderAppts();
-      renderChips();
-      const typeText = type === 'online' ? 'Online' : 'Onsite';
-      let text = 'จองนัด ' + typeText + ' เรียบร้อย: ' + (labels || []).join(', ');
-      if (type === 'onsite') text += ' อย่าลืมมาตามนัดนะ 🙂';
-      text += ' ดูรายละเอียดได้ที่ "นัดของฉัน" ด้านล่าง';
-      setAMsg(text, 'ok');
+      renderCalendar();
+
+      const remind = type === 'onsite' ? ' อย่าลืมมาตามนัดนะ 🙂' : '';
+      setAMsg('จองนัด ' + typeName(type) + ' เรียบร้อย: ' + (labels || []).join(', ') + remind +
+              ' ดูรายละเอียดได้ที่ "นัดของฉัน" ด้านล่าง', 'ok');
       try { $('amsg').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
 
       showDialog({
         icon: '🎉',
         title: 'จองสำเร็จ',
-        message: 'จองนัด ' + typeText + ' เรียบร้อยแล้ว' + (type === 'onsite' ? ' อย่าลืมมาตามนัดนะ 🙂' : ''),
+        message: 'จองนัด ' + typeName(type) + ' เรียบร้อยแล้ว' + remind,
         lines: labels || [],
-        note: type === 'onsite' && onsite.place ? '📍 สถานที่: ' + onsite.place : '',
+        note: placeNote(type),
         link: type === 'onsite' ? { text: '🗺️ เปิดแผนที่', href: onsite.mapUrl } : null,
         buttons: [{ text: 'OK', cls: 'primary' }]
       });
@@ -1407,7 +1217,7 @@ function askCancel(a) {
   showDialog({
     icon: '🗑️',
     title: 'ยกเลิกนัด',
-    message: 'ยกเลิกนัดวันที่ ' + a.label + ' (' + (a.type === 'online' ? 'Online' : 'Onsite') + ') ใช่ไหม?',
+    message: 'ยกเลิกนัดวันที่ ' + a.label + ' (' + typeName(a.type) + ') ใช่ไหม?',
     buttons: [
       { text: 'ไม่ยกเลิก', cls: 'ghost', focus: true },
       { text: 'ยืนยันยกเลิก', cls: 'danger', onClick: function () { doCancel(a.key); } }
@@ -1423,158 +1233,116 @@ function doCancel(key) {
   setBMsg('');
 
   runRetry('cancelAppointment', [token, key], {
-    maxFail: 4,
-    maxBusy: 12,
     onWait: function (n) {
       setAMsg('ตอนนี้มีผู้ใช้งานจำนวนมาก ระบบกำลังต่อคิวให้ (' + n + ')...', 'info');
     },
     done: function (res, err) {
       busy = false;
-      if (err || !res) {
-        setAMsg('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
-        return;
-      }
-      if (res.busyGiveUp) {
-        setAMsg('ตอนนี้มีผู้ใช้งานจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยกเลิกอีกครั้งในอีกสักครู่', 'err');
-        return;
-      }
-      if (isMaint(res)) { showMaintenance(res.message); return; }
-      if (res.expired) { doLogout(res.message); return; }
-      if (res.slots) slots = res.slots;
-      if (res.appts) appts = res.appts;
 
-      let ok = !!res.ok;
-      if (!ok && res.appts && !res.appts.some(function (a) { return a.key === key; })) ok = true;
+      if (handleReply(res, err, setAMsg, {
+        fail: 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง',
+        busy: 'ตอนนี้มีผู้ใช้งานจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยกเลิกอีกครั้งในอีกสักครู่'
+      })) return;
 
+      const ok = !!res.ok || (res.appts && !res.appts.some(function (a) { return a.key === key; }));
       renderAppts();
-      renderChips();
+      renderCalendar();
       if (ok) setAMsg('ยกเลิกนัดวันที่ ' + (res.label || label) + ' เรียบร้อยแล้ว', 'ok');
       else setAMsg(res.message || 'ยกเลิกไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
     }
   });
 }
 
-/* ---------- ออกจากระบบ ---------- */
-function doLogout(message) {
-  if (token) callRpc('logout', [token]).catch(function () {});
-  token = '';
-  slots = [];
-  appts = [];
-  selected = {};
-  calM = -1; calDay = '';
-  busy = false;
-  histOpen = false;
-  closeDialog(true);
-  onsite = { place: '', mapUrl: '' };
-  linkNotes = [];
-  linkGroups = [];
-  currentGroup = -1;
-  $('lkGroups').textContent = '';
-  $('lkItems').textContent = '';
-  $('apptBox').textContent = '';
-  $('slotList').textContent = '';
-  $('hello').textContent = '';
-  $('sid').value = '';
-  $('email').value = '';
-  closeBook();
-  setAMsg('');
-  showTab('links');
-  setBox('msg', (typeof message === 'string') ? message : '', 'err');
-  $('homeBox').style.display = 'none';
-  $('loginBox').style.display = 'block';
-}
+/* =====================================================
+   12) เริ่มต้นระบบ (รันครั้งเดียวตอนเปิดหน้า)
+   ===================================================== */
 
-['sid', 'email'].forEach(function (id) {
-  $(id).addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') doLogin();
-  });
+// ป๊อปอัป: คลิกพื้นหลังปิด / Esc ปิด / Tab วนอยู่ในหน้าต่าง
+$('dlg').addEventListener('click', function (e) {
+  if (e.target === $('dlg')) closeDialog();
 });
+document.addEventListener('keydown', function (e) {
+  const ov = $('dlg');
+  if (!ov.classList.contains('open') || ov.classList.contains('closing')) return;
+  if (e.key === 'Escape') { closeDialog(); return; }
+  if (e.key === 'Tab') {
+    const bs = ov.querySelectorAll('button, a[href]');
+    if (!bs.length) return;
+    const first = bs[0], last = bs[bs.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+// กด Enter ในช่องกรอกเพื่อเข้าสู่ระบบ
+['sid', 'email'].forEach(function (id) {
+  $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+});
+
+// เช็กสถานะปิดปรับปรุงตอนเปิดหน้า และเช็กซ้ำทุก 60 วินาที
+checkStatus();
+setInterval(checkStatus, 60000);
 
 // ฉากหลังหน้า login: สัญลักษณ์คณิตศาสตร์ลอยขึ้น
 (function () {
-  const fx = $('fx');
-  if (!fx) return;
-  const S = ['∑', 'π', '√', 'cos', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠','tan','y','x','y²'];
+  const S = ['∑', 'π', '√', 'cos', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠', 'tan', 'y', 'x', 'y²'];
   for (let i = 0; i < 18; i++) {
-    const e = document.createElement('span');
-    e.className = 'sym';
-    e.textContent = S[i % S.length];
+    const e = el('span', 'sym', S[i % S.length]);
     e.style.left = (Math.random() * 96) + '%';
     e.style.fontSize = (18 + Math.random() * 28) + 'px';
     e.style.animationDuration = (14 + Math.random() * 14) + 's';
     e.style.animationDelay = (-Math.random() * 20) + 's';
-    fx.appendChild(e);
+    $('fx').appendChild(e);
   }
 })();
 
 // การ์ด login เอียงตามเมาส์ (เฉพาะจอที่มีเมาส์)
 (function () {
-  if (!window.matchMedia || !matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) return;
+  if (reduceMotion() || !matchMedia('(hover: hover)').matches) return;
   const card = $('loginCard');
+  function tilt(rx, ry) {
+    card.style.setProperty('--rx', rx + 'deg');
+    card.style.setProperty('--ry', ry + 'deg');
+  }
   document.addEventListener('mousemove', function (e) {
     if ($('loginBox').style.display === 'none') return;
-    const rx = -((e.clientY / window.innerHeight) - .5) * 6;
-    const ry = ((e.clientX / window.innerWidth) - .5) * 8;
-    card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-    card.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+    tilt((-((e.clientY / window.innerHeight) - .5) * 6).toFixed(2),
+         (((e.clientX / window.innerWidth) - .5) * 8).toFixed(2));
   });
-  document.addEventListener('mouseleave', function () {
-    card.style.setProperty('--rx', '0deg');
-    card.style.setProperty('--ry', '0deg');
-  });
+  document.addEventListener('mouseleave', function () { tilt(0, 0); });
 })();
 
-/* ---------- ตัวช่วยของ intro ใหม่ ---------- */
-function reduceMotion() {
-  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-}
-// ถ้ามีโค้ดเสียงระฆังของเดิม ให้ใส่ในฟังก์ชันนี้ (ตอนนี้ไม่ทำอะไร)
-function playBell(i, vol, quiet) {}
-
-/* ---------- intro ใหม่: Check -> Point -> จางหาย ---------- */
+// intro: Check -> Point -> จางหายเข้าหน้า login (แตะเพื่อข้ามได้)
 (function () {
   const lb = $('loginBox');
-  function enter() { lb.classList.add('enter'); }
-  if (reduceMotion()) { enter(); return; }
+  if (reduceMotion()) { lb.classList.add('enter'); return; }
 
   const ti = el('div'); ti.id = 'textIntro'; ti.setAttribute('aria-hidden', 'true');
   const words = el('div', 'ti-words');
-  function addWord(text, delay) {
-    const m = el('span', 'ti-mask');
-    const w = el('span', 'ti-in', text);
-    w.style.setProperty('--d', delay + 's');
-    m.appendChild(w);
-    words.appendChild(m);
-  }
-  addWord('Check', 0.1);   // Check ขึ้นก่อน
-  addWord('Point', 0.55);  // Point ตามมา
+  [['Check', 0.1], ['Point', 0.55]].forEach(function (w) {
+    const mask = el('span', 'ti-mask');
+    const word = el('span', 'ti-in', w[0]);
+    word.style.setProperty('--d', w[1] + 's');
+    mask.appendChild(word);
+    words.appendChild(mask);
+  });
   ti.appendChild(words);
   ti.appendChild(el('div', 'ti-skip', 'แตะเพื่อข้าม'));
   document.body.appendChild(ti);
 
   let revealed = false;
-  const timers = [];
-  function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+  let timer = setTimeout(function () { reveal(400); }, 1500);
 
   function reveal(ms) {
     if (revealed) return;
     revealed = true;
-    timers.forEach(clearTimeout);
-    enter();
+    clearTimeout(timer);
+    lb.classList.add('enter');
     ti.style.transitionDuration = ms + 'ms';
     ti.classList.add('tiOut');
     setTimeout(function () { if (ti.parentNode) ti.parentNode.removeChild(ti); }, ms + 80);
   }
-
-  later(250, function () { playBell(0, .6, true); });
-  later(700, function () { playBell(1, .7, true); });
-  later(1500, function () { reveal(400); });
-
-  ti.addEventListener('click', function () {
-    if (revealed) return;
-    playBell(0, .6);
-    reveal(250);
-  });
+  ti.addEventListener('click', function () { reveal(250); });
 })();
 </script>
 </body>
