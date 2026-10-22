@@ -556,6 +556,7 @@ function runRetry(fn, args, opt) {
    ===================================================== */
 let token, slots, appts, selected, busy, histOpen;
 let linkGroups, currentGroup, linkNotes, onsite;
+let studentName = '', rawLinks = [];
 let calY = 0, calM = -1, calDay = '';
 
 function resetState() {
@@ -565,8 +566,23 @@ function resetState() {
   calM = -1; calDay = '';
   linkGroups = []; currentGroup = -1; linkNotes = [];
   onsite = { place: '', mapUrl: '' };
+  studentName = ''; rawLinks = [];
 }
 resetState();
+
+// เก็บสถานะไว้ใน sessionStorage (อยู่เฉพาะแท็บนี้ ปิดแท็บแล้วหาย) เพื่อให้ refresh แล้วยังอยู่ในระบบ
+const SESSION_KEY = 'ignite_session';
+function saveSession() {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+      token: token, name: studentName, links: rawLinks, notes: linkNotes,
+      onsite: onsite, slots: slots, appts: appts
+    }));
+  } catch (e) {}
+}
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+}
 
 /* =====================================================
    3) ฟังก์ชันตัวช่วย
@@ -715,6 +731,7 @@ function handleReply(res, err, say, msgs) {
   if (res.expired)  { doLogout(res.message); return true; }
   if (res.slots) slots = res.slots;
   if (res.appts) appts = res.appts;
+  saveSession();
   return false;
 }
 
@@ -753,6 +770,8 @@ function showHome(res) {
   slots = res.slots || [];
   appts = res.appts || [];
   onsite = res.onsite || onsite;
+  studentName = res.student.name;
+  rawLinks = res.links || [];
   $('loginBox').style.display = 'none';
   $('homeBox').style.display = 'block';
   $('onsiteHint').textContent = onsite.place ? 'มาเจอกันที่ ' + onsite.place : 'มาเจอกัน';
@@ -761,11 +780,13 @@ function showHome(res) {
   renderAppts();
   renderCalendar();
   showTab('links');
+  saveSession();
 }
 
 function doLogout(message) {
   if (token) callRpc('logout', [token]).catch(function () {});
   resetState();
+  clearSession();
   closeDialog(true);
   ['lkGroups', 'lkItems', 'apptBox', 'slotList', 'hello'].forEach(function (id) { $(id).textContent = ''; });
   $('sid').value = '';
@@ -1283,6 +1304,16 @@ document.addEventListener('keydown', function (e) {
 checkStatus();
 setInterval(checkStatus, 60000);
 
+// refresh แล้วกลับเข้าหน้าหลักทันทีถ้ามี session ค้างอยู่ในแท็บนี้
+(function () {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if (!s || !s.token || !s.name) return;
+    showHome({ token: s.token, student: { name: s.name }, links: s.links, notes: s.notes,
+               onsite: s.onsite, slots: s.slots, appts: s.appts });
+  } catch (e) { clearSession(); }
+})();
+
 // ฉากหลังหน้า login: สัญลักษณ์คณิตศาสตร์ลอยขึ้น
 (function () {
   const S = ['∑', 'π', '√', 'cos', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠', 'tan', 'y', 'x', 'y²'];
@@ -1315,7 +1346,7 @@ setInterval(checkStatus, 60000);
 // intro: Check -> Point -> จางหายเข้าหน้า login (แตะเพื่อข้ามได้)
 (function () {
   const lb = $('loginBox');
-  if (reduceMotion()) { lb.classList.add('enter'); return; }
+  if (token || reduceMotion()) { lb.classList.add('enter'); return; }
 
   const ti = el('div'); ti.id = 'textIntro'; ti.setAttribute('aria-hidden', 'true');
   const words = el('div', 'ti-words');
