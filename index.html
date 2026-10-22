@@ -2311,16 +2311,16 @@ window.showHome = function (res) {
 }
 </style>
 <style>
-/* ===== intro: "Check" เลื่อนขึ้นมาโผล่ แล้วตามด้วย "Point" ===== */
+/* ===== intro: "Check" เลื่อนขึ้นมาโผล่ แล้วตามด้วย "Point" แล้วจางหาย ===== */
 #intro { display: none !important; }   /* intro เดิม */
 
 #textIntro {
   position: fixed; inset: 0; z-index: 200; overflow: hidden; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   background: #fff;
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--ir, 0px), #000 calc(var(--ir, 0px) + 1px));
-  mask-image: radial-gradient(circle at 50% 50%, transparent var(--ir, 0px), #000 calc(var(--ir, 0px) + 1px));
+  transition: opacity .4s ease;
 }
+#textIntro.tiOut { opacity: 0; pointer-events: none; }
 .ti-words {
   text-align: center; padding: 0 16px;
   font-family: Roboto, 'Helvetica Neue', Arial, 'Prompt', sans-serif;
@@ -2328,20 +2328,12 @@ window.showHome = function (res) {
 }
 /* กรอบตัดข้อความ: ตัวอักษรจะโผล่ขึ้นมาจากเส้นขอบล่างของกรอบนี้ */
 .ti-mask { display: block; overflow: hidden; line-height: 1.18; font-size: clamp(60px, 20vw, 120px); }
-.ti-in { display: block; transform: translateY(115%); animation: tiRise .6s cubic-bezier(.2, .85, .25, 1) var(--d, 0s) forwards; }
+.ti-in { display: block; transform: translateY(115%); animation: tiRise .6s cubic-bezier(.2, .85, .25, 1) var(--d, 0s) forwards; will-change: transform; }
 .ti-skip {
   position: absolute; left: 0; right: 0; bottom: 28px; text-align: center; font-size: 12px;
   color: #94a3b8; letter-spacing: .04em; animation: inHint 1.6s ease both;
 }
-#textIntro.tiOut .ti-words, #textIntro.tiOut .ti-skip { opacity: 0; transition: opacity .25s; }
-
 @keyframes tiRise { from { transform: translateY(115%); } to { transform: translateY(0); } }
-
-#tiRing {
-  position: fixed; z-index: 201; display: none; pointer-events: none; transform: translate(-50%, -50%);
-  border: 3px solid rgba(99, 96, 201, .85); border-radius: 50%;
-  box-shadow: 0 0 18px 3px rgba(99, 96, 201, .35);
-}
 </style>
 
 <script>
@@ -2365,44 +2357,34 @@ window.showHome = function (res) {
   addWord('Point', 0.55);   // Point ตามมา
   ti.appendChild(words);
   ti.appendChild(el('div', 'ti-skip', 'แตะเพื่อข้าม'));
-
-  const ring = el('i'); ring.id = 'tiRing';
-  document.body.appendChild(ti); document.body.appendChild(ring);
+  document.body.appendChild(ti);
 
   let revealed = false;
   const timers = [];
   function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
 
-  // วงกลมขยายจากกลางจอ เปิดไปหน้า login
+  // จางหายไปเพื่อเปิดหน้า login (ไม่มีวงกลมแล้ว)
   function reveal(ms) {
     if (revealed) return;
     revealed = true;
     timers.forEach(clearTimeout);
     enter();
-    const R = Math.hypot(window.innerWidth, window.innerHeight) + 40;
-    ring.style.left = '50%'; ring.style.top = '50%'; ring.style.display = 'block';
+    ti.style.transitionDuration = ms + 'ms';
     ti.classList.add('tiOut');
-    const t0 = performance.now();
-    (function s(n) {
-      const p = Math.min(1, (n - t0) / ms), r = R * easeInOut(p);
-      ti.style.setProperty('--ir', r + 'px');
-      ring.style.width = ring.style.height = (2 * r) + 'px';
-      if (p < 1) { requestAnimationFrame(s); return; }
-      if (ti.parentNode) ti.parentNode.removeChild(ti);
-      if (ring.parentNode) ring.parentNode.removeChild(ring);
-    })(t0);
+    setTimeout(function () { if (ti.parentNode) ti.parentNode.removeChild(ti); }, ms + 80);
   }
 
   later(250, function () { playBell(0, .6, true); });    // Check โผล่
   later(700, function () { playBell(1, .7, true); });    // Point โผล่
-  later(1500, function () { reveal(600); });             // เปิดไปหน้า login (จบประมาณ 2.1 วินาที)
+  later(1500, function () { reveal(400); });             // เริ่มจางหาย (จบประมาณ 1.9 วินาที)
 
   ti.addEventListener('click', function () {
     if (revealed) return;
     playBell(0, .6);
-    reveal(350);
+    reveal(250);
   });
 })();
 </script>
+
 </body>
 </html>
