@@ -1,898 +1,176 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <base target="_top">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg1: #eef2ff; --bg2: #f8fafc;
-      --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
-      --primary: #4f46e5; --primary-d: #4338ca; --primary-l: #eef2ff;
-      --ok: #15803d; --ok-bg: #f0fdf4;
-      --err: #b91c1c; --err-bg: #fef2f2;
-      --warn: #92400e; --warn-bg: #fffbeb;
-      --online: #2563eb; --online-bg: #eff6ff;
-      --onsite: #059669; --onsite-bg: #ecfdf5;
-      --radius: 16px;
-      --intro-bg: #4338ca; /* สีพื้นหลังอนิเมชันเปิดเว็บ (เปลี่ยนได้) */
-      /* >>> วางบรรทัด --logo: url("data:image/webp;base64,...") เดิมของคุณทับบรรทัดนี้ (ลบบรรทัดนี้ทิ้ง แล้ววางของเดิม) <<< */
-      --logo: none;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; color: var(--ink); min-height: 100vh;
-      font-family: 'Prompt', 'Noto Sans Thai', -apple-system, 'Segoe UI', Tahoma, sans-serif;
-      background: linear-gradient(180deg, var(--bg1), var(--bg2) 320px);
-    }
-    button { font-family: inherit; }
-    .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 48px; }
-    .wrap.center { padding-top: 48px; }
-
-    /* ---------- ปุ่ม ---------- */
-    .btn {
-      display: block; width: 100%; border: 0; border-radius: 12px;
-      padding: 14px 16px; font-size: 16px; font-weight: 500; cursor: pointer;
-      transition: transform .05s, box-shadow .2s;
-    }
-    .btn.primary {
-      color: #fff; background: linear-gradient(135deg, var(--primary), #6366f1);
-      box-shadow: 0 6px 16px rgba(79, 70, 229, .3);
-    }
-    .btn.primary:active { transform: translateY(1px); }
-    .btn:disabled { opacity: .6; cursor: progress; box-shadow: none; }
-    .btn:focus-visible, .cal-day:focus-visible, .cal-nav:focus-visible, .mini:focus-visible, .tab:focus-visible,
-    .gbtn:focus-visible, .lk-back:focus-visible {
-      outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px;
-    }
-
-    /* ---------- หน้า login ---------- */
-    .card {
-      background: #fff; border-radius: 20px; padding: 28px 24px;
-      box-shadow: 0 10px 30px rgba(79, 70, 229, .12);
-    }
-    .logo-img {
-      width: 150px; aspect-ratio: 158 / 82; margin: 0 auto 10px;
-      background: var(--logo) center / contain no-repeat;
-    }
-    .center-text { text-align: center; }
-    .brand-name { font-weight: 600; font-size: 18px; }
-    .sub { color: var(--muted); font-size: 14px; margin: 4px 0 20px; }
-    .field label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
-    .field input {
-      width: 100%; padding: 13px 14px; margin-bottom: 16px; font-size: 16px;
-      font-family: inherit; border: 1.5px solid var(--line); border-radius: 12px;
-      background: #f8fafc; color: var(--ink);
-    }
-    .field input:focus {
-      outline: none; border-color: var(--primary); background: #fff;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
-    }
-
-    /* ---------- กล่องข้อความ ---------- */
-    .msgbox { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
-    .msgbox.ok { background: var(--ok-bg); color: var(--ok); }
-    .msgbox.err { background: var(--err-bg); color: var(--err); }
-    .msgbox.info { background: var(--online-bg); color: var(--online); }
-
-    /* ---------- ส่วนหัวหน้าหลัก ---------- */
-    .hero {
-      position: relative; color: #fff; border-radius: 20px; padding: 22px 20px;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      box-shadow: 0 10px 24px rgba(79, 70, 229, .3);
-    }
-    .hero .brand { font-size: 12px; letter-spacing: .08em; opacity: .85; text-transform: uppercase; }
-    .hero h2 { margin: 6px 0 0; font-size: 22px; font-weight: 600; padding-right: 96px; word-break: break-word; }
-    .hero .out {
-      position: absolute; top: 14px; right: 14px; border: 0; cursor: pointer;
-      background: rgba(255, 255, 255, .2); color: #fff; border-radius: 999px;
-      padding: 6px 12px; font-size: 13px;
-    }
-
-    /* ---------- แท็บนำทาง ---------- */
-    .layout { margin-top: 16px; }
-    .nav {
-      display: flex; gap: 6px; padding: 6px; background: #fff;
-      border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
-    }
-    .tab {
-      flex: 1; border: 0; background: transparent; color: var(--muted);
-      padding: 11px 8px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer;
-    }
-    .tab.active { background: var(--primary-l); color: var(--primary-d); }
-    .pages { margin-top: 14px; }
-
-    @media (min-width: 768px) {
-      .wrap.wide { max-width: 920px; }
-      .layout { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
-      .nav { flex-direction: column; position: sticky; top: 16px; padding: 10px; }
-      .tab { flex: none; text-align: left; padding: 13px 14px; }
-      .pages { margin-top: 0; }
-    }
-
-    .panel {
-      background: #fff; border-radius: var(--radius); padding: 16px; margin-top: 14px;
-      box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
-    }
-    .sec { margin: 26px 4px 6px; font-size: 16px; font-weight: 600; }
-    .sec.first { margin-top: 4px; }
-    .hint { font-size: 14px; color: var(--muted); }
-
-    /* ---------- ลิงก์แบบแบ่งหมวด ---------- */
-    .lk-groups .gbtn {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      width: 100%; margin-top: 8px; padding: 14px; text-align: left; cursor: pointer;
-      background: #fff; color: var(--ink); border: 2px solid var(--line);
-      border-radius: 14px; font-size: 16px; font-weight: 500;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
-    }
-    .lk-groups .gbtn:first-child { margin-top: 0; }
-    .gbtn::after { content: '›'; font-size: 22px; color: var(--primary); }
-    .gbtn.active { border-color: var(--primary); background: var(--primary-l); color: var(--primary-d); }
-    .lk-groups .nbtn { display: none; }
-    .lk-groups .nbtn + .gbtn { margin-top: 0; }
-
-    .lk.picked .lk-items { display: block; }
-    .lk.picked .lk-groups { display: none; }
-    .lk-head { display: flex; align-items: center; gap: 10px; margin: 0 2px 4px; }
-    .lk-back {
-      width: auto; padding: 6px 12px; border: 0; border-radius: 10px;
-      background: #e2e8f0; color: #334155; font-size: 14px; cursor: pointer;
-    }
-    .lk-title { font-weight: 600; font-size: 17px; }
-    .lk-items a.link:first-of-type { margin-top: 8px; }
-    .lk-note {
-      margin-top: 12px; padding: 14px 16px; background: #fff; border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
-      font-size: 14px; line-height: 1.75; white-space: pre-line; overflow-wrap: break-word;
-    }
-
-    @media (min-width: 768px) {
-      .lk { display: grid; grid-template-columns: 190px 1fr; gap: 16px; align-items: start; }
-      .lk .lk-items, .lk.picked .lk-items { display: block; }
-      .lk.picked .lk-groups { display: block; }
-      .lk-back { display: none; }
-      .lk.single { display: block; }
-      .lk.single .lk-groups { display: none; }
-      .lk-note:first-child { margin-top: 0; }
-      .lk-groups .nbtn { display: flex; }
-      .lk-groups .nbtn + .gbtn { margin-top: 8px; }
-    }
-
-    /* ---------- ขั้นตอนการจอง ---------- */
-    .step { display: flex; align-items: center; gap: 8px; font-weight: 500; margin: 4px 0 10px; }
-    .step .num {
-      width: 24px; height: 24px; border-radius: 50%; flex: 0 0 24px; font-size: 13px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--primary); color: #fff;
-    }
-    .step small { font-weight: 400; color: var(--muted); font-size: 13px; }
-    .step.second { margin-top: 18px; }
-
-    /* ---------- ปฏิทิน ---------- */
-    .cal { background: #f8faff; border-radius: 16px; padding: 12px; }
-    .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
-    .cal-title { font-size: 16px; font-weight: 500; }
-    .cal-nav {
-      width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent;
-      font-size: 22px; color: var(--ink); cursor: pointer;
-    }
-    .cal-nav:hover:not(:disabled) { background: var(--primary-l); }
-    .cal-nav:disabled { opacity: .3; cursor: default; }
-    .cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
-    .cal-dow span { font-size: 12px; color: var(--muted); padding: 6px 0; }
-    .cal-day {
-      position: relative; border: 0; background: transparent; font-size: 15px; color: #94a3b8;
-      width: 100%; max-width: 44px; aspect-ratio: 1; margin: 2px auto; border-radius: 50%; cursor: default;
-    }
-    .cal-day.has { color: var(--primary-d); background: var(--primary-l); font-weight: 600; cursor: pointer; }
-    .cal-day.has.booked, .cal-day.has.full { background: #e2e8f0; color: #64748b; }
-    .cal-day.has.sel { background: var(--primary-l); box-shadow: inset 0 0 0 2px var(--primary); }
-    .cal-day.has.active { background: var(--primary); color: #fff; }
-    .cal-day.today:not(.active)::after {
-      content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px;
-      margin-left: -2px; border-radius: 50%; background: currentColor;
-    }
-    .cal-detail {
-      margin-top: 12px; padding: 14px; border: 2px solid var(--primary); border-radius: 14px; background: #fff;
-    }
-    .cal-detail .d-date { font-size: 13px; color: var(--muted); }
-    .cal-detail .d-lesson { font-size: 18px; font-weight: 600; line-height: 1.35; margin-top: 2px; overflow-wrap: break-word; }
-    .cal-detail .d-time { margin-top: 8px; font-size: 15px; font-weight: 500; color: var(--primary-d); }
-    .cal-detail .btn { margin-top: 12px; padding: 11px 14px; font-size: 15px; }
-    .cal-detail .btn.ghost { background: #e2e8f0; color: #334155; }
-    .c-seat {
-      display: inline-block; margin-top: 8px; font-size: 12px; padding: 2px 8px;
-      border-radius: 999px; background: var(--ok-bg); color: var(--ok);
-    }
-    .c-seat.low { background: var(--warn-bg); color: var(--warn); }
-    .c-seat.off { background: #e2e8f0; color: #64748b; }
-    .cal-hint { margin-top: 10px; font-size: 14px; color: var(--muted); text-align: center; }
-    .cal-picked { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .cal-picked .tag {
-      display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px;
-      border-radius: 999px; background: var(--primary-l); color: var(--primary-d); font-size: 14px; font-weight: 500;
-    }
-    .tag button { border: 0; background: rgba(79,70,229,.15); color: var(--primary-d); width: 22px; height: 22px; border-radius: 50%; cursor: pointer; }
-
-    .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .opt { position: relative; display: block; cursor: pointer; }
-    .opt input { position: absolute; opacity: 0; pointer-events: none; }
-    .opt span {
-      display: block; text-align: center; padding: 12px 8px; font-weight: 500;
-      border: 2px solid var(--line); border-radius: 14px; background: #fff;
-    }
-    .opt small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .opt input:checked + span { border-color: var(--primary); background: var(--primary-l); color: var(--primary-d); }
-    .opt input:focus-visible + span { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
-    #submitBook { margin-top: 18px; }
-
-    /* ---------- นัดของฉัน ---------- */
-    .appt {
-      display: flex; gap: 12px; margin-top: 10px; padding: 12px;
-      background: #fff; border-radius: var(--radius); border-left: 4px solid var(--online);
-      box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
-    }
-    .appt.onsite { border-left-color: var(--onsite); }
-    .tile {
-      flex: 0 0 56px; text-align: center; border-radius: 12px; padding: 8px 0;
-      background: var(--online-bg); color: var(--online); align-self: flex-start;
-    }
-    .appt.onsite .tile { background: var(--onsite-bg); color: var(--onsite); }
-    .tile b { display: block; font-size: 22px; line-height: 1.1; }
-    .tile span { display: block; font-size: 12px; text-transform: uppercase; }
-    .abody { flex: 1; min-width: 0; }
-    .badge {
-      display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 10px;
-      border-radius: 999px; background: var(--online-bg); color: var(--online);
-    }
-    .appt.onsite .badge { background: var(--onsite-bg); color: var(--onsite); }
-    .year { font-size: 12px; color: var(--muted); margin-left: 6px; }
-    .pill {
-      display: inline-block; margin: 8px 6px 0 0; padding: 7px 12px; border-radius: 999px;
-      font-size: 14px; font-weight: 500; text-decoration: none;
-      background: var(--primary-l); color: var(--primary-d);
-    }
-    .lesson { margin-top: 8px; font-size: 14px; }
-    .ltitle { margin-top: 8px; font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: break-word; }
-    .atime { margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--primary-d); }
-    .wait {
-      margin-top: 8px; font-size: 13px; color: var(--warn); background: var(--warn-bg);
-      padding: 6px 10px; border-radius: 10px;
-    }
-    .note { font-size: 13px; color: var(--muted); margin-top: 8px; }
-    .mini {
-      display: inline-block; width: auto; margin: 10px 8px 0 0; padding: 7px 14px;
-      border: 0; border-radius: 10px; font-size: 14px; cursor: pointer;
-    }
-    .mini.cancel { background: var(--err-bg); color: var(--err); }
-
-    /* ---------- ประวัติการจอง (นัดที่ผ่านไปแล้ว) ---------- */
-    .appt.past { opacity: .8; border-left-color: #94a3b8; }
-    .appt.past .tile { background: #f1f5f9; color: #64748b; }
-    .appt.past .badge { background: #f1f5f9; color: #64748b; }
-    .done-tag { font-size: 12px; color: var(--muted); margin-left: 6px; }
-    .mini.hist-more { display: block; width: 100%; margin: 10px 0 0; text-align: center; background: #e2e8f0; color: #334155; }
-
-    /* ---------- ลูกเต๋านำทาง ---------- */
-    .stage { position: relative; }
-    .stage.fixed { height: 360px; }
-    .stage:not(.fixed) .cube-wrap { display: none; }
-    .pg { display: none; }
-    .pg.show { display: block; }
-    .stage.fixed .pg.show { position: absolute; left: 0; right: 0; top: 0; z-index: 2; }
-    .cube-wrap {
-      position: absolute; inset: 0; perspective: 900px; overflow: hidden; border-radius: 20px;
-      background: radial-gradient(circle at 50% 40%, #fff, #eef2ff 75%);
-      box-shadow: 0 10px 30px rgba(79, 70, 229, .12);
-    }
-    .cube { position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; transform-style: preserve-3d; }
-    .face {
-      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 6px; color: #fff; font-size: 17px; font-weight: 500; cursor: pointer; border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, .35); backface-visibility: hidden; text-shadow: 0 1px 3px rgba(0, 0, 0, .25);
-    }
-    .face .fi { font-size: 34px; line-height: 1; }
-    .face.soon { cursor: default; opacity: .92; }
-    .cube-hint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 13px; color: var(--muted); pointer-events: none; }
-    @media (max-width: 600px) { .stage.fixed { height: 320px; } }
-
-    /* ---------- ลากลูกเต๋า + มินิเกม ---------- */
-    .cube-wrap { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
-    .cube-wrap.grab, .cube-wrap.grab .face { cursor: grabbing; }
-    .gm-top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--muted); }
-    .gm-top b { color: var(--ink); }
-    .gm-q { margin: 12px 0; min-height: 26px; text-align: center; font-size: 15px; font-weight: 500; line-height: 1.5; }
-    .gm-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-    .gm-board:empty { display: none; }
-    .mc { aspect-ratio: 1; padding: 0; border: 0; background: none; perspective: 600px; cursor: pointer; }
-    .mc .in { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .3s; }
-    .mc.open .in, .mc.done .in { transform: rotateY(180deg); }
-    .mc .f { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-             border-radius: 14px; backface-visibility: hidden; font-size: 30px; }
-    .mc .b { color: #fff; font-weight: 600; background: linear-gradient(135deg, var(--primary), #7c3aed); box-shadow: 0 4px 10px rgba(79, 70, 229, .25); }
-    .mc .a { transform: rotateY(180deg); background: #fff; border: 2px solid var(--line); color: var(--ink); }
-    .mc.done .a { background: var(--ok-bg); border-color: var(--ok); }
-    .mc:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; border-radius: 14px; }
-    @media (prefers-reduced-motion: reduce) { .mc .in { transition: none; } }
-
-    /* ---------- ลิงก์ (รายการ) ---------- */
-    a.link {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      margin-top: 8px; padding: 14px; background: #fff; color: var(--ink);
-      border: 1px solid var(--line); border-radius: 14px; text-decoration: none;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, .05);
-    }
-    a.link::after { content: '›'; font-size: 22px; color: var(--primary); }
-    a.link:active { background: var(--primary-l); }
-
-    /* ---------- ป๊อปอัปแบบหน้าต่างเกม ---------- */
-    .dlg-overlay {
-      position: fixed; inset: 0; z-index: 100; display: none;
-      align-items: center; justify-content: center; padding: 16px;
-      background: rgba(15, 23, 42, .45);
-    }
-    .dlg-overlay.open { display: flex; animation: dlgFade .15s ease-out; }
-    .dlg-overlay.closing { animation: dlgFadeOut .15s ease-in forwards; }
-    .dlg-win {
-      width: 100%; max-width: 360px; background: #fff; overflow: hidden;
-      border: 2.5px solid var(--ink); border-radius: 14px;
-      box-shadow: 6px 6px 0 rgba(15, 23, 42, .9);
-      animation: dlgPop .3s cubic-bezier(.2, 1.4, .4, 1);
-    }
-    .dlg-overlay.closing .dlg-win { animation: dlgPopOut .15s ease-in forwards; }
-    .dlg-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 12px; background: var(--ink); color: #fff;
-      font-size: 14px; font-weight: 500;
-    }
-    .dlg-content { padding: 20px 18px 18px; text-align: center; }
-    .dlg-icon { font-size: 34px; line-height: 1; }
-    .dlg-body { margin-top: 10px; font-size: 15px; line-height: 1.6; word-break: break-word; }
-    .dlg-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
-    .dlg-list span {
-      padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 500;
-      background: var(--primary-l); color: var(--primary-d);
-    }
-    .dlg-actions { display: flex; gap: 10px; margin-top: 18px; }
-    .dlg-actions .btn { width: auto; flex: 1; padding: 12px 8px; font-size: 15px; }
-    .btn.ghost { background: #e2e8f0; color: #334155; }
-    .btn.danger { color: #fff; background: #dc2626; box-shadow: 0 6px 16px rgba(220, 38, 38, .25); }
-    .dlg-note { margin-top: 10px; font-size: 14px; color: var(--muted); }
-    .dlg-link {
-      display: inline-block; margin-top: 10px; padding: 7px 14px; border-radius: 999px;
-      font-size: 14px; font-weight: 500; text-decoration: none;
-      background: var(--primary-l); color: var(--primary-d);
-    }
-
-    @keyframes dlgFade { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes dlgFadeOut { from { opacity: 1; } to { opacity: 0; } }
-    @keyframes dlgPop {
-      from { opacity: 0; transform: scale(.6) translateY(16px); }
-      to { opacity: 1; transform: none; }
-    }
-    @keyframes dlgPopOut {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: scale(.9) translateY(8px); }
-    }
-
-    /* ---------- ข้อความต้อนรับ ---------- */
-    .hw { display: inline-block; white-space: nowrap; }
-    .hl {
-      display: inline-block; border-radius: 6px;
-      animation: hlIn .5s cubic-bezier(.2, 1.3, .4, 1) both;
-    }
-    .hwave { display: inline-block; animation: emojiIn .6s cubic-bezier(.2, 1.3, .4, 1) both; }
-    @keyframes hlIn {
-      0% { opacity: 0; transform: translateY(-12px) rotate(-60deg) scale(.5);
-           box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .25); }
-      55% { opacity: 1; transform: translateY(1px) rotate(6deg) scale(1.08);
-            box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .18); }
-      100% { opacity: 1; transform: none;
-             box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0); background: rgba(255, 255, 255, 0); }
-    }
-    @keyframes emojiIn {
-      0% { opacity: 0; transform: scale(.3) rotate(-30deg); }
-      60% { opacity: 1; transform: scale(1.2) rotate(15deg); }
-      100% { opacity: 1; transform: none; }
-    }
-
-    /* ---------- อนิเมชันเปิดเว็บ ---------- */
-    #intro {
-      position: fixed; inset: 0; z-index: 200; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-    }
-    #intro.skip { animation: inOut .25s ease forwards; }
-    .in-logo {
-      display: flex; align-items: center; flex-wrap: nowrap;
-      animation: inLogo .6s cubic-bezier(.2, 1, .3, 1) both;
-    }
-    .in-mark {
-      position: relative; z-index: 0; flex: none; width: 150px; height: 150px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      border: 3px solid transparent; background-color: #fff;
-      box-shadow: 0 0 0 150vmax var(--intro-bg), 0 0 0 0 rgba(165, 180, 252, 0);
-      animation: inShrink .6s cubic-bezier(.6, 0, .3, 1) 1.3s forwards,
-                 inDark .4s ease 1.9s forwards,
-                 inRing .5s ease-in-out 2s forwards,
-                 inGrow .95s cubic-bezier(.55, 0, .2, 1) 2.5s forwards,
-                 inOpen .3s ease 2.5s forwards;
-    }
-    .in-img {
-      width: 104px; aspect-ratio: 158 / 82;
-      background: var(--logo) center / contain no-repeat;
-      animation: inFadeIn .5s ease both, inFadeOut .35s ease 1.3s forwards;
-    }
-    .in-skip {
-      position: absolute; left: 0; right: 0; bottom: 28px; z-index: 2; text-align: center;
-      font-size: 12px; color: rgba(255, 255, 255, .55); letter-spacing: .04em;
-      animation: inHint 2.6s ease both;
-    }
-    @keyframes inLogo { from { transform: translateY(10px) scale(.92); } to { transform: none; } }
-    @keyframes inFadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes inFadeOut { to { opacity: 0; } }
-    @keyframes inShrink {
-      from { width: 150px; height: 150px; }
-      to { width: 64px; height: 64px; }
-    }
-    @keyframes inDark { to { background-color: var(--intro-bg); } }
-    @keyframes inOpen { to { background-color: transparent; } }
-    @keyframes inRing {
-      to {
-        border-color: rgba(255, 255, 255, .95);
-        box-shadow: 0 0 0 150vmax var(--intro-bg), 0 0 18px 3px rgba(199, 210, 254, .9);
-      }
-    }
-    @keyframes inGrow {
-      from { width: 64px; height: 64px; transform: rotate(-40deg) scaleX(.6); }
-      to { width: 190vmax; height: 190vmax; transform: rotate(0) scaleX(1); }
-    }
-    @keyframes inOut { to { opacity: 0; } }
-    @keyframes inHint { 0% { opacity: 0; } 20%, 60% { opacity: 1; } 78%, 100% { opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) { #intro { display: none; } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .dlg-overlay.open, .dlg-overlay.closing, .dlg-win, .dlg-overlay.closing .dlg-win,
-      .hl, .hwave { animation: none; }
-    }
-
-    /* ---------- หน้า login: ฉากหลังเคลื่อนไหว + การ์ดเรืองแสง ---------- */
-    @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-    .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-    .fx::before {
-      content: ''; position: absolute; inset: -40px;
-      background-image: linear-gradient(rgba(79,70,229,.07) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(79,70,229,.07) 1px, transparent 1px);
-      background-size: 40px 40px;
-      -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-      mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
-      animation: gridMove 8s linear infinite;
-    }
-    .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55;
-           animation: orbDrift 14s ease-in-out infinite alternate; }
-    .orb.o1 { width: 380px; height: 380px; background: #a5b4fc; top: -100px; left: -80px; }
-    .orb.o2 { width: 340px; height: 340px; background: #c4b5fd; bottom: -90px; right: -70px;
-              animation-duration: 18s; animation-delay: -4s; }
-    .orb.o3 { width: 260px; height: 260px; background: #7dd3fc; top: 45%; left: 55%; opacity: .4;
-              animation-duration: 16s; animation-delay: -8s; }
-    .sym { position: absolute; bottom: -60px; color: var(--primary); font-weight: 600; opacity: 0;
-           animation: symFloat linear infinite; }
-    @keyframes gridMove { to { transform: translate(40px, 40px); } }
-    @keyframes orbDrift { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, 40px) scale(1.15); } }
-    @keyframes symFloat {
-      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-      10%, 90% { opacity: .18; }
-      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
-    }
-
-    #loginCard { position: relative; z-index: 1; }
-    .card.glow {
-      isolation: isolate; background: transparent;
-      transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-      transition: transform .15s ease-out;
-    }
-    .card.glow::before {
-      content: ''; position: absolute; inset: -2px; border-radius: 22px; z-index: -2;
-      background: conic-gradient(from var(--ang), #4f46e5, #7c3aed, #38bdf8, #a78bfa, #4f46e5);
-      animation: angSpin 5s linear infinite;
-    }
-    .card.glow::after { content: ''; position: absolute; inset: 0; border-radius: 20px; background: #fff; z-index: -1; }
-    @keyframes angSpin { to { --ang: 360deg; } }
-
-    .brand-name {
-      background: linear-gradient(90deg, var(--ink) 0 35%, #7c3aed 50%, var(--ink) 65% 100%);
-      background-size: 250% 100%; background-position: 100% 0;
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent; color: transparent;
-      animation: shine 4s linear infinite;
-    }
-    @keyframes shine { to { background-position: 0 0; } }
-
-    #btn { position: relative; overflow: hidden; }
-    #btn::after {
-      content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
-      background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
-      transform: skewX(-20deg); animation: sweep 3.2s ease-in-out 1.5s infinite;
-    }
-    @keyframes sweep { 0% { left: -60%; } 60%, 100% { left: 130%; } }
-
-    /* เริ่มเล่นตอนอนิเมชันเปิดเว็บใกล้จบ (JS ใส่ class enter) */
-    .enter .card.glow { animation: cardIn .8s cubic-bezier(.2, 1.1, .3, 1) both; }
-    .enter .logo-img { animation: popIn .7s cubic-bezier(.2, 1.4, .4, 1) .25s both, floaty 4s ease-in-out 1s infinite; }
-    .enter .rise { animation: rise .6s ease var(--d, 0s) both; }
-    .enter .brand-name.rise { animation: rise .6s ease var(--d, 0s) both, shine 4s linear 1s infinite; }
-    @keyframes cardIn { from { opacity: 0; translate: 0 40px; scale: .94; } to { opacity: 1; translate: 0 0; scale: 1; } }
-    @keyframes popIn { from { opacity: 0; scale: .5; } to { opacity: 1; scale: 1; } }
-    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-    @keyframes rise { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .fx::before, .orb, .sym, .card.glow::before, .brand-name, #btn::after,
-      .enter .card.glow, .enter .logo-img, .enter .rise, .enter .brand-name.rise { animation: none; }
-      .sym { display: none; }
-      .card.glow { transform: none; }
-    }
-
-    /* ---------- หน้าปิดปรับปรุง (ค้อน + ประแจ) ---------- */
-    .mt-overlay {
-      position: fixed; inset: 0; z-index: 300; display: none;
-      align-items: center; justify-content: center; padding: 16px; background: #f3f4f6;
-    }
-    .mt-overlay.open { display: flex; }
-    .mt-card {
-      width: 100%; max-width: 420px; background: #fff; padding: 28px 24px;
-      border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.1); text-align: center;
-    }
-    .mt-icon { font-size: 44px; }
-    .mt-card h2 { margin: 12px 0 8px; font-size: 22px; }
-    .mt-card p { margin: 0; color: var(--muted); line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <!-- ---------- อนิเมชันเปิดเว็บ ---------- -->
-  <div id="intro" aria-hidden="true">
-    <div class="in-logo">
-      <div class="in-mark"><div class="in-img"></div></div>
-    </div>
-    <div class="in-skip">แตะเพื่อข้าม</div>
-  </div>
-
-  <!-- ---------- หน้า login ---------- -->
-  <div class="wrap center" id="loginBox">
-    <div class="fx" id="fx" aria-hidden="true"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i></div>
-    <div class="card glow" id="loginCard">
-      <div class="center-text">
-        <div class="logo-img" role="img" aria-label="Ignite"></div>
-        <div class="brand-name rise" style="--d:.35s">SAT Math Check Point</div>
-        <div class="sub rise" style="--d:.45s">เข้าสู่ระบบสำหรับน้องๆ ที่ลงทะเบียนไว้แล้ว</div>
-      </div>
-      <div class="field rise" style="--d:.6s">
-        <label for="sid">รหัสนักเรียน</label>
-        <input id="sid" type="text" autocomplete="off" placeholder="รหัสนักเรียน">
-        <label for="email">อีเมล</label>
-        <input id="email" type="email" autocomplete="off" placeholder="you@gmail.com">
-      </div>
-      <button class="btn primary rise" style="--d:.75s" id="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
-      <div id="msg"></div>
-    </div>
-  </div>
-
-  <!-- ---------- หน้าหลัก ---------- -->
-  <div class="wrap wide" id="homeBox" style="display:none">
-    <div class="hero">
-      <div class="brand">SAT Math Check Point</div>
-      <h2 id="hello"></h2>
-      <button class="out" id="logout" onclick="doLogout()">ออกจากระบบ</button>
-    </div>
-
-    <div class="layout">
-      <div class="nav" role="tablist">
-        <button class="tab" id="tabLinks" role="tab" aria-selected="false" onclick="goTab(0)">🔗 ลิงก์</button>
-        <button class="tab" id="tabBook" role="tab" aria-selected="false" onclick="goTab(1)">📅 จองนัด</button>
-        <button class="tab" id="tabGame" role="tab" aria-selected="false" onclick="goTab(2)">🎮 มินิเกม</button>
-      </div>
-
-      <div class="pages">
-       <div class="stage fixed" id="stage">
-        <div class="cube-wrap" id="cubeWrap" aria-hidden="true">
-          <div class="cube" id="cube"></div>
-          <div class="cube-hint">ลากเพื่อหมุนลูกเต๋า · แตะที่หน้าเพื่อเปิด หรือเลือกแท็บ</div>
-        </div>
-        <!-- หน้า 1: ลิงก์ -->
-        <div id="pageLinks" class="pg" role="tabpanel">
-          <div class="sec first">ลิงก์สำหรับน้องๆ</div>
-          <div class="lk" id="lk">
-            <div class="lk-groups" id="lkGroups"></div>
-            <div class="lk-items" id="lkItems"></div>
-          </div>
-        </div>
-
-        <!-- หน้า 2: จองนัด -->
-        <div id="pageBook" class="pg" role="tabpanel">
-          <button class="btn primary" id="openBook" onclick="toggleBook()">📅 จองนัด Checkpoint กับพี่ๆ</button>
-
-          <div class="panel" id="bookBox" style="display:none">
-            <div class="step"><span class="num">1</span> เลือกวันที่ <small>(เลือกได้หลายวัน)</small></div>
-            <div id="slotList"></div>
-
-            <div class="step second"><span class="num">2</span> เลือกรูปแบบ</div>
-            <div class="seg">
-              <label class="opt">
-                <input type="radio" name="btype" value="onsite">
-                <span>🏫 Onsite<small id="onsiteHint">มาเจอกัน</small></span>
-              </label>
-              <label class="opt">
-                <input type="radio" name="btype" value="online">
-                <span>💻 Online<small>ผ่านลิงก์นัดหมาย</small></span>
-              </label>
-            </div>
-
-            <button class="btn primary" id="submitBook" onclick="doBook()">ยืนยันการจอง</button>
-            <div id="bmsg"></div>
-          </div>
-
-          <div id="amsg"></div>
-          <div id="apptBox"></div>
-        </div>
-        <!-- หน้า 3: มินิเกม -->
-        <div id="pageGame" class="pg" role="tabpanel">
-          <div class="sec first">🎮 จับคู่สัญลักษณ์</div>
-          <div class="panel">
-            <div class="gm-top"><span>⏱ <b id="gmTime">0</b> วิ</span><span>เปิดไปแล้ว <b id="gmScore">0</b> ครั้ง</span><span>ดีที่สุด <b id="gmBest">-</b></span></div>
-            <div class="gm-q" id="gmQ"></div>
-            <div class="gm-board" id="gmBoard"></div>
-            <button class="btn primary" id="gmStart" onclick="gmStart()">เริ่มเล่น</button>
-          </div>
-        </div>
-       </div><!-- /stage -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ---------- หน้าปิดปรับปรุง ---------- -->
-  <div class="mt-overlay" id="maint" role="alertdialog" aria-modal="true" aria-labelledby="mtTitle">
-    <div class="mt-card">
-      <div class="mt-icon" aria-hidden="true">🛠</div>
-      <h2 id="mtTitle">ปิดปรับปรุงชั่วคราว</h2>
-      <p id="mtMsg"></p>
-    </div>
-  </div>
-
-  <!-- ---------- ป๊อปอัป ---------- -->
-  <div class="dlg-overlay" id="dlg">
-    <div class="dlg-win" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
-      <div class="dlg-bar">
-        <span id="dlgTitle"></span>
-      </div>
-      <div class="dlg-content">
-        <div class="dlg-icon" id="dlgIcon" aria-hidden="true"></div>
-        <div class="dlg-body" id="dlgBody"></div>
-        <div class="dlg-actions" id="dlgActions"></div>
-      </div>
-    </div>
-  </div>
-
+<!-- ===== วางบล็อกนี้ทั้งก้อน ไว้ก่อนบรรทัด </body> (ต่อจาก </script> ตัวเดิม) แล้วจบ ไม่ต้องแก้ที่อื่น ===== -->
+<style>
+  #cube { display: none; }
+  .bells { --bw: 96px; position: absolute; inset: 0; }
+  @media (max-width: 400px) { .bells { --bw: 84px; } }
+  .bl-rail {
+    position: absolute; left: 4%; right: 4%; top: 0; height: 8px; z-index: 1;
+    border-radius: 0 0 6px 6px; background: linear-gradient(#94a3b8, #475569);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .25);
+  }
+  .bl { position: absolute; top: 6px; width: 0; height: 0; z-index: 2; }
+  .bl-ring {
+    position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; z-index: 1;
+    border: 3px solid #64748b; border-radius: 50%;
+  }
+  .bl-sw { position: absolute; top: 0; left: calc(var(--bw) / -2); width: var(--bw); transform-origin: 50% 0; will-change: transform; }
+  .bl-str { width: 2px; margin: 0 auto; background: linear-gradient(#64748b, #94a3b8); }
+  .bl-body { position: relative; width: 100%; cursor: pointer; filter: drop-shadow(0 6px 8px rgba(15, 23, 42, .25)); }
+  .bl-body svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .bl-lab {
+    position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    color: #fff; font-size: 11px; font-weight: 500; pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+  .bl-lab .fi { font-size: 22px; line-height: 1.1; }
+</style>
 <script>
-// ---------- ตั้งค่า Supabase ----------
-const SB_URL = 'https://apzntujfqhzadgejdpwf.supabase.co';
-const SB_KEY = 'sb_publishable_6hPDr97QyuYA9gX8qCRYqw_cKQPhSGq';
+/* ===== กระดิ่ง 3 ใบ แทนลูกเต๋า (ใช้ตัวแปร/ฟังก์ชันเดิม: TABS, cs, drag, dragMoved, tween ฯลฯ) ===== */
+// x = ตำแหน่งแนวนอน(%), len = ความยาวสาย(px), T = คาบแกว่ง(วินาที), c = [สีเข้ม, สีไฮไลต์], f = โน้ตเสียง(Hz)
+const BELLS = [
+  { x: 20, len: 34, T: 1.9, c: ['#4f46e5', '#a5b4fc'], f: 784 },
+  { x: 50, len: 92, T: 2.9, c: ['#7c3aed', '#c4b5fd'], f: 587 },
+  { x: 80, len: 60, T: 2.4, c: ['#0284c7', '#7dd3fc'], f: 659 }
+];
+const AUTO_SPIN = 0.02;   // องศา/มิลลิวินาที (หมุนเองช้าๆ)
+const SVGNS = 'http://www.w3.org/2000/svg';
+const BELL_PATH = 'M60 8C42 8 32 26 32 52C32 82 24 98 10 114L110 114C96 98 88 82 88 52C88 26 78 8 60 8Z';
+const BL = [];
+let actx = null;
 
-const RPC = {
-  login:             { name: 'app_login',  params: ['p_student_id', 'p_email'] },
-  bookAppointment:   { name: 'app_book',   params: ['p_token', 'p_dates', 'p_type'] },
-  cancelAppointment: { name: 'app_cancel', params: ['p_token', 'p_date'] },
-  logout:            { name: 'app_logout', params: ['p_token'] },
-  status:            { name: 'app_status', params: [] }
-};
-
-function callRpc(fn, args) {
-  const def = RPC[fn];
-  const body = {};
-  def.params.forEach(function (p, i) { body[p] = args[i]; });
-
-  const headers = { 'Content-Type': 'application/json', apikey: SB_KEY };
-  if (/^eyJ/.test(SB_KEY)) headers.Authorization = 'Bearer ' + SB_KEY;
-
-  return fetch(SB_URL + '/rest/v1/rpc/' + def.name, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body)
-  }).then(function (r) {
-    return r.json().catch(function () { return null; }).then(function (data) {
-      if (!r.ok) {
-        const e = new Error((data && data.message) || ('HTTP ' + r.status));
-        e.status = r.status;
-        throw e;
-      }
-      return data;
-    });
-  });
-}
-let token = '';
-let slots = [];
-let appts = [];
-let selected = {};
-let busy = false;
-let linkGroups = [];
-let currentGroup = -1;
-let linkNotes = [];
-let onsite = { place: '', mapUrl: '' };
-
-const BOOK_LABEL = '📅 จองนัด Checkpoint กับพี่ๆ';
-const TIME_TEXT = '16:30 - 18:30';
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-let calY = 0, calM = -1, calDay = '';
-
-const HIST_SHOW = 5;   // ประวัติแสดงเริ่มต้นกี่รายการ
-const HIST_MAX = 10;   // กด "ดูเพิ่ม" แล้วแสดงได้สูงสุดกี่รายการ (ให้ตรงกับ limit ใน SQL)
-let histOpen = false;
-
-function $(id) { return document.getElementById(id); }
-
-function isHttps(u) {
-  return /^https:\/\//i.test(String(u || ''));
-}
-
-function pad2(n) { return (n < 10 ? '0' : '') + n; }
-
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
+function sv(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
   return e;
 }
 
-function softText(el, text) {
-  el.textContent = '';
-  String(text).split(/([&\/\-_+,:]+)/).forEach(function (part, i) {
-    if (!part) return;
-    el.appendChild(document.createTextNode(part));
-    if (i % 2 === 1) el.appendChild(document.createElement('wbr'));
+(function buildBells() {
+  cubeWrap.insertBefore(el('div', 'bl-rail'), cubeWrap.firstChild);
+  const bellsEl = el('div', 'bells');
+  cubeWrap.insertBefore(bellsEl, cubeWrap.querySelector('.cube-hint'));
+  const hint = cubeWrap.querySelector('.cube-hint');
+  if (hint) hint.textContent = 'ลากเพื่อหมุนกระดิ่ง · แตะที่กระดิ่งเพื่อเปิด หรือเลือกแท็บ';
+
+  BELLS.forEach(function (cfg, i) {
+    const t = TABS[i];
+    const o = el('div', 'bl'); o.style.left = cfg.x + '%';
+    o.appendChild(el('div', 'bl-ring'));
+    const sw = el('div', 'bl-sw');
+    const str = el('div', 'bl-str'); str.style.height = cfg.len + 'px';
+    sw.appendChild(str);
+
+    const body = el('div', 'bl-body');
+    const svg = sv('svg', { viewBox: '0 0 120 150' });
+    const defs = sv('defs', {}, svg);
+    const g = sv('linearGradient', { id: 'blg' + i, x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
+    sv('stop', { offset: 0, 'stop-color': cfg.c[0] }, g);
+    const mid = sv('stop', { offset: .5, 'stop-color': cfg.c[1] }, g);
+    sv('stop', { offset: 1, 'stop-color': cfg.c[0] }, g);
+    const cp = sv('clipPath', { id: 'blc' + i }, defs);
+    sv('path', { d: BELL_PATH }, cp);
+
+    sv('path', { d: BELL_PATH, fill: 'url(#blg' + i + ')' }, svg);
+    const mg = sv('g', { 'clip-path': 'url(#blc' + i + ')' }, svg);
+    const mer = [];
+    for (let k = 0; k < 6; k++) mer.push(sv('path', { fill: 'none', stroke: '#fff', 'stroke-width': 1.6 }, mg));
+    sv('rect', { x: 6, y: 111, width: 108, height: 11, rx: 5.5, fill: 'url(#blg' + i + ')' }, svg);
+    const clap = sv('circle', { cx: 60, cy: 129, r: 9, fill: cfg.c[0] }, svg);
+    sv('circle', { cx: 60, cy: 8, r: 5, fill: cfg.c[1] }, svg);
+    body.appendChild(svg);
+
+    const lab = el('div', 'bl-lab');   // ป้ายอยู่นอก SVG ไม่หมุนตามมุมมอง จึงอ่านได้ทุกมุม
+    lab.appendChild(el('span', 'fi', t.icon));
+    lab.appendChild(el('span', '', t.label));
+    body.appendChild(lab);
+    body.onclick = function () { if (!dragMoved) goTab(i); };
+
+    sw.appendChild(body); o.appendChild(sw); bellsEl.appendChild(o);
+    BL.push({ sw: sw, body: body, mid: mid, mer: mer, clap: clap,
+              a: 0, v: 0, c: 0, ph: i * 2.1, w: 2 * Math.PI / (cfg.T * 1000) });
   });
-}
-
-function setBox(id, text, cls) {
-  const m = $(id);
-  m.className = text ? 'msgbox ' + (cls || '') : '';
-  m.textContent = text || '';
-}
-function setBMsg(text, cls) { setBox('bmsg', text, cls); }
-function setAMsg(text, cls) { setBox('amsg', text, cls); }
-
-/* ---------- เรียกเซิร์ฟเวอร์ พร้อมลองใหม่อัตโนมัติ ---------- */
-function runRetry(fn, args, opt) {
-  const maxFail = opt.maxFail || 4;
-  const maxBusy = opt.maxBusy || 12;
-  let fails = 0;
-  let busies = 0;
-
-  function pause(n) {
-    return Math.min(1200 + n * 600, 5000) + Math.random() * 1500;
-  }
-
-  function go() {
-    callRpc(fn, args).then(function (res) {
-      if (res && res.busy) {
-        busies++;
-        if (busies <= maxBusy) {
-          if (opt.onWait) opt.onWait(fails + busies);
-          setTimeout(go, pause(fails + busies));
-          return;
-        }
-        opt.done({ ok: false, busyGiveUp: true }, null);
-        return;
-      }
-      opt.done(res, null);
-    }, function (err) {
-      const retryable = !err.status || err.status >= 500 || err.status === 429;
-      fails++;
-      if (retryable && fails <= maxFail) {
-        if (opt.onWait) opt.onWait(fails + busies);
-        setTimeout(go, pause(fails + busies));
-        return;
-      }
-      opt.done(null, err);
-    });
-  }
-
-  go();
-}
-
-/* ---------- ลูกเต๋านำทาง ---------- */
-const TABS = [
-  { page: 'pageLinks', btn: 'tabLinks', label: 'ลิงก์',  icon: '🔗' },
-  { page: 'pageBook',  btn: 'tabBook',  label: 'จองนัด', icon: '📅' },
-  { page: 'pageGame',  btn: 'tabGame',  label: 'มินิเกม', icon: '🎮' }
-];
-// เพิ่มแท็บใหม่ (สูงสุด 6): เพิ่มรายการข้างบน + ปุ่ม .tab ใน .nav (onclick="goTab(เลขลำดับ)") + <div class="pg" id="..."> ใน #stage
-const CUBE_COLORS = [['#4f46e5','#818cf8'],['#7c3aed','#a78bfa'],['#0284c7','#38bdf8'],['#059669','#34d399'],['#d97706','#fbbf24'],['#e11d48','#fb7185']];
-const CUBE_FACE = ['', 'rotateY(90deg) ', 'rotateY(180deg) ', 'rotateY(-90deg) ', 'rotateX(90deg) ', 'rotateX(-90deg) '];
-const CUBE_BASE = [[0, 0], [0, -90], [0, -180], [0, 90], [-90, 0], [90, 0]];
-const CUBE_S = 150, CUBE_P = 900;
-const stage = $('stage'), cubeWrap = $('cubeWrap'), cubeEl = $('cube');
-const cs = { rx: -22, ry: 30, z: 0, vy: 0.025 };
-let cubeMode = 'cube', openIdx = -1, zOpen = 0, loopOn = false, lastT = 0, cubeGen = 0, drag = null, dragMoved = false;
-
-function reduceMotion() {
-  return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
-}
-
-(function buildCube() {
-  for (let i = 0; i < 6; i++) {
-    const f = document.createElement('div');
-    const c = CUBE_COLORS[i];
-    f.className = 'face' + (TABS[i] ? '' : ' soon');
-    f.style.transform = CUBE_FACE[i] + 'translateZ(' + (CUBE_S / 2) + 'px)';
-    f.style.background = 'linear-gradient(135deg,' + c[0] + ',' + c[1] + ')';
-    f.appendChild(el('span', 'fi', TABS[i] ? TABS[i].icon : '✨'));
-    f.appendChild(el('span', '', TABS[i] ? TABS[i].label : 'เร็วๆ นี้'));
-    if (TABS[i]) f.onclick = function () { if (!dragMoved) goTab(i); };
-    cubeEl.appendChild(f);
-  }
 })();
 
-function drawCube() {
-  cubeEl.style.transform = 'translateZ(' + cs.z + 'px) rotateX(' + cs.rx + 'deg) rotateY(' + cs.ry + 'deg)';
-}
-function markTab(i) {
-  TABS.forEach(function (t, k) {
-    $(t.btn).classList.toggle('active', k === i);
-    $(t.btn).setAttribute('aria-selected', k === i ? 'true' : 'false');
+function drawBells(t) {
+  BL.forEach(function (b, i) {
+    const sway = 3 * Math.sin(t * b.w * 0.9 + b.ph);                       // แกว่งเบาๆ ตลอด
+    b.sw.style.transform = 'rotate(' + (sway + b.a).toFixed(2) + 'deg)';
+    const th = (cs.ry + i * 47) * Math.PI / 180;                            // มุมหมุนของแต่ละใบ
+    b.mid.setAttribute('offset', (0.5 + 0.32 * Math.sin(th)).toFixed(3));   // ไฮไลต์เลื่อน
+    for (let k = 0; k < 6; k++) {                                           // เส้นลายรอบตัวกระดิ่ง
+      const q = th + k * Math.PI / 3, s = Math.sin(q), c = Math.cos(q);
+      b.mer[k].setAttribute('d', 'M' + (60 + 12 * s).toFixed(1) + ' 14Q' + (60 + 31 * s).toFixed(1) + ' 56 ' + (60 + 50 * s).toFixed(1) + ' 112');
+      b.mer[k].setAttribute('stroke-opacity', c > 0 ? (0.5 * c).toFixed(2) : '0');
+    }
+    const off = Math.max(-8, Math.min(8, (b.c - b.a) * 0.6));               // ลูกตุ้มแกว่งตามหลัง
+    b.clap.setAttribute('cx', (60 + off).toFixed(1));
   });
 }
-function easeInOut(p) { return p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2; }
-function easeIn(p) { return p * p; }
-function easeOut(p) { return 1 - (1 - p) * (1 - p); }
-function tween(ms, ease, upd, done) {
-  const g = cubeGen, t0 = performance.now();
-  (function step(n) {
-    if (g !== cubeGen) return;            // ถูกรีเซ็ต (เช่น ออกจากระบบ) ระหว่างเล่น
-    const p = Math.min(1, (n - t0) / ms);
-    upd(ease(p), p);
-    if (p < 1) requestAnimationFrame(step); else if (done) done();
-  })(t0);
+
+function chime(f) {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!actx) actx = new AC();
+    if (actx.state === 'suspended') actx.resume();
+    const t0 = actx.currentTime, out = actx.createGain();
+    out.gain.value = 0.3; out.connect(actx.destination);
+    [[1, 1, 2.2], [2.76, .5, 1.4], [5.4, .25, .8], [8.93, .12, .5]].forEach(function (p) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = f * p[0];
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(p[1], t0 + .005);
+      g.gain.exponentialRampToValueAtTime(.0001, t0 + p[2]);
+      o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + p[2] + .05);
+    });
+  } catch (e) {}
+}
+function ringBell(i) {
+  BL[i].v += (Math.random() < .5 ? -1 : 1) * 28 * BL[i].w;   // แกว่งแรง ประมาณ ±28°
+  chime(BELLS[i].f);
 }
 
-// ลูกเต๋าลอยหมุนช้าๆ ตอนอยู่หน้าหลัก
+/* ===== ทับฟังก์ชันเดิมของลูกเต๋า (ชื่อเดิม โค้ดเดิมที่เรียกใช้จึงใช้ของใหม่อัตโนมัติ) ===== */
+function drawCube() { drawBells(performance.now()); }
+
 function startLoop() {
   if (loopOn || reduceMotion()) return;
   loopOn = true; lastT = performance.now();
   requestAnimationFrame(loopFrame);
 }
 function loopFrame(t) {
-  if (cubeMode !== 'cube' || $('homeBox').style.display === 'none') { loopOn = false; return; }
+  if (cubeMode === 'open' || $('homeBox').style.display === 'none') { loopOn = false; return; }
   const dt = Math.max(0, Math.min(50, t - lastT)); lastT = t;
-  if (drag && dragMoved) { requestAnimationFrame(loopFrame); return; }   // กำลังลากอยู่ ไม่ต้องหมุนเอง
-  cs.vy += (0.025 - cs.vy) * (1 - Math.exp(-dt / 700));                  // ความเร็วค่อยๆ กลับสู่การหมุนช้าๆ
-  cs.ry += dt * cs.vy;
-  cs.rx += ((-22 + Math.sin(t / 1800) * 8) - cs.rx) * (1 - Math.exp(-dt / 1500));
-  drawCube();
+  if (!(drag && dragMoved)) {
+    cs.vy += (AUTO_SPIN - cs.vy) * (1 - Math.exp(-dt / 900));   // แรงเฉื่อยค่อยๆ กลับสู่การหมุนช้าๆ
+    cs.ry += dt * cs.vy;
+  }
+  BL.forEach(function (b) {
+    const acc = -b.w * b.w * b.a - 2 * 0.08 * b.w * b.v;        // สปริง + แรงหน่วง
+    b.v += acc * dt; b.a += b.v * dt;
+    b.c += (b.a - b.c) * (1 - Math.exp(-dt / 180));
+  });
+  drawBells(t);
   requestAnimationFrame(loopFrame);
 }
 
-// กลับไปหน้าลูกเต๋า (ใช้ตอนเข้าสู่ระบบ/ออกจากระบบ)
 function resetCube() {
   cubeGen++;
   cubeMode = 'cube'; openIdx = -1;
-  cs.rx = -22; cs.ry = 30; cs.z = 0; cs.vy = 0.025;
+  cs.ry = 0; cs.vy = AUTO_SPIN;
+  BL.forEach(function (b) { b.a = 0; b.v = 0; b.c = 0; });
   stage.classList.add('fixed');
   cubeWrap.style.opacity = 1;
-  TABS.forEach(function (t) { const p = $(t.page); p.classList.remove('show'); p.style.opacity = ''; });
-  markTab(-1); drawCube(); gmStop(); startLoop();
+  TABS.forEach(function (t) {
+    const p = $(t.page); p.classList.remove('show'); p.style.opacity = ''; p.style.transform = ''; p.style.transformOrigin = '';
+  });
+  markTab(-1); drawBells(0); gmStop(); startLoop();
 }
 
-// กดแท็บ: ลูกเต๋าหมุนมาหน้านั้น -> ซูมเต็มพื้นที่
-// กดแท็บอื่นตอนเปิดอยู่: ซูมออก -> หมุนไปหน้าใหม่ -> ซูมเข้า | กดแท็บเดิมซ้ำ: กลับไปที่ลูกเต๋า
-function goTab(i) {
-  if (!TABS[i] || cubeMode === 'busy') return;
-  if (cubeMode === 'open') {
-    if (i === openIdx) closeToCube();
-    else closeToCube(function () { goTab(i); });
-    return;
-  }
-  openFromCube(i);
+function bellOrigin(i) {
+  const r = stage.getBoundingClientRect(), m = BL[i].body.getBoundingClientRect();
+  return (m.left + m.width / 2 - r.left).toFixed(1) + 'px ' + (m.top + m.height * 0.4 - r.top).toFixed(1) + 'px';
 }
 
 function openFromCube(i) {
@@ -900,26 +178,23 @@ function openFromCube(i) {
   const pg = $(TABS[i].page);
   pg.classList.add('show');
   if (reduceMotion()) { finishOpen(); return; }
-  pg.style.opacity = 0;
-  const B = CUBE_BASE[i], rx0 = cs.rx, ry0 = cs.ry;
-  const tx = B[0] + 360 * Math.round((rx0 - B[0]) / 360);
-  const ty = B[1] + 360 * Math.round((ry0 - B[1]) / 360);
-  tween(520, easeInOut, function (v) {
-    cs.rx = rx0 + (tx - rx0) * v; cs.ry = ry0 + (ty - ry0) * v; drawCube();
-  }, function () {
-    const r = stage.getBoundingClientRect();
-    const f = Math.max(r.width, r.height) * 1.04 / CUBE_S;
-    zOpen = CUBE_P * (1 - 1 / f) - CUBE_S / 2;
-    tween(450, easeIn, function (v, p) {
-      cs.z = zOpen * v; drawCube();
-      const k = p > .7 ? (p - .7) / .3 : 0;
-      pg.style.opacity = k; cubeWrap.style.opacity = 1 - k;
+  ringBell(i);
+  const g = cubeGen;
+  pg.style.transformOrigin = bellOrigin(i);
+  pg.style.transform = 'scale(.05)'; pg.style.opacity = 0;
+  setTimeout(function () {                      // รอให้กระดิ่งแกว่งสักครู่ก่อนขยาย
+    if (g !== cubeGen) return;
+    tween(520, easeInOut, function (v) {
+      pg.style.transform = 'scale(' + (0.05 + 0.95 * v) + ')';
+      pg.style.opacity = Math.min(1, v * 1.6);
+      cubeWrap.style.opacity = 1 - Math.min(1, v * 1.3);
     }, finishOpen);
-  });
+  }, 380);
 }
 
 function finishOpen() {
-  $(TABS[openIdx].page).style.opacity = '';
+  const pg = $(TABS[openIdx].page);
+  pg.style.opacity = ''; pg.style.transform = ''; pg.style.transformOrigin = '';
   cubeWrap.style.opacity = 1;
   stage.classList.remove('fixed');
   cubeMode = 'open';
@@ -927,948 +202,26 @@ function finishOpen() {
 
 function closeToCube(after) {
   cubeMode = 'busy';
-  const pg = $(TABS[openIdx].page);
+  const i = openIdx, pg = $(TABS[i].page);
   const r = stage.getBoundingClientRect();
   if (r.top < 0) { try { window.scrollTo(0, window.scrollY + r.top - 8); } catch (e) {} }
   stage.classList.add('fixed');
   markTab(-1);
+  cubeWrap.style.opacity = 0;
+  startLoop();
   function done() {
-    pg.classList.remove('show'); pg.style.opacity = '';
-    cubeWrap.style.opacity = 1; cs.z = 0; drawCube();
+    pg.classList.remove('show'); pg.style.opacity = ''; pg.style.transform = ''; pg.style.transformOrigin = '';
+    cubeWrap.style.opacity = 1;
     openIdx = -1; cubeMode = 'cube'; gmStop(); startLoop();
     if (after) after();
   }
   if (reduceMotion()) { done(); return; }
-  cubeWrap.style.opacity = 0;
-  tween(400, easeOut, function (v) {
-    const u = 1 - v, k = Math.max(0, (u - .7) / .3);
-    cs.z = zOpen * u; drawCube();
-    pg.style.opacity = k; cubeWrap.style.opacity = 1 - k;
+  pg.style.transformOrigin = bellOrigin(i);
+  tween(420, easeOut, function (v) {
+    const u = 1 - v;
+    pg.style.transform = 'scale(' + (0.05 + 0.95 * u) + ')';
+    pg.style.opacity = Math.min(1, u * 1.6);
+    cubeWrap.style.opacity = Math.min(1, v * 1.3);
   }, done);
 }
-
-/* ---------- ลากลูกเต๋าด้วยเมาส์/นิ้ว ---------- */
-cubeWrap.addEventListener('pointerdown', function (e) {
-  if (cubeMode !== 'cube' || (e.pointerType === 'mouse' && e.button !== 0)) return;
-  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, lt: performance.now() };
-  dragMoved = false;
-});
-window.addEventListener('pointermove', function (e) {
-  if (!drag || e.pointerId !== drag.id) return;
-  if (!dragMoved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;   // ขยับน้อยกว่า 6px ถือว่าเป็นการแตะ
-  const now = performance.now(), dt = Math.max(1, now - drag.lt);
-  const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly;
-  dragMoved = true; cubeWrap.classList.add('grab');
-  cs.ry += dx * 0.5;
-  cs.rx = Math.max(-95, Math.min(95, cs.rx - dy * 0.5));
-  cs.vy = Math.max(-0.6, Math.min(0.6, cs.vy * 0.5 + (dx * 0.5 / dt) * 0.5));        // ปล่อยแล้วหมุนต่อด้วยแรงเฉื่อย
-  drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = now;
-  drawCube();
-});
-function endDrag(e) {
-  if (!drag || e.pointerId !== drag.id) return;
-  drag = null; cubeWrap.classList.remove('grab');
-}
-window.addEventListener('pointerup', endDrag);
-window.addEventListener('pointercancel', endDrag);
-
-/* ---------- มินิเกมจับคู่สัญลักษณ์ (8 คู่ / 16 ใบ) ---------- */
-// เพิ่ม/เปลี่ยน emoji ได้ที่นี่ (ต้องมีอย่างน้อย 8 ตัว) แต่ละรอบสุ่มมาใช้ 8 ตัว
-const GM_POOL = ['🍎', '🐶', '🚀', '⚽', '🎸', '🌈', '🍕', '🐱', '⭐', '🎯', '🦊', '🐼', '🍩', '🐙', '🦋', '🎈'];
-const GM_PAIRS = 8, GM_BACK = 'การ์ดที่ปิดอยู่';
-let gmTimer = null, gmSecs = 0, gmMoves = 0, gmPairs = 0, gmFirst = null, gmLock = false, gmOn = false;
-function gmBest() { try { return Number(localStorage.getItem('sat_match_best')) || 0; } catch (e) { return 0; } }
-function gmSaveBest(n) { try { localStorage.setItem('sat_match_best', String(n)); } catch (e) {} }
-function gmBestText() { const b = gmBest(); return b ? b + ' ครั้ง' : '-'; }
-function gmShuffle(a) {
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
-  return a;
-}
-function gmStart() {
-  gmStop();
-  gmOn = true;
-  $('gmStart').style.display = 'none';
-  $('gmQ').textContent = 'เปิดการ์ดทีละ 2 ใบ หาคู่ที่เหมือนกัน';
-  const syms = gmShuffle(GM_POOL.slice()).slice(0, GM_PAIRS);
-  const deck = gmShuffle(syms.concat(syms));
-  const box = $('gmBoard');
-  box.textContent = '';
-  deck.forEach(function (sym) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'mc'; b.setAttribute('aria-label', GM_BACK);
-    b.innerHTML = '<span class="in"><span class="f b">?</span><span class="f a"></span></span>';
-    b.querySelector('.a').textContent = sym;
-    b.onclick = function () { gmFlip(b, sym); };
-    box.appendChild(b);
-  });
-}
-function gmFlip(b, sym) {
-  if (!gmOn || gmLock || b.classList.contains('open') || b.classList.contains('done')) return;
-  if (!gmTimer) gmTimer = setInterval(function () { gmSecs++; $('gmTime').textContent = gmSecs; }, 1000);   // เริ่มจับเวลาตอนเปิดใบแรก
-  b.classList.add('open'); b.setAttribute('aria-label', sym);
-  if (!gmFirst) { gmFirst = { b: b, sym: sym }; return; }
-  gmMoves++; $('gmScore').textContent = gmMoves;
-  const a = gmFirst; gmFirst = null;
-  if (a.sym === sym) {
-    a.b.classList.add('done'); b.classList.add('done'); gmPairs++;
-    if (gmPairs === GM_PAIRS) setTimeout(gmEnd, 450);
-  } else {
-    gmLock = true;
-    setTimeout(function () {
-      a.b.classList.remove('open'); b.classList.remove('open');
-      a.b.setAttribute('aria-label', GM_BACK); b.setAttribute('aria-label', GM_BACK);
-      gmLock = false;
-    }, 800);
-  }
-}
-function gmEnd() {
-  if (!gmOn) return;
-  clearInterval(gmTimer); gmTimer = null; gmOn = false;
-  const prev = gmBest(), rec = !prev || gmMoves < prev;
-  if (rec) gmSaveBest(gmMoves);
-  $('gmBest').textContent = (rec ? gmMoves : prev) + ' ครั้ง';
-  $('gmQ').textContent = 'จับคู่ครบแล้ว! ใช้ ' + gmMoves + ' ครั้ง ' + gmSecs + ' วินาที' + (rec ? ' 🎉 สถิติใหม่' : '');
-  $('gmStart').textContent = 'เล่นอีกครั้ง'; $('gmStart').style.display = 'block';
-}
-function gmStop() {   // เรียกตอนออกจากหน้าเกม/ออกจากระบบ: หยุดเวลาและรีเซ็ตหน้า
-  clearInterval(gmTimer); gmTimer = null;
-  gmOn = false; gmLock = false; gmFirst = null; gmSecs = 0; gmMoves = 0; gmPairs = 0;
-  $('gmBoard').textContent = '';
-  $('gmQ').textContent = 'เปิดการ์ดทีละ 2 ใบ จับคู่สัญลักษณ์ให้ครบ ใช้ครั้งน้อยที่สุดยิ่งดี';
-  $('gmTime').textContent = '0'; $('gmScore').textContent = '0'; $('gmBest').textContent = gmBestText();
-  $('gmStart').textContent = 'เริ่มเล่น'; $('gmStart').style.display = 'block';
-}
-gmStop();
-
-/* ---------- ป๊อปอัป ---------- */
-let dlgLastFocus = null;
-let dlgTimer = null;
-
-function showDialog(o) {
-  const ov = $('dlg');
-  clearTimeout(dlgTimer);
-  if (!ov.classList.contains('open')) dlgLastFocus = document.activeElement;
-  ov.classList.remove('closing');
-
-  $('dlgTitle').textContent = o.title || '';
-  $('dlgIcon').textContent = o.icon || '';
-
-  const body = $('dlgBody');
-  body.textContent = '';
-  if (o.message) {
-    const p = document.createElement('div');
-    p.textContent = o.message;
-    body.appendChild(p);
-  }
-  if (o.lines && o.lines.length) {
-    const l = document.createElement('div');
-    l.className = 'dlg-list';
-    o.lines.forEach(function (t) {
-      const s = document.createElement('span');
-      s.textContent = t;
-      l.appendChild(s);
-    });
-    body.appendChild(l);
-  }
-  if (o.note) {
-    const n = document.createElement('div');
-    n.className = 'dlg-note';
-    n.textContent = o.note;
-    body.appendChild(n);
-  }
-  if (o.link && isHttps(o.link.href)) {
-    const a = document.createElement('a');
-    a.className = 'dlg-link';
-    a.href = o.link.href;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = o.link.text;
-    body.appendChild(a);
-  }
-
-  const act = $('dlgActions');
-  act.textContent = '';
-  let focusBtn = null;
-  (o.buttons || []).forEach(function (bt, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'btn ' + (bt.cls || 'primary');
-    b.textContent = bt.text;
-    b.onclick = function () {
-      closeDialog();
-      if (bt.onClick) bt.onClick();
-    };
-    act.appendChild(b);
-    if (bt.focus || (!focusBtn && i === 0)) focusBtn = b;
-  });
-
-  ov.classList.add('open');
-  if (focusBtn) focusBtn.focus();
-}
-
-function closeDialog(immediate) {
-  const ov = $('dlg');
-  if (!ov.classList.contains('open')) return;
-  clearTimeout(dlgTimer);
-  function finish() {
-    ov.classList.remove('open', 'closing');
-    try { if (dlgLastFocus && dlgLastFocus.focus) dlgLastFocus.focus(); } catch (e) {}
-    dlgLastFocus = null;
-  }
-  if (immediate) { finish(); return; }
-  ov.classList.add('closing');
-  dlgTimer = setTimeout(finish, 160);
-}
-
-$('dlg').addEventListener('click', function (e) {
-  if (e.target === $('dlg')) closeDialog();
-});
-
-document.addEventListener('keydown', function (e) {
-  const ov = $('dlg');
-  if (!ov.classList.contains('open') || ov.classList.contains('closing')) return;
-  if (e.key === 'Escape') { closeDialog(); return; }
-  if (e.key === 'Tab') {
-    const bs = ov.querySelectorAll('button, a[href]');
-    if (!bs.length) return;
-    const first = bs[0], last = bs[bs.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-  }
-});
-
-/* ---------- ข้อความต้อนรับ ---------- */
-function splitChars(s) {
-  try {
-    if (window.Intl && Intl.Segmenter) {
-      return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(s),
-        function (x) { return x.segment; });
-    }
-  } catch (e) {}
-  return s.match(/[^\u0E31\u0E34-\u0E3A\u0E47-\u0E4E][\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]*|[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+/gu) || [s];
-}
-
-function welcome(name) {
-  const h = $('hello');
-  h.textContent = '';
-  h.setAttribute('aria-label', 'สวัสดี ' + name);
-
-  let i = 0;
-  const words = ('สวัสดี ' + name).split(/\s+/).filter(Boolean);
-  words.forEach(function (w, wi) {
-    if (wi) h.appendChild(document.createTextNode(' '));
-    const ws = document.createElement('span');
-    ws.className = 'hw';
-    ws.setAttribute('aria-hidden', 'true');
-    splitChars(w).forEach(function (ch) {
-      const s = document.createElement('span');
-      s.className = 'hl';
-      s.textContent = ch;
-      s.style.animationDelay = (Math.min(i, 30) * 45) + 'ms';
-      i++;
-      ws.appendChild(s);
-    });
-    h.appendChild(ws);
-  });
-
-  const e = document.createElement('span');
-  e.className = 'hwave';
-  e.setAttribute('aria-hidden', 'true');
-  e.textContent = ' 👋';
-  e.style.animationDelay = (Math.min(i, 30) * 45 + 150) + 'ms';
-  h.appendChild(e);
-}
-
-// ตรวจว่าคำตอบจากเซิร์ฟเวอร์คือ "ปิดปรับปรุง"
-function isMaint(res) {
-  return !!(res && (res.maintenance || /ปรับปรุง/.test(String(res.message || ''))));
-}
-
-// แสดงหน้าปิดปรับปรุงเต็มจอ (พร้อมออกจากระบบและล้างข้อมูลในหน้า)
-function showMaintenance(msg) {
-  if ($('maint').classList.contains('open')) return;
-  doLogout('');
-  $('mtMsg').textContent = msg || 'ระบบปิดปรับปรุงชั่วคราว กรุณากลับมาใหม่ภายหลัง';
-  $('maint').classList.add('open');
-}
-
-// เช็กสถานะปิดปรับปรุงตั้งแต่เปิดหน้า และเช็กซ้ำทุก 60 วินาที
-function checkStatus() {
-  callRpc('status', []).then(function (res) {
-    if (!res) return;
-    if (res.maintenance) {
-      showMaintenance(res.message);
-    } else if ($('maint').classList.contains('open')) {
-      location.reload(); // เปิดระบบแล้ว -> โหลดหน้าใหม่
-    }
-  }).catch(function () {}); // เช็กไม่ได้ก็ไม่ต้องทำอะไร (ฝั่งล็อกอิน/จองยังบล็อกให้อยู่)
-}
-checkStatus();
-setInterval(checkStatus, 60000);
-
-/* ---------- Login ---------- */
-function doLogin() {
-  const btn = $('btn');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = 'กำลังตรวจสอบ...';
-  setBox('msg', '');
-
-  runRetry('login', [$('sid').value, $('email').value], {
-    maxFail: 4,
-    onWait: function (n) {
-      setBox('msg', 'ตอนนี้มีผู้ใช้งานจำนวนมาก กำลังลองเชื่อมต่ออีกครั้ง (' + n + ')...', 'info');
-    },
-    done: function (res, err) {
-      btn.disabled = false;
-      btn.textContent = 'เข้าสู่ระบบ';
-      if (err || !res || res.busyGiveUp) {
-        setBox('msg', 'เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่อีกครั้งในอีกสักครู่', 'err');
-        return;
-      }
-      if (isMaint(res)) { showMaintenance(res.message); return; }
-      if (!res.ok) { setBox('msg', res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง', 'err'); return; }
-      setBox('msg', '');
-      showHome(res);
-    }
-  });
-}
-
-function showHome(res) {
-  token = res.token;
-  slots = res.slots || [];
-  appts = res.appts || [];
-  selected = {};
-  histOpen = false;
-  calM = -1; calDay = '';
-  $('loginBox').style.display = 'none';
-  $('homeBox').style.display = 'block';
-  onsite = res.onsite || { place: '', mapUrl: '' };
-  $('onsiteHint').textContent = onsite.place ? 'มาเจอกันที่ ' + onsite.place : 'มาเจอกัน';
-  welcome(res.student.name);
-  renderLinks(res.links, res.notes);
-  renderAppts();
-  renderChips();
-  resetCube();
-}
-
-/* ---------- ลิงก์ (แบ่งหมวด) ---------- */
-function buildGroups(links) {
-  const order = [];
-  const map = Object.create(null);
-  (links || []).forEach(function (l) {
-    if (!isHttps(l.url)) return;
-    const g = String(l.group || '').trim() || 'อื่นๆ';
-    if (!(g in map)) { map[g] = []; order.push(g); }
-    map[g].push({ title: l.title, url: l.url });
-  });
-  return order.map(function (g) { return { name: g, items: map[g] }; });
-}
-
-function renderLinks(links, notes) {
-  linkNotes = notes || [];
-  linkGroups = buildGroups(links);
-  currentGroup = linkGroups.length === 1 ? 0 : -1;
-  drawLinks();
-}
-
-function drawLinks() {
-  const lk = $('lk');
-  const groupsBox = $('lkGroups');
-  const itemsBox = $('lkItems');
-  groupsBox.textContent = '';
-  itemsBox.textContent = '';
-
-  lk.classList.toggle('picked', currentGroup >= 0);
-  lk.classList.toggle('single', linkGroups.length === 1);
-
-  if (!linkGroups.length) {
-    const p = document.createElement('div');
-    p.className = 'hint';
-    p.textContent = 'ยังไม่มีลิงก์ในตอนนี้';
-    groupsBox.appendChild(p);
-    return;
-  }
-
-  if (linkNotes.length && linkGroups.length > 1) {
-    const nb = document.createElement('button');
-    nb.type = 'button';
-    nb.className = 'gbtn nbtn' + (currentGroup < 0 ? ' active' : '');
-    const nt = document.createElement('span');
-    nt.textContent = '📌 ข้อแนะนำ';
-    nb.appendChild(nt);
-    nb.onclick = function () { currentGroup = -1; drawLinks(); };
-    groupsBox.appendChild(nb);
-  }
-
-  linkGroups.forEach(function (g, i) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'gbtn' + (i === currentGroup ? ' active' : '');
-    const n = document.createElement('span');
-    n.textContent = g.name;
-    b.appendChild(n);
-    b.onclick = function () { currentGroup = i; drawLinks(); };
-    groupsBox.appendChild(b);
-  });
-
-  if (currentGroup < 0) {
-    if (linkNotes.length) {
-      linkNotes.forEach(function (n) {
-        const c = document.createElement('div');
-        c.className = 'lk-note';
-        c.textContent = n;
-        itemsBox.appendChild(c);
-      });
-    } else {
-      const p = document.createElement('div');
-      p.className = 'hint';
-      p.textContent = 'เลือกหมวดเพื่อดูลิงก์';
-      itemsBox.appendChild(p);
-    }
-    return;
-  }
-
-  const g = linkGroups[currentGroup];
-  if (linkGroups.length > 1) {
-    const head = document.createElement('div');
-    head.className = 'lk-head';
-    const back = document.createElement('button');
-    back.type = 'button';
-    back.className = 'lk-back';
-    back.textContent = '‹ กลับ';
-    back.onclick = function () { currentGroup = -1; drawLinks(); };
-    head.appendChild(back);
-    const t = document.createElement('div');
-    t.className = 'lk-title';
-    t.textContent = g.name;
-    head.appendChild(t);
-    itemsBox.appendChild(head);
-  }
-  g.items.forEach(function (it) {
-    const a = document.createElement('a');
-    a.className = 'link';
-    a.href = it.url;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = it.title;
-    itemsBox.appendChild(a);
-  });
-}
-
-/* ---------- นัดของฉัน ---------- */
-function miniButton(text, cls, onclick) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'mini ' + cls;
-  b.textContent = text;
-  b.onclick = onclick;
-  return b;
-}
-
-function waitLine(text) {
-  const d = document.createElement('div');
-  d.className = 'wait';
-  d.textContent = '⏳ ' + text;
-  return d;
-}
-
-function pill(href, text) {
-  const a = document.createElement('a');
-  a.className = 'pill';
-  a.href = href;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.textContent = text;
-  return a;
-}
-
-function dateParts(label) {
-  const p = String(label).split('/');
-  return p.length === 3 ? { d: p[0], m: p[1], y: p[2] } : { d: String(label), m: '', y: '' };
-}
-
-// วันนี้ตามเวลาไทย รูปแบบ yyyy-mm-dd
-function todayBkk() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
-}
-
-function buildApptCard(a, isPast) {
-  const p = dateParts(a.label);
-  const isOnline = a.type === 'online';
-
-  const card = document.createElement('div');
-  card.className = 'appt ' + (isOnline ? 'online' : 'onsite') + (isPast ? ' past' : '');
-
-  const tile = document.createElement('div');
-  tile.className = 'tile';
-  tile.appendChild(el('b', '', p.d));
-  tile.appendChild(el('span', '', p.m));
-  card.appendChild(tile);
-
-  const body = document.createElement('div');
-  body.className = 'abody';
-
-  const head = document.createElement('div');
-  head.appendChild(el('span', 'badge', isOnline ? 'Online' : 'Onsite'));
-  if (p.y) head.appendChild(el('span', 'year', p.y));
-  if (isPast) head.appendChild(el('span', 'done-tag', '• ผ่านไปแล้ว'));
-  body.appendChild(head);
-
-  if (a.lesson) {
-    const l = document.createElement('div');
-    l.className = 'ltitle';
-    softText(l, a.lesson);
-    body.appendChild(l);
-  }
-
-  body.appendChild(el('div', 'atime', '🕓 ' + TIME_TEXT));
-
-  if (isPast) {
-    // ประวัติ: โชว์เฉพาะเอกสารที่มีลิงก์จริง ไม่โชว์ปุ่มยกเลิก/ข้อความเตือน
-    if (isHttps(a.doc)) body.appendChild(pill(a.doc, '📄 เอกสารประกอบบทเรียน'));
-    card.appendChild(body);
-    return card;
-  }
-
-  if (isOnline) {
-    if (isHttps(a.link)) body.appendChild(pill(a.link, '👉 Link นัดหมาย online'));
-    else body.appendChild(waitLine('Link นัดหมาย online จะมีให้ในวันนั้น'));
-  } else {
-    if (onsite.place) body.appendChild(el('div', 'lesson', '📍 สถานที่: ' + onsite.place));
-    if (isHttps(onsite.mapUrl)) body.appendChild(pill(onsite.mapUrl, '🗺️ เปิดแผนที่'));
-    body.appendChild(el('div', 'note', 'อย่าลืมมาตามนัดนะ'));
-  }
-
-  if (isHttps(a.doc)) body.appendChild(pill(a.doc, '📄 เอกสารประกอบบทเรียน'));
-  else body.appendChild(waitLine('Link เอกสารประกอบบทเรียน จะมีให้ในวันนั้น'));
-
-  const act = document.createElement('div');
-  if (a.canCancel) {
-    act.appendChild(miniButton('ยกเลิกนัด', 'cancel', function () {
-      setAMsg('');
-      askCancel(a);
-    }));
-  } else {
-    act.appendChild(el('div', 'note', 'ถึงวันนัดแล้ว ยกเลิกในเว็บไม่ได้ กรุณาติดต่อพี่ๆ'));
-  }
-  body.appendChild(act);
-
-  card.appendChild(body);
-  return card;
-}
-
-function renderAppts() {
-  const box = $('apptBox');
-  box.textContent = '';
-  if (!appts.length) return;
-
-  const today = todayBkk();
-  const upcoming = appts.filter(function (a) { return a.key >= today; })
-                        .sort(function (x, y) { return x.key < y.key ? -1 : 1; });
-  const history = appts.filter(function (a) { return a.key < today; })
-                       .sort(function (x, y) { return x.key < y.key ? 1 : -1; }) // ใหม่ -> เก่า
-                       .slice(0, HIST_MAX);
-
-  if (upcoming.length) {
-    box.appendChild(el('div', 'sec', 'นัดของฉัน'));
-    upcoming.forEach(function (a) { box.appendChild(buildApptCard(a, false)); });
-  }
-
-  if (history.length) {
-    box.appendChild(el('div', 'sec', 'ประวัติการจอง'));
-    const shown = histOpen ? history : history.slice(0, HIST_SHOW);
-    shown.forEach(function (a) { box.appendChild(buildApptCard(a, true)); });
-
-    if (history.length > HIST_SHOW) {
-      box.appendChild(miniButton(
-        histOpen ? 'ย่อประวัติ' : 'ดูเพิ่ม (อีก ' + (history.length - HIST_SHOW) + ' รายการ)',
-        'hist-more',
-        function () { histOpen = !histOpen; renderAppts(); }
-      ));
-    }
-  }
-}
-
-/* ---------- ปฏิทินเลือกวันที่ ---------- */
-function renderChips() {
-  const box = $('slotList');
-  box.textContent = '';
-  if (!slots.length) {
-    box.appendChild(el('div', 'hint', 'ตอนนี้ยังไม่มีวันที่เปิดให้จอง'));
-    return;
-  }
-
-  const byKey = {}, booked = {};
-  slots.forEach(function (s) { byKey[s.key] = s; });
-  appts.forEach(function (a) { booked[a.key] = true; });
-  Object.keys(selected).forEach(function (k) {
-    if (!byKey[k] || booked[k] || byKey[k].full) delete selected[k];
-  });
-
-  const keys = slots.map(function (s) { return s.key; }).sort();
-  const minYM = keys[0].slice(0, 7), maxYM = keys[keys.length - 1].slice(0, 7);
-  if (calM < 0) {
-    const f = Object.keys(selected).sort()[0] || keys[0];
-    calY = +f.slice(0, 4); calM = +f.slice(5, 7) - 1;
-  }
-  const ym = calY + '-' + pad2(calM + 1);
-
-  const cal = el('div', 'cal');
-  const head = el('div', 'cal-head');
-  const prev = el('button', 'cal-nav', '‹'); prev.type = 'button';
-  const next = el('button', 'cal-nav', '›'); next.type = 'button';
-  prev.setAttribute('aria-label', 'เดือนก่อนหน้า');
-  next.setAttribute('aria-label', 'เดือนถัดไป');
-  prev.disabled = ym <= minYM;
-  next.disabled = ym >= maxYM;
-  prev.onclick = function () { calM--; if (calM < 0) { calM = 11; calY--; } renderChips(); };
-  next.onclick = function () { calM++; if (calM > 11) { calM = 0; calY++; } renderChips(); };
-  head.appendChild(prev);
-  head.appendChild(el('div', 'cal-title', MONTHS[calM] + ' ' + calY));
-  head.appendChild(next);
-  cal.appendChild(head);
-
-  const dow = el('div', 'cal-dow');
-  ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (d) { dow.appendChild(el('span', '', d)); });
-  cal.appendChild(dow);
-
-  const grid = el('div', 'cal-grid');
-  const first = new Date(calY, calM, 1).getDay();
-  const total = new Date(calY, calM + 1, 0).getDate();
-  const todayKey = (function () {
-    const n = new Date();
-    return n.getFullYear() + '-' + pad2(n.getMonth() + 1) + '-' + pad2(n.getDate());
-  })();
-  for (let i = 0; i < first; i++) grid.appendChild(el('span'));
-  for (let d = 1; d <= total; d++) {
-    const key = calY + '-' + pad2(calM + 1) + '-' + pad2(d);
-    const s = byKey[key];
-    const b = el('button', 'cal-day', String(d));
-    b.type = 'button';
-    if (key === todayKey) b.classList.add('today');
-    if (s) {
-      b.classList.add('has');
-      if (booked[key]) b.classList.add('booked');
-      else if (s.full) b.classList.add('full');
-      if (selected[key]) b.classList.add('sel');
-      if (key === calDay) b.classList.add('active');
-      b.setAttribute('aria-pressed', key === calDay ? 'true' : 'false');
-      b.onclick = function () { calDay = key; renderChips(); };
-    } else {
-      b.disabled = true;
-    }
-    grid.appendChild(b);
-  }
-  cal.appendChild(grid);
-  box.appendChild(cal);
-
-  const s = byKey[calDay];
-  if (s) {
-    const det = el('div', 'cal-detail');
-    det.appendChild(el('div', 'd-date', '📅 ' + s.label));
-    if (s.lesson) { const l = el('div', 'd-lesson'); softText(l, s.lesson); det.appendChild(l); }
-    det.appendChild(el('div', 'd-time', '🕓 ' + TIME_TEXT));
-    const isBooked = !!booked[s.key], isFull = !isBooked && s.full;
-    const low = !isBooked && !isFull && s.left <= 5;
-    det.appendChild(el('span', 'c-seat' + (low ? ' low' : '') + (isBooked || isFull ? ' off' : ''),
-      isBooked ? '✓ จองแล้ว' : isFull ? 'เต็มแล้ว' : 'เหลือ ' + s.left + ' ที่นั่ง'));
-    if (!isBooked && !isFull) {
-      const act = el('button', 'btn ' + (selected[s.key] ? 'ghost' : 'primary'),
-        selected[s.key] ? 'ยกเลิกการเลือกวันนี้' : 'เลือกวันนี้');
-      act.type = 'button';
-      act.onclick = function () { toggleDate(s.key); };
-      det.appendChild(act);
-    }
-    box.appendChild(det);
-  } else {
-    box.appendChild(el('div', 'cal-hint', 'กดวันที่ที่มีวงกลมสีเพื่อดูบทเรียนและเวลา'));
-  }
-
-  const picked = Object.keys(selected).sort();
-  if (picked.length) {
-    const wrap = el('div', 'cal-picked');
-    picked.forEach(function (k) {
-      const t = el('span', 'tag');
-      t.appendChild(document.createTextNode(byKey[k].label));
-      const x = el('button', '', '×'); x.type = 'button';
-      x.setAttribute('aria-label', 'เอาวันที่ ' + byKey[k].label + ' ออก');
-      x.onclick = function () { toggleDate(k); };
-      t.appendChild(x);
-      wrap.appendChild(t);
-    });
-    box.appendChild(wrap);
-  }
-}
-
-function toggleDate(key) {
-  if (selected[key]) delete selected[key]; else selected[key] = true;
-  renderChips();
-}
-
-function toggleBook() {
-  const b = $('bookBox');
-  const open = b.style.display === 'none';
-  b.style.display = open ? 'block' : 'none';
-  $('openBook').textContent = open ? '✕ ปิดหน้าจองนัด' : BOOK_LABEL;
-  if (open) { setBMsg(''); setAMsg(''); }
-}
-
-function closeBook() {
-  $('bookBox').style.display = 'none';
-  $('openBook').textContent = BOOK_LABEL;
-  document.querySelectorAll('input[name=btype]').forEach(function (r) { r.checked = false; });
-  setBMsg('');
-}
-
-function selectedType() {
-  const r = document.querySelector('input[name=btype]:checked');
-  return r ? r.value : '';
-}
-
-function labelFor(key) {
-  for (let i = 0; i < appts.length; i++) if (appts[i].key === key) return appts[i].label;
-  for (let j = 0; j < slots.length; j++) if (slots[j].key === key) return slots[j].label;
-  return key;
-}
-
-function allBooked(keys, type, list) {
-  return keys.every(function (k) {
-    return list.some(function (a) { return a.key === k && a.type === type; });
-  });
-}
-
-/* ---------- จอง / ยกเลิก ---------- */
-function doBook() {
-  const keys = Object.keys(selected).sort();
-  const type = selectedType();
-  if (!keys.length) { setBMsg('กรุณากดเลือกวันที่อย่างน้อย 1 วัน', 'err'); return; }
-  if (!type) { setBMsg('กรุณาเลือก Onsite หรือ Online', 'err'); return; }
-  setBMsg('');
-  setAMsg('');
-
-  showDialog({
-    icon: type === 'online' ? '💻' : '🏫',
-    title: 'ยืนยันการจอง',
-    message: 'จองนัด ' + (type === 'online' ? 'Online' : 'Onsite') + ' จำนวน ' + keys.length + ' วัน เวลา ' + TIME_TEXT,
-    lines: keys.map(labelFor),
-    note: type === 'onsite' && onsite.place ? '📍 สถานที่: ' + onsite.place : '',
-    buttons: [
-      { text: 'แก้ไข', cls: 'ghost' },
-      { text: 'ยืนยันจอง', cls: 'primary', focus: true, onClick: function () { submitBook(keys, type); } }
-    ]
-  });
-}
-
-function submitBook(keys, type) {
-  const btn = $('submitBook');
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = 'กำลังจอง...';
-  setBMsg('');
-  setAMsg('');
-
-  runRetry('bookAppointment', [token, keys, type], {
-    maxFail: 4,
-    maxBusy: 12,
-    onWait: function (n) {
-      btn.textContent = 'กำลังต่อคิว... (' + n + ')';
-      setBMsg('ตอนนี้มีคนจองจำนวนมาก ระบบกำลังต่อคิวให้ กรุณารอสักครู่และอย่าปิดหน้านี้', 'info');
-    },
-    done: function (res, err) {
-      btn.disabled = false;
-      btn.textContent = 'ยืนยันการจอง';
-
-      if (err || !res) {
-        setBMsg('เชื่อมต่อไม่สำเร็จ หากไม่แน่ใจว่าจองแล้วหรือยัง ให้ออกจากระบบแล้วเข้าใหม่เพื่อดู "นัดของฉัน"', 'err');
-        return;
-      }
-      if (res.busyGiveUp) {
-        setBMsg('ตอนนี้มีคนจองจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยืนยันการจองอีกครั้งในอีกสักครู่', 'err');
-        return;
-      }
-      if (isMaint(res)) { showMaintenance(res.message); return; }
-      if (res.expired) { doLogout(res.message); return; }
-      if (res.slots) slots = res.slots;
-      if (res.appts) appts = res.appts;
-
-      let ok = !!res.ok;
-      let labels = res.labels;
-      if (!ok && res.appts && allBooked(keys, type, res.appts)) {
-        ok = true;
-        labels = keys.map(labelFor);
-      }
-
-      if (!ok) {
-        renderAppts();
-        renderChips();
-        setBMsg(res.message || 'จองไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
-        return;
-      }
-
-      selected = {};
-      calDay = '';
-      closeBook();
-      renderAppts();
-      renderChips();
-      const typeText = type === 'online' ? 'Online' : 'Onsite';
-      let text = 'จองนัด ' + typeText + ' เรียบร้อย: ' + (labels || []).join(', ');
-      if (type === 'onsite') text += ' อย่าลืมมาตามนัดนะ 🙂';
-      text += ' ดูรายละเอียดได้ที่ "นัดของฉัน" ด้านล่าง';
-      setAMsg(text, 'ok');
-      try { $('amsg').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
-
-      showDialog({
-        icon: '🎉',
-        title: 'จองสำเร็จ',
-        message: 'จองนัด ' + typeText + ' เรียบร้อยแล้ว' + (type === 'onsite' ? ' อย่าลืมมาตามนัดนะ 🙂' : ''),
-        lines: labels || [],
-        note: type === 'onsite' && onsite.place ? '📍 สถานที่: ' + onsite.place : '',
-        link: type === 'onsite' ? { text: '🗺️ เปิดแผนที่', href: onsite.mapUrl } : null,
-        buttons: [{ text: 'OK', cls: 'primary' }]
-      });
-    }
-  });
-}
-
-function askCancel(a) {
-  showDialog({
-    icon: '🗑️',
-    title: 'ยกเลิกนัด',
-    message: 'ยกเลิกนัดวันที่ ' + a.label + ' (' + (a.type === 'online' ? 'Online' : 'Onsite') + ') ใช่ไหม?',
-    buttons: [
-      { text: 'ไม่ยกเลิก', cls: 'ghost', focus: true },
-      { text: 'ยืนยันยกเลิก', cls: 'danger', onClick: function () { doCancel(a.key); } }
-    ]
-  });
-}
-
-function doCancel(key) {
-  if (busy) return;
-  busy = true;
-  const label = labelFor(key);
-  setAMsg('กำลังยกเลิก...', 'info');
-  setBMsg('');
-
-  runRetry('cancelAppointment', [token, key], {
-    maxFail: 4,
-    maxBusy: 12,
-    onWait: function (n) {
-      setAMsg('ตอนนี้มีผู้ใช้งานจำนวนมาก ระบบกำลังต่อคิวให้ (' + n + ')...', 'info');
-    },
-    done: function (res, err) {
-      busy = false;
-      if (err || !res) {
-        setAMsg('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
-        return;
-      }
-      if (res.busyGiveUp) {
-        setAMsg('ตอนนี้มีผู้ใช้งานจำนวนมากมาก ยังต่อคิวไม่สำเร็จ กรุณากดยกเลิกอีกครั้งในอีกสักครู่', 'err');
-        return;
-      }
-      if (isMaint(res)) { showMaintenance(res.message); return; }
-      if (res.expired) { doLogout(res.message); return; }
-      if (res.slots) slots = res.slots;
-      if (res.appts) appts = res.appts;
-
-      let ok = !!res.ok;
-      if (!ok && res.appts && !res.appts.some(function (a) { return a.key === key; })) ok = true;
-
-      renderAppts();
-      renderChips();
-      if (ok) setAMsg('ยกเลิกนัดวันที่ ' + (res.label || label) + ' เรียบร้อยแล้ว', 'ok');
-      else setAMsg(res.message || 'ยกเลิกไม่สำเร็จ ลองใหม่อีกครั้ง', 'err');
-    }
-  });
-}
-
-/* ---------- ออกจากระบบ ---------- */
-function doLogout(message) {
-  if (token) callRpc('logout', [token]).catch(function () {});
-  token = '';
-  slots = [];
-  appts = [];
-  selected = {};
-  calM = -1; calDay = '';
-  busy = false;
-  histOpen = false;
-  closeDialog(true);
-  onsite = { place: '', mapUrl: '' };
-  linkNotes = [];
-  linkGroups = [];
-  currentGroup = -1;
-  $('lkGroups').textContent = '';
-  $('lkItems').textContent = '';
-  $('apptBox').textContent = '';
-  $('slotList').textContent = '';
-  $('hello').textContent = '';
-  $('sid').value = '';
-  $('email').value = '';
-  closeBook();
-  setAMsg('');
-  resetCube();
-  setBox('msg', (typeof message === 'string') ? message : '', 'err');
-  $('homeBox').style.display = 'none';
-  $('loginBox').style.display = 'block';
-}
-
-['sid', 'email'].forEach(function (id) {
-  $(id).addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') doLogin();
-  });
-});
-
-// ฉากหลังหน้า login: สัญลักษณ์คณิตศาสตร์ลอยขึ้น
-(function () {
-  const fx = $('fx');
-  if (!fx) return;
-  const S = ['∑', 'π', '√', '∫', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠'];
-  for (let i = 0; i < 18; i++) {
-    const e = document.createElement('span');
-    e.className = 'sym';
-    e.textContent = S[i % S.length];
-    e.style.left = (Math.random() * 96) + '%';
-    e.style.fontSize = (18 + Math.random() * 28) + 'px';
-    e.style.animationDuration = (14 + Math.random() * 14) + 's';
-    e.style.animationDelay = (-Math.random() * 20) + 's';
-    fx.appendChild(e);
-  }
-})();
-
-// การ์ด login เอียงตามเมาส์ (เฉพาะจอที่มีเมาส์)
-(function () {
-  if (!window.matchMedia || !matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) return;
-  const card = $('loginCard');
-  document.addEventListener('mousemove', function (e) {
-    if ($('loginBox').style.display === 'none') return;
-    const rx = -((e.clientY / window.innerHeight) - .5) * 6;
-    const ry = ((e.clientX / window.innerWidth) - .5) * 8;
-    card.style.setProperty('--rx', rx.toFixed(2) + 'deg');
-    card.style.setProperty('--ry', ry.toFixed(2) + 'deg');
-  });
-  document.addEventListener('mouseleave', function () {
-    card.style.setProperty('--rx', '0deg');
-    card.style.setProperty('--ry', '0deg');
-  });
-})();
-
-// อนิเมชันเปิดเว็บ: เล่นจบเอง (~3.4 วินาที) หรือแตะที่หน้าจอเพื่อข้าม
-(function () {
-  const e = $('intro');
-  const lb = $('loginBox');
-  function enter() { lb.classList.add('enter'); }
-  if (!e) { enter(); return; }
-  let done = false;
-  function end(fast) {
-    if (done) return;
-    done = true;
-    if (fast) { e.classList.add('skip'); enter(); }
-    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, fast ? 280 : 0);
-  }
-  e.addEventListener('click', function () { end(true); });
-  setTimeout(enter, 2500);
-  setTimeout(function () { end(false); }, 3600);
-})();
 </script>
-</body>
-</html>
