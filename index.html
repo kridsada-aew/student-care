@@ -1535,7 +1535,7 @@ function doLogout(message) {
 (function () {
   const fx = $('fx');
   if (!fx) return;
-  const S = ['∑', 'π', '√', '∫', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠'];
+  const S = ['∑', 'π', '√', 'cos', '∞', '≈', 'x²', 'θ', 'Δ', '±', '%', '÷', 'f(x)', 'sin', '∠','tan'];
   for (let i = 0; i < 18; i++) {
     const e = document.createElement('span');
     e.className = 'sym';
@@ -1565,23 +1565,55 @@ function doLogout(message) {
   });
 })();
 
-// อนิเมชันเปิดเว็บ: เล่นจบเอง (~3.4 วินาที) หรือแตะที่หน้าจอเพื่อข้าม
+
 (function () {
-  const e = $('intro');
+  const old = $('intro');
+  if (old && old.parentNode) old.parentNode.removeChild(old);   // เอา intro เดิมออก
   const lb = $('loginBox');
   function enter() { lb.classList.add('enter'); }
-  if (!e) { enter(); return; }
-  let done = false;
-  function end(fast) {
-    if (done) return;
-    done = true;
-    if (fast) { e.classList.add('skip'); enter(); }
-    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, fast ? 280 : 0);
+  if (reduceMotion()) { enter(); return; }
+
+  const ti = el('div'); ti.id = 'textIntro'; ti.setAttribute('aria-hidden', 'true');
+  const words = el('div', 'ti-words');
+  function addWord(text, delay) {
+    const m = el('span', 'ti-mask');
+    const w = el('span', 'ti-in', text);
+    w.style.setProperty('--d', delay + 's');
+    m.appendChild(w);
+    words.appendChild(m);
   }
-  e.addEventListener('click', function () { end(true); });
-  setTimeout(enter, 2500);
-  setTimeout(function () { end(false); }, 3600);
+  addWord('Check', 0.1);    // Check ขึ้นก่อน
+  addWord('Point', 0.55);   // Point ตามมา
+  ti.appendChild(words);
+  ti.appendChild(el('div', 'ti-skip', 'แตะเพื่อข้าม'));
+  document.body.appendChild(ti);
+
+  let revealed = false;
+  const timers = [];
+  function later(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+  // จางหายไปเพื่อเปิดหน้า login (ไม่มีวงกลมแล้ว)
+  function reveal(ms) {
+    if (revealed) return;
+    revealed = true;
+    timers.forEach(clearTimeout);
+    enter();
+    ti.style.transitionDuration = ms + 'ms';
+    ti.classList.add('tiOut');
+    setTimeout(function () { if (ti.parentNode) ti.parentNode.removeChild(ti); }, ms + 80);
+  }
+
+  later(250, function () { playBell(0, .6, true); });    // Check โผล่
+  later(700, function () { playBell(1, .7, true); });    // Point โผล่
+  later(1500, function () { reveal(400); });             // เริ่มจางหาย (จบประมาณ 1.9 วินาที)
+
+  ti.addEventListener('click', function () {
+    if (revealed) return;
+    playBell(0, .6);
+    reveal(250);
+  });
 })();
+
 </script>
 </body>
 </html>
