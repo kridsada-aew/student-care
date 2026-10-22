@@ -2031,5 +2031,230 @@ window.addEventListener('resize', function () {
   if ($('homeBox').style.display !== 'none' && cubeMode !== 'open') { layoutMobile(); drawMobile(performance.now()); }
 });
 </script>
+  <style>
+/* ===== flow: intro → login → home (ใช้ภาษา "วงกลม" เดียวกันทั้งหมด) ===== */
+
+/* intro: วงกลมขยายแบบเรียบ ไม่หมุน/บิด จะได้เป็นแบบเดียวกับตอนเข้าหน้าหลัก */
+@keyframes inGrow { from { width: 64px; height: 64px; } to { width: 190vmax; height: 190vmax; } }
+
+/* login: การ์ดลอยขึ้นแล้วจางหาย */
+#loginBox.leaving #loginCard { animation: cardOut .55s cubic-bezier(.5, 0, .8, .4) forwards; }
+@keyframes cardOut { to { opacity: 0; scale: .9; translate: 0 -20px; } }
+
+/* วงกลมปิด/เปิดฉาก (iris) */
+#iris {
+  position: fixed; inset: 0; z-index: 250; display: none; background: var(--intro-bg);
+  -webkit-mask-image: radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), transparent var(--ir, 0px), #000 calc(var(--ir, 0px) + 1px));
+  mask-image: radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), transparent var(--ir, 0px), #000 calc(var(--ir, 0px) + 1px));
+}
+#irisFx { position: fixed; inset: 0; z-index: 251; display: none; pointer-events: none; }
+#irisRing {
+  position: absolute; border: 3px solid rgba(255, 255, 255, .95); border-radius: 50%;
+  transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0); transition: background .35s;
+  box-shadow: 0 0 18px 3px rgba(199, 210, 254, .9);
+}
+#irisRing.dot { background: #fff; }
+
+/* หน้าหลักเข้ามาต่อจากวงกลม */
+.home-in .hero { animation: heroIn .7s cubic-bezier(.2, 1.1, .3, 1) both; }
+.home-in .nav { animation: homeUp .55s ease .2s both; }
+.home-in .pages { animation: homeUp .45s ease .05s both; }
+@keyframes heroIn { from { opacity: 0; translate: 0 -30px; scale: .96; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes homeUp { from { opacity: 0; translate: 0 20px; } to { opacity: 1; translate: 0 0; } }
+
+/* ปุ่มเปิด/ปิดเสียง */
+.snd-btn {
+  position: absolute; top: 10px; right: 10px; z-index: 40; width: 36px; height: 36px; padding: 0;
+  border: 0; border-radius: 50%; background: #fff; font-size: 17px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .15);
+}
+</style>
+
+<script>
+/* ===================== เสียงกระดิ่ง ===================== */
+let actx = null, soundOn = true;
+try { if (localStorage.getItem('sat_sound') === '0') soundOn = false; } catch (e) {}
+
+// กระดิ่งแต่ละใบมีโน้ตและโทนเสียงไม่เหมือนกัน (เพิ่มได้ตามจำนวนแท็บ)
+const BELL_VOICE = [
+  { f: 1046.5, dec: 2.6, ratios: [1, 2.76, 5.4, 8.93], gains: [1, .45, .2, .08] },   // C6 กังวานยาว
+  { f: 1318.5, dec: 1.9, ratios: [1, 2.0, 4.2, 6.8],   gains: [1, .35, .18, .06] },  // E6 ใสนุ่ม
+  { f: 1568.0, dec: 1.4, ratios: [1, 2.76, 4.07, 7.2], gains: [1, .5, .15, .07] }    // G6 แหลมสั้น
+];
+
+function audioCtx() {
+  if (!actx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { actx = new AC(); } catch (e) { return null; }
+  }
+  return actx;
+}
+function unlockAudio() {
+  const a = audioCtx();
+  if (a && a.state === 'suspended') a.resume().catch(function () {});
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+  window.addEventListener(ev, unlockAudio, { passive: true, capture: true });
+});
+
+// onlyIfRunning = true: ใช้กับเสียงที่ถูกสั่งจากตัวจับเวลา (ไม่ใช่การกดของผู้ใช้) จะได้ไม่เด้งเสียงช้า
+function playBell(i, vol, onlyIfRunning) {
+  if (!soundOn) return;
+  const a = audioCtx();
+  if (!a) return;
+  if (a.state !== 'running') {
+    if (onlyIfRunning) return;
+    a.resume().then(function () { playBell(i, vol, true); }).catch(function () {});
+    return;
+  }
+  const v = BELL_VOICE[i % BELL_VOICE.length], now = a.currentTime;
+  const out = a.createGain();
+  out.gain.value = 0.22 * (vol || 1);
+  out.connect(a.destination);
+  v.ratios.forEach(function (r, k) {
+    const o = a.createOscillator(), g = a.createGain();
+    const d = v.dec / (1 + k * 0.9);
+    o.type = 'sine';
+    o.frequency.value = v.f * r * (1 + (Math.random() - .5) * .002);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(v.gains[k], now + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + d);
+    o.connect(g); g.connect(out);
+    o.start(now); o.stop(now + d + 0.05);
+  });
+  setTimeout(function () { try { out.disconnect(); } catch (e) {} }, (v.dec + 0.3) * 1000);
+}
+
+// แตะกระดิ่ง/กดแท็บ: กระดิ่งแกว่ง + มีเสียง
+window.ringBell = function (i) {
+  if (bells[i]) { bells[i].t0 = performance.now(); bells[i].amp = 20; }
+  playBell(i, 1);
+};
+
+// ปุ่มเปิด/ปิดเสียง (มุมขวาบนของโมบาย)
+(function () {
+  const b = el('button', 'snd-btn', soundOn ? '🔔' : '🔕');
+  b.type = 'button'; b.tabIndex = -1;
+  b.setAttribute('aria-label', 'เปิด/ปิดเสียงกระดิ่ง');
+  b.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+  b.onclick = function () {
+    soundOn = !soundOn;
+    b.textContent = soundOn ? '🔔' : '🔕';
+    try { localStorage.setItem('sat_sound', soundOn ? '1' : '0'); } catch (e) {}
+    if (soundOn) { unlockAudio(); playBell(0, .6); }
+  };
+  cubeWrap.appendChild(b);
+})();
+
+/* ===================== กระดิ่งพุ่งออกจากศูนย์กลางโมบายตอนเข้าหน้าหลัก ===================== */
+let entT0 = -1e9;   // เวลาเริ่มพุ่งออก (ค่าเริ่มต้น = จบไปแล้ว)
+function easeOutBack(p) { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+
+window.drawMobile = function (t) {
+  const n = bells.length;
+  bells.forEach(function (b, i) {
+    const th = (cs.ry + i * 360 / n) * Math.PI / 180;
+    const s = Math.sin(th), c = Math.cos(th);
+    const fx = mb.cx + mb.R * s, fy = mb.y + mb.ry * c;
+    const p = Math.max(0, Math.min(1, (t - entT0 - i * 150) / 800));
+    const e = p <= 0 ? 0 : easeOutBack(p);
+    const x = mb.cx + (fx - mb.cx) * e, y = mb.y + (fy - mb.y) * e;
+    const k = (0.86 + 0.14 * c) * Math.max(0.001, e);
+    b.wrap.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + k.toFixed(3) + ')';
+    b.wrap.style.zIndex = String(10 + Math.round(c * 10));
+    b.wrap.style.opacity = ((0.82 + 0.18 * (c + 1) / 2) * Math.min(1, p * 3)).toFixed(2);
+    const q = t - b.t0;
+    const ang = Math.sin(t / 1100 + i * 2) * 2.5 + b.amp * Math.exp(-q / 900) * Math.sin(q / 70);
+    b.sw.style.transform = 'rotate(' + ang.toFixed(2) + 'deg)';
+    b.line.setAttribute('x1', mb.cx); b.line.setAttribute('y1', mb.y);
+    b.line.setAttribute('x2', x.toFixed(1)); b.line.setAttribute('y2', y.toFixed(1));
+  });
+};
+
+/* ===================== วงกลมปิด/เปิดฉาก: login → หน้าหลัก ===================== */
+const irisEl = el('div'); irisEl.id = 'iris';
+const irisFx = el('div'); irisFx.id = 'irisFx';
+const ringEl = el('i'); ringEl.id = 'irisRing';
+irisFx.appendChild(ringEl);
+document.body.appendChild(irisEl); document.body.appendChild(irisFx);
+let irisBusy = false, irisFail = null;
+
+function irisCenter(x, y) {
+  irisEl.style.setProperty('--ix', x + 'px'); irisEl.style.setProperty('--iy', y + 'px');
+  ringEl.style.left = x + 'px'; ringEl.style.top = y + 'px';
+}
+function setIris(r) {
+  irisEl.style.setProperty('--ir', r + 'px');
+  const d = Math.max(0, 2 * r);
+  ringEl.style.width = d + 'px'; ringEl.style.height = d + 'px';
+}
+function irisTween(ms, a, b, ease, done) {
+  const t0 = performance.now();
+  (function s(n) {
+    const p = Math.min(1, (n - t0) / ms);
+    setIris(a + (b - a) * ease(p));
+    if (p < 1) requestAnimationFrame(s); else if (done) done();
+  })(t0);
+}
+function irisEnd() {
+  clearTimeout(irisFail);
+  irisEl.style.display = 'none'; irisFx.style.display = 'none';
+  ringEl.classList.remove('dot');
+  $('loginBox').classList.remove('leaving');
+  irisBusy = false;
+}
+
+const _showHome = window.showHome;
+window.showHome = function (res) {
+  if (reduceMotion() || irisBusy) { _showHome(res); return; }
+  irisBusy = true;
+  const R = Math.hypot(window.innerWidth, window.innerHeight) + 40;
+  const cr = $('loginCard').getBoundingClientRect();
+  irisFail = setTimeout(irisEnd, 5000);   // กันค้าง
+
+  // 1) การ์ด login ลอยขึ้น + วงกลมหุบเข้าหาจุดกลางการ์ด
+  $('loginBox').classList.add('leaving');
+  irisCenter(cr.left + cr.width / 2, cr.top + cr.height / 2);
+  irisEl.style.display = 'block'; irisFx.style.display = 'block';
+  setIris(R);
+  irisTween(700, R, 0, easeInOut, function () {
+    // 2) จอเต็มสีม่วง: สลับเป็นหน้าหลักข้างหลัง แล้วย้ายจุดไปที่ "ศูนย์กลางโมบาย"
+    entT0 = 1e15;
+    _showHome(res);
+    $('loginBox').classList.remove('leaving');
+    try { window.scrollTo(0, 0); } catch (e) {}
+    layoutMobile();
+    const r = cubeWrap.getBoundingClientRect();
+    irisCenter(r.left + mb.cx, r.top + mb.y);
+    setIris(0);
+    ringEl.style.width = '18px'; ringEl.style.height = '18px';
+    ringEl.classList.add('dot');
+    playBell(0, .5, true);
+
+    // 3) วงกลมเปิดออกจากศูนย์กลางโมบาย + หน้าหลักเข้า + กระดิ่งพุ่งออกมาทีละใบพร้อมเสียง
+    setTimeout(function () {
+      ringEl.classList.remove('dot');
+      $('homeBox').classList.add('home-in');
+      welcome(res.student.name);
+      entT0 = performance.now() + 120;
+      bells.forEach(function (b, i) {
+        setTimeout(function () { b.t0 = performance.now(); b.amp = 14; playBell(i, .8, true); }, 570 + i * 150);
+      });
+      irisTween(950, 0, R, easeInOut, irisEnd);
+      setTimeout(function () { $('homeBox').classList.remove('home-in'); }, 1900);
+    }, 280);
+  });
+};
+
+/* ===================== intro: เสียง "ติ๊ง" 3 โน้ต ตอนวงกลมเรืองแสง ===================== */
+(function () {
+  function chime3() { [0, 1, 2].forEach(function (i) { setTimeout(function () { playBell(i, .5, true); }, i * 140); }); }
+  // เบราว์เซอร์ห้ามเล่นเสียงก่อนผู้ใช้แตะ จึงมีเสียงเฉพาะกรณีที่ context ถูกปลดล็อกแล้ว
+  setTimeout(function () { if ($('intro') && actx && actx.state === 'running') chime3(); }, 2050);
+  const intro = $('intro');
+  if (intro) intro.addEventListener('click', function () { setTimeout(chime3, 150); });
+})();
+</script>
 </body>
 </html>
