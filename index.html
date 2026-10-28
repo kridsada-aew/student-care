@@ -188,8 +188,46 @@
     /* ============ แท็บนำทาง ============ */
     .layout { margin-top: 16px; }
     .nav { display: flex; gap: 6px; padding: 6px; background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
-    .tab { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 11px 8px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
-    .tab.active { background: var(--primary-l); color: var(--primary-d); }
+        .tab {
+      position: relative; overflow: hidden; flex: 1; border: 0; background: transparent;
+      color: var(--muted); padding: 11px 8px; border-radius: 10px;
+      font-size: 15px; font-weight: 500; cursor: pointer;
+      transition: transform .3s cubic-bezier(.2, 1.4, .4, 1), background .25s, color .25s, box-shadow .25s;
+    }
+    .tab::before {
+      content: ''; position: absolute; top: 0; left: -70%; width: 50%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .75), transparent);
+      transform: skewX(-20deg); pointer-events: none;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      color: #fff; box-shadow: 0 6px 16px rgba(79, 70, 229, .35);
+    }
+    .tab:active { transform: scale(.95); }
+    @media (hover: hover) {
+      .tab:hover { transform: translateY(-3px) scale(1.04); }
+      .tab:hover:not(.active) {
+        background: var(--primary-l); color: var(--primary-d);
+        box-shadow: 0 8px 18px rgba(79, 70, 229, .22);
+      }
+      .tab:hover::before { animation: tabShine .7s ease; }
+    }
+    @media (hover: hover) and (min-width: 768px) {
+      .tab:hover { transform: translateX(6px) scale(1.03); }
+    }
+    @keyframes tabShine { to { left: 130%; } }
+
+    /* สไลด์หน้าเวลาเปลี่ยนแท็บ */
+    body { overflow-x: hidden; }
+    .slide-r { animation: slideInR .5s cubic-bezier(.2, .9, .3, 1) both; }
+    .slide-l { animation: slideInL .5s cubic-bezier(.2, .9, .3, 1) both; }
+    .slide-r > *, .slide-l > * { animation: itemUp .5s ease both; }
+    .slide-r > :nth-child(2), .slide-l > :nth-child(2) { animation-delay: .08s; }
+    .slide-r > :nth-child(3), .slide-l > :nth-child(3) { animation-delay: .16s; }
+    .slide-r > :nth-child(4), .slide-l > :nth-child(4) { animation-delay: .24s; }
+    @keyframes slideInR { from { opacity: 0; translate: 60px 0; } to { opacity: 1; translate: 0 0; } }
+    @keyframes slideInL { from { opacity: 0; translate: -60px 0; } to { opacity: 1; translate: 0 0; } }
+    @keyframes itemUp { from { opacity: 0; translate: 0 18px; scale: .97; } to { opacity: 1; translate: 0 0; scale: 1; } }
     .pages { margin-top: 14px; }
 
     /* ============ ลิงก์ (แบ่งหมวด) ============ */
@@ -824,8 +862,11 @@ function doLogout(message) {
   $('loginBox').style.display = 'block';
 }
 
+let currentTab = 'links';
 function showTab(name) {
   const isBook = name === 'book';
+  const changed = name !== currentTab;
+  currentTab = name;
   $('pageLinks').style.display = isBook ? 'none' : 'block';
   $('pageBook').style.display = isBook ? 'block' : 'none';
   $('tabLinks').classList.toggle('active', !isBook);
@@ -833,6 +874,13 @@ function showTab(name) {
   $('tabLinks').setAttribute('aria-selected', String(!isBook));
   $('tabBook').setAttribute('aria-selected', String(isBook));
   try { window.scrollTo(0, 0); } catch (e) {}
+
+  if (changed && !reduceMotion()) {
+    const page = $(isBook ? 'pageBook' : 'pageLinks');
+    page.classList.remove('slide-r', 'slide-l');
+    void page.offsetWidth; // ทำให้อนิเมชันเริ่มใหม่ทุกครั้ง
+    page.classList.add(isBook ? 'slide-r' : 'slide-l');
+  }
 }
 
 /* =====================================================
