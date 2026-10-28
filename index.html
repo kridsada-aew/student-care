@@ -91,7 +91,13 @@
       background: #f8fafc; color: var(--ink);
     }
     .field input:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
-
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 48px; }
+    .pw-toggle {
+      position: absolute; right: 6px; top: 4px; width: 40px; height: 40px;
+      border: 0; background: transparent; font-size: 18px; cursor: pointer;
+    }
+    
     /* ฉากหลังเคลื่อนไหว + การ์ดเรืองแสง */
     @property --ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
     .fx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
@@ -397,7 +403,10 @@
         <label for="sid">รหัสนักเรียน</label>
         <input id="sid" type="text" autocomplete="off" placeholder="รหัสนักเรียน">
         <label for="email">อีเมล</label>
-        <input id="email" type="email" autocomplete="off" placeholder="you@gmail.com">
+        <div class="pw-wrap">
+        <input id="email" type="password" inputmode="email" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="you@gmail.com">
+        <button type="button" class="pw-toggle" id="pwToggle" aria-label="แสดงอีเมล" onclick="togglePw()">👁</button>
+        </div>
       </div>
       <button class="btn primary rise" style="--d:.75s" id="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
       <div id="msg"></div>
@@ -764,6 +773,14 @@ function doLogin() {
   });
 }
 
+  function togglePw() {
+  const i = $('email');
+  const show = i.type === 'password';
+  i.type = show ? 'text' : 'password';
+  $('pwToggle').textContent = show ? '🙈' : '👁';
+  $('pwToggle').setAttribute('aria-label', show ? 'ซ่อนอีเมล' : 'แสดงอีเมล');
+}
+  
 function showHome(res) {
   resetState();
   token = res.token;
@@ -791,6 +808,8 @@ function doLogout(message) {
   ['lkGroups', 'lkItems', 'apptBox', 'slotList', 'hello'].forEach(function (id) { $(id).textContent = ''; });
   $('sid').value = '';
   $('email').value = '';
+  $('email').type = 'password';
+  $('pwToggle').textContent = '👁';
   closeBook();
   setAMsg('');
   showTab('links');
