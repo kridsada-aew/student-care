@@ -401,11 +401,14 @@
       </div>
       <div class="field rise" style="--d:.6s">
         <label for="sid">รหัสนักเรียน</label>
-        <input id="sid" type="text" autocomplete="off" placeholder="">
+        <div class="pw-wrap">
+          <input id="sid" type="password" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="รหัสนักเรียน">
+          <button type="button" class="pw-toggle" id="pwToggleSid" aria-label="แสดงรหัสนักเรียน" onclick="togglePw('sid', 'pwToggleSid', 'รหัสนักเรียน')">👁</button>
+        </div>
         <label for="email">อีเมล</label>
         <div class="pw-wrap">
-        <input id="email" type="password" inputmode="email" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="">
-        <button type="button" class="pw-toggle" id="pwToggle" aria-label="แสดงอีเมล" onclick="togglePw()">👁</button>
+          <input id="email" type="password" inputmode="email" autocomplete="new-password" autocapitalize="off" spellcheck="false" placeholder="you@gmail.com">
+          <button type="button" class="pw-toggle" id="pwToggle" aria-label="แสดงอีเมล" onclick="togglePw('email', 'pwToggle', 'อีเมล')">👁</button>
         </div>
       </div>
       <button class="btn primary rise" style="--d:.75s" id="btn" onclick="doLogin()">เข้าสู่ระบบ</button>
@@ -773,12 +776,13 @@ function doLogin() {
   });
 }
 
-  function togglePw() {
-  const i = $('email');
+  function togglePw(inputId, btnId, label) {
+  const i = $(inputId);
+  const b = $(btnId);
   const show = i.type === 'password';
   i.type = show ? 'text' : 'password';
-  $('pwToggle').textContent = show ? '🙈' : '👁';
-  $('pwToggle').setAttribute('aria-label', show ? 'ซ่อนอีเมล' : 'แสดงอีเมล');
+  b.textContent = show ? '🙈' : '👁';
+  b.setAttribute('aria-label', (show ? 'ซ่อน' : 'แสดง') + label);
 }
   
 function showHome(res) {
@@ -810,6 +814,8 @@ function doLogout(message) {
   $('email').value = '';
   $('email').type = 'password';
   $('pwToggle').textContent = '👁';
+  $('sid').type = 'password';
+  $('pwToggleSid').textContent = '👁';
   closeBook();
   setAMsg('');
   showTab('links');
