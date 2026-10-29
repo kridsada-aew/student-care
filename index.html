@@ -424,6 +424,49 @@
       .sym { display: none; }
       .card.glow { transform: none; }
     }
+        /* ============ เมนูลิงก์ 3 ปุ่ม ============ */
+    .lk-head .lk-back { display: inline-block; }
+    .pick-hint { margin: 2px 4px 10px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .menu-grid.years { grid-template-columns: repeat(2, 1fr); }
+    .mcard {
+      position: relative; overflow: hidden; width: 100%; min-height: 110px;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+      padding: 18px 16px; border: 0; border-radius: 18px; text-align: left; cursor: pointer;
+      font-family: inherit; color: #fff;
+      box-shadow: 0 8px 20px rgba(79, 70, 229, .22);
+      transition: transform .25s cubic-bezier(.2, 1.4, .4, 1), box-shadow .25s;
+    }
+    .mcard::before {
+      content: ''; position: absolute; top: -34px; right: -34px; width: 120px; height: 120px;
+      border-radius: 50%; background: rgba(255, 255, 255, .16);
+    }
+    .mcard::after { content: '›'; position: absolute; right: 18px; bottom: 12px; font-size: 28px; color: #fff; }
+    .mcard .m-icon, .mcard .m-title, .mcard .m-sub { position: relative; }
+    .mcard .m-icon { font-size: 30px; line-height: 1; }
+    .mcard .m-title { margin-top: 6px; font-size: 20px; font-weight: 600; line-height: 1.3; }
+    .mcard .m-sub { margin-top: 2px; font-size: 13px; opacity: .88; }
+    .mcard.c1 { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+    .mcard.c2 { background: linear-gradient(135deg, #2563eb, #38bdf8); box-shadow: 0 8px 20px rgba(37, 99, 235, .25); }
+    .mcard.c3 { background: linear-gradient(135deg, #059669, #34d399); box-shadow: 0 8px 20px rgba(5, 150, 105, .25); }
+    .mcard.year {
+      min-height: 92px; color: var(--ink); background: #fff;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, .12);
+    }
+    .mcard.year::before { background: linear-gradient(135deg, rgba(79, 70, 229, .15), rgba(124, 58, 237, .15)); }
+    .mcard.year::after { color: var(--primary); }
+    .mcard.year .m-title { margin-top: 0; font-size: 26px; }
+    .mcard:active { transform: scale(.97); }
+    .mcard:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+    @media (hover: hover) {
+      .mcard:hover { transform: translateY(-5px) scale(1.02); }
+    }
+    @media (min-width: 768px) {
+      .menu-grid.main { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .menu-grid.years { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .mcard { min-height: 150px; }
+      .mcard.year { min-height: 100px; }
+    }
   </style>
 </head>
 <body>
@@ -935,56 +978,112 @@ function buildGroups(links) {
   return order.map(function (g) { return { name: g, items: map[g] }; });
 }
 
+let linkView = 'home';   // home | notes | years | year | bluebook
+let linkYear = -1;
+
+function isBluebook(name) { return /bluebook/i.test(String(name)); }
+
 function renderLinks(links, notes) {
   linkNotes = notes || [];
   linkGroups = buildGroups(links);
-  currentGroup = linkGroups.length === 1 ? 0 : -1;
+  linkView = 'home';
+  linkYear = -1;
   drawLinks();
 }
 
 function drawLinks() {
-  const groupsBox = $('lkGroups');
-  const itemsBox = $('lkItems');
-  groupsBox.textContent = '';
-  itemsBox.textContent = '';
+  const box = $('lkItems');
+  $('lkGroups').textContent = '';
+  box.textContent = '';
+  $('lk').className = 'lk single';
 
-  $('lk').classList.toggle('picked', currentGroup >= 0);
-  $('lk').classList.toggle('single', linkGroups.length === 1);
+  const pastGroups = linkGroups.filter(function (g) { return !isBluebook(g.name); });
+  let blueItems = [];
+  linkGroups.forEach(function (g) { if (isBluebook(g.name)) blueItems = blueItems.concat(g.items); });
 
-  if (!linkGroups.length) {
-    groupsBox.appendChild(el('div', 'hint', 'ยังไม่มีลิงก์ในตอนนี้'));
-    return;
+  function go(view, yr) {
+    linkView = view;
+    if (yr !== undefined) linkYear = yr;
+    drawLinks();
   }
 
-  function pick(i) { currentGroup = i; drawLinks(); }
-  function groupBtn(cls, label, i) {
-    const b = button(cls);
-    b.appendChild(el('span', '', label));
-    b.onclick = function () { pick(i); };
+  function menuCard(cls, icon, title, sub, onclick) {
+    const b = button('mcard ' + cls);
+    if (icon) b.appendChild(el('span', 'm-icon', icon));
+    b.appendChild(el('span', 'm-title', title));
+    if (sub) b.appendChild(el('span', 'm-sub', sub));
+    b.onclick = onclick;
     return b;
   }
 
-  if (linkNotes.length && linkGroups.length > 1) {
-    groupsBox.appendChild(groupBtn('gbtn nbtn' + (currentGroup < 0 ? ' active' : ''), '📌 ข้อแนะนำ', -1));
+  function headBar(title, backView) {
+    const head = el('div', 'lk-head');
+    head.appendChild(button('lk-back', '‹ กลับ', function () { go(backView); }));
+    head.appendChild(el('div', 'lk-title', title));
+    box.appendChild(head);
   }
-  linkGroups.forEach(function (g, i) {
-    groupsBox.appendChild(groupBtn('gbtn' + (i === currentGroup ? ' active' : ''), g.name, i));
-  });
 
-  if (currentGroup < 0) {
-    if (linkNotes.length) linkNotes.forEach(function (n) { itemsBox.appendChild(el('div', 'lk-note', n)); });
-    else itemsBox.appendChild(el('div', 'hint', 'เลือกหมวดเพื่อดูลิงก์'));
+  function linkList(items) {
+    items.forEach(function (it) { box.appendChild(extLink('link', it.url, it.title)); });
+  }
+
+  // ----- หน้าแรก: 3 ปุ่มหลัก -----
+  if (linkView === 'home') {
+    if (!linkNotes.length && !pastGroups.length && !blueItems.length) {
+      box.appendChild(el('div', 'hint', 'ยังไม่มีลิงก์ในตอนนี้'));
+      return;
+    }
+    const grid = el('div', 'menu-grid main');
+    if (linkNotes.length) {
+      grid.appendChild(menuCard('c1', '📌', 'แนะนำ', 'อ่านก่อนเริ่มทำข้อสอบ',
+        function () { go('notes'); }));
+    }
+    if (pastGroups.length) {
+      grid.appendChild(menuCard('c2', '📝', 'ข้อสอบ Past paper', 'เลือกปีที่ต้องการ',
+        function () { go('years'); }));
+    }
+    if (blueItems.length) {
+      grid.appendChild(menuCard('c3', '📘', 'รวมเฉลย Bluebook', '',
+        function () { go('bluebook'); }));
+    }
+    box.appendChild(grid);
     return;
   }
 
-  const g = linkGroups[currentGroup];
-  if (linkGroups.length > 1) {
-    const head = el('div', 'lk-head');
-    head.appendChild(button('lk-back', '‹ กลับ', function () { pick(-1); }));
-    head.appendChild(el('div', 'lk-title', g.name));
-    itemsBox.appendChild(head);
+  // ----- แนะนำ -----
+  if (linkView === 'notes') {
+    headBar('📌 แนะนำ', 'home');
+    linkNotes.forEach(function (n) { box.appendChild(el('div', 'lk-note', n)); });
+    return;
   }
-  g.items.forEach(function (it) { itemsBox.appendChild(extLink('link', it.url, it.title)); });
+
+  // ----- เลือกปี -----
+  if (linkView === 'years') {
+    headBar('📝 ข้อสอบ Past paper', 'home');
+    box.appendChild(el('div', 'hint pick-hint', 'เลือกปีที่ต้องการ'));
+    const grid = el('div', 'menu-grid years');
+    pastGroups.forEach(function (g, i) {
+      grid.appendChild(menuCard('year', '', g.name, '', function () { go('year', i); }));
+    });
+    box.appendChild(grid);
+    return;
+  }
+
+  // ----- ลิงก์ของปีที่เลือก -----
+  if (linkView === 'year' && pastGroups[linkYear]) {
+    headBar(pastGroups[linkYear].name, 'years');
+    linkList(pastGroups[linkYear].items);
+    return;
+  }
+
+  // ----- รวมเฉลย Bluebook -----
+  if (linkView === 'bluebook') {
+    headBar('📘 รวมเฉลย Bluebook', 'home');
+    linkList(blueItems);
+    return;
+  }
+
+  go('home'); // กันพลาด: ถ้าสถานะผิดปกติ ให้กลับหน้าแรก
 }
 
 /* =====================================================
