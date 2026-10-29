@@ -467,6 +467,40 @@
       .mcard { min-height: 150px; }
       .mcard.year { min-height: 100px; }
     }
+        /* ============ ปฏิทิน: ชื่อบทใต้วันที่ + กดเลือกตรงๆ ============ */
+    .cal-day {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      max-width: none; aspect-ratio: auto; min-height: 58px;
+      margin: 2px 0; padding: 2px 0 4px; border-radius: 12px;
+    }
+    .cal-day .dn {
+      position: relative; width: 36px; height: 36px; flex: 0 0 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-size: 15px; color: #94a3b8;
+      transition: transform .2s cubic-bezier(.2, 1.4, .4, 1), background .2s, color .2s;
+    }
+    .cal-day .dl {
+      max-width: 100%; padding: 0 2px; font-size: 10.5px; line-height: 1.2;
+      color: var(--muted); text-align: center; overflow: hidden; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .cal-day.has, .cal-day.has.booked, .cal-day.has.full,
+    .cal-day.has.sel, .cal-day.has.active { background: transparent; box-shadow: none; }
+    .cal-day.has .dn { background: var(--primary-l); color: var(--primary-d); font-weight: 600; }
+    .cal-day.has.booked .dn, .cal-day.has.full .dn { background: #e2e8f0; color: #64748b; }
+    .cal-day.has.booked .dl, .cal-day.has.full .dl { color: #94a3b8; }
+    .cal-day.has.sel .dn { background: var(--primary); color: #fff; box-shadow: 0 4px 10px rgba(79, 70, 229, .35); }
+    .cal-day.has.sel .dl { color: var(--primary-d); font-weight: 500; }
+    .cal-day.has.active .dn { outline: 2px solid rgba(79, 70, 229, .45); outline-offset: 2px; }
+    .cal-day.today:not(.active)::after { content: none; }
+    .cal-day.today .dn::after {
+      content: ''; position: absolute; bottom: 4px; left: 50%; width: 4px; height: 4px;
+      margin-left: -2px; border-radius: 50%; background: currentColor;
+    }
+    .c-seat.sel-tag { margin-left: 6px; background: var(--primary-l); color: var(--primary-d); }
+    @media (hover: hover) {
+      .cal-day.has:hover .dn { transform: scale(1.1); }
+    }
   </style>
 </head>
 <body>
@@ -1233,16 +1267,25 @@ function renderCalendar() {
   for (let d = 1; d <= total; d++) {
     const key = calY + '-' + pad2(calM + 1) + '-' + pad2(d);
     const s = byKey[key];
-    const b = button('cal-day', String(d));
+    const b = button('cal-day');
+    b.appendChild(el('span', 'dn', String(d)));
     if (key === today) b.classList.add('today');
     if (s) {
+      if (s.lesson) b.appendChild(el('span', 'dl', s.lesson));
       b.classList.add('has');
       if (booked[key]) b.classList.add('booked');
       else if (s.full) b.classList.add('full');
       if (selected[key]) b.classList.add('sel');
       if (key === calDay) b.classList.add('active');
-      b.setAttribute('aria-pressed', String(key === calDay));
-      b.onclick = function () { calDay = key; renderCalendar(); };
+      b.setAttribute('aria-pressed', String(!!selected[key]));
+      b.setAttribute('aria-label', d + (s.lesson ? ' ' + s.lesson : ''));
+      b.onclick = function () {
+        calDay = key;
+        if (!booked[key] && !s.full) {   // กดเพื่อเลือก / กดซ้ำเพื่อยกเลิก
+          if (selected[key]) delete selected[key]; else selected[key] = true;
+        }
+        renderCalendar();
+      };
     } else {
       b.disabled = true;
     }
@@ -1251,7 +1294,7 @@ function renderCalendar() {
   cal.appendChild(grid);
   box.appendChild(cal);
 
-  // รายละเอียดวันที่เลือก
+  // รายละเอียดวันที่กดล่าสุด (ไม่มีปุ่มเลือกแล้ว)
   const day = byKey[calDay];
   if (day) {
     const det = el('div', 'cal-detail');
@@ -1262,14 +1305,10 @@ function renderCalendar() {
     const low = !isBooked && !isFull && day.left <= 5;
     det.appendChild(el('span', 'c-seat' + (low ? ' low' : '') + (isBooked || isFull ? ' off' : ''),
       isBooked ? '✓ จองแล้ว' : isFull ? 'เต็มแล้ว' : 'เหลือ ' + day.left + ' ที่นั่ง'));
-    if (!isBooked && !isFull) {
-      det.appendChild(button('btn ' + (selected[day.key] ? 'ghost' : 'primary'),
-        selected[day.key] ? 'ยกเลิกการเลือกวันนี้' : 'เลือกวันนี้',
-        function () { toggleDate(day.key); }));
-    }
+    if (selected[day.key]) det.appendChild(el('span', 'c-seat sel-tag', '✓ เลือกวันนี้แล้ว'));
     box.appendChild(det);
   } else {
-    box.appendChild(el('div', 'cal-hint', 'กดวันที่ที่มีวงกลมสีเพื่อดูบทเรียนและเวลา'));
+    box.appendChild(el('div', 'cal-hint', 'กดที่วันที่เพื่อเลือก (กดซ้ำเพื่อยกเลิก) วงกลมสีม่วงเข้ม = เลือกแล้ว'));
   }
 
   // วันที่ที่เลือกไว้
