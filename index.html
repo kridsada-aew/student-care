@@ -425,51 +425,6 @@
       .card.glow { transform: none; }
     }
   </style>
-      /* ============ หมวดลิงก์แบบการ์ดใหญ่ ============ */
-    .lk-groups .nbtn { display: flex; }
-    .lk-groups .nbtn + .gbtn { margin-top: 8px; }
-    .lk-items > * { animation: tileIn .45s cubic-bezier(.2, .9, .3, 1) both; }
-
-    .lk.idle { display: block; }
-    .lk.idle .lk-groups { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .lk.idle .lk-groups .gbtn {
-      position: relative; overflow: hidden; margin: 0; min-height: 120px; padding: 18px 16px;
-      flex-direction: column; align-items: flex-start; justify-content: flex-end;
-      border: 0; border-radius: 18px; font-size: 24px; font-weight: 600;
-      background: #fff; box-shadow: 0 6px 18px rgba(79, 70, 229, .12);
-      transition: transform .25s cubic-bezier(.2, 1.4, .4, 1), box-shadow .25s;
-      animation: tileIn .5s cubic-bezier(.2, .9, .3, 1) both;
-    }
-    .lk.idle .gbtn::before {
-      content: ''; position: absolute; top: -34px; right: -34px; width: 110px; height: 110px;
-      border-radius: 50%; background: linear-gradient(135deg, rgba(79, 70, 229, .18), rgba(124, 58, 237, .18));
-    }
-    .lk.idle .gbtn::after { position: absolute; right: 16px; bottom: 12px; }
-    .lk.idle .gbtn > span { position: relative; }
-    .lk.idle .lk-groups .gbtn.nbtn {
-      grid-column: 1 / -1; min-height: 90px; font-size: 20px; color: #fff;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      box-shadow: 0 10px 24px rgba(79, 70, 229, .3);
-    }
-    .lk.idle .gbtn.nbtn::before { background: rgba(255, 255, 255, .15); }
-    .lk.idle .gbtn.nbtn::after { color: #fff; }
-    .lk.idle .gbtn:nth-child(2) { animation-delay: .06s; }
-    .lk.idle .gbtn:nth-child(3) { animation-delay: .12s; }
-    .lk.idle .gbtn:nth-child(4) { animation-delay: .18s; }
-    .lk.idle .gbtn:nth-child(5) { animation-delay: .24s; }
-    .lk.idle .gbtn:nth-child(6) { animation-delay: .30s; }
-    .lk.idle .gbtn:nth-child(7) { animation-delay: .36s; }
-    .lk.idle .gbtn:nth-child(8) { animation-delay: .42s; }
-    @media (hover: hover) {
-      .lk.idle .lk-groups .gbtn:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 14px 28px rgba(79, 70, 229, .25); }
-    }
-    @media (min-width: 768px) {
-      .lk.idle .lk-groups { grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    }
-    @keyframes tileIn { from { opacity: 0; translate: 0 18px; scale: .96; } to { opacity: 1; translate: 0 0; scale: 1; } }
-    @media (prefers-reduced-motion: reduce) {
-      .lk-items > *, .lk.idle .lk-groups .gbtn { animation: none; }
-    }
 </head>
 <body>
 
@@ -983,7 +938,7 @@ function buildGroups(links) {
 function renderLinks(links, notes) {
   linkNotes = notes || [];
   linkGroups = buildGroups(links);
-  currentGroup = linkGroups.length === 1 ? 0 : -2;
+  currentGroup = linkGroups.length === 1 ? 0 : -1;
   drawLinks();
 }
 
@@ -993,10 +948,8 @@ function drawLinks() {
   groupsBox.textContent = '';
   itemsBox.textContent = '';
 
-  const lk = $('lk');
-  lk.classList.toggle('idle', currentGroup === -2);
-  lk.classList.toggle('picked', currentGroup !== -2);
-  lk.classList.toggle('single', linkGroups.length === 1);
+  $('lk').classList.toggle('picked', currentGroup >= 0);
+  $('lk').classList.toggle('single', linkGroups.length === 1);
 
   if (!linkGroups.length) {
     groupsBox.appendChild(el('div', 'hint', 'ยังไม่มีลิงก์ในตอนนี้'));
@@ -1010,30 +963,27 @@ function drawLinks() {
     b.onclick = function () { pick(i); };
     return b;
   }
-  function headBar(title) {
-    const head = el('div', 'lk-head');
-    head.appendChild(button('lk-back', '‹ กลับ', function () { pick(-2); }));
-    head.appendChild(el('div', 'lk-title', title));
-    return head;
-  }
 
   if (linkNotes.length && linkGroups.length > 1) {
-    groupsBox.appendChild(groupBtn('gbtn nbtn' + (currentGroup === -1 ? ' active' : ''), '📌 ข้อแนะนำ', -1));
+    groupsBox.appendChild(groupBtn('gbtn nbtn' + (currentGroup < 0 ? ' active' : ''), '📌 ข้อแนะนำ', -1));
   }
   linkGroups.forEach(function (g, i) {
     groupsBox.appendChild(groupBtn('gbtn' + (i === currentGroup ? ' active' : ''), g.name, i));
   });
 
-  if (currentGroup === -2) return; // ยังไม่ได้เลือก -> ไม่แสดงด้านขวา
-
-  if (currentGroup === -1) { // ข้อแนะนำ
-    itemsBox.appendChild(headBar('📌 ข้อแนะนำ'));
-    linkNotes.forEach(function (n) { itemsBox.appendChild(el('div', 'lk-note', n)); });
+  if (currentGroup < 0) {
+    if (linkNotes.length) linkNotes.forEach(function (n) { itemsBox.appendChild(el('div', 'lk-note', n)); });
+    else itemsBox.appendChild(el('div', 'hint', 'เลือกหมวดเพื่อดูลิงก์'));
     return;
   }
 
   const g = linkGroups[currentGroup];
-  if (linkGroups.length > 1) itemsBox.appendChild(headBar(g.name));
+  if (linkGroups.length > 1) {
+    const head = el('div', 'lk-head');
+    head.appendChild(button('lk-back', '‹ กลับ', function () { pick(-1); }));
+    head.appendChild(el('div', 'lk-title', g.name));
+    itemsBox.appendChild(head);
+  }
   g.items.forEach(function (it) { itemsBox.appendChild(extLink('link', it.url, it.title)); });
 }
 
@@ -1501,5 +1451,4 @@ setInterval(checkStatus, 60000);
 </script>
 </body>
 </html>
-
 
