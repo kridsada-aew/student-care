@@ -514,6 +514,12 @@
       padding: 4px 10px; border-radius: 999px; background: #fff;
       color: var(--primary-d); font-size: 14px; font-weight: 500;
     }
+        /* จองนัด: เปิดฟอร์มทันที ไม่ต้องกดปุ่มก่อน */
+    #bookBox { margin-top: 0; }
+
+    /* ปุ่มตา: ซ่อนไว้จนกว่าจะเริ่มพิมพ์ */
+    .pw-toggle { display: none; }
+    .pw-wrap.has-text .pw-toggle { display: block; }
   </style>
 </head>
 <body>
@@ -570,9 +576,9 @@
 
         <!-- หน้า 2: จองนัด -->
         <div id="pageBook" role="tabpanel" style="display:none">
-          <button class="btn primary" id="openBook" onclick="toggleBook()">📅 จองนัด Checkpoint กับพี่ๆ</button>
+         
 
-                    <div class="panel" id="bookBox" style="display:none">
+                    <div class="panel" id="bookBox">
 
             <!-- หน้า 1: เลือกวันที่ -->
             <div id="bookStep1">
@@ -1392,20 +1398,12 @@ function goStep2() {
   try { $('bookBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
 }
 
-function toggleBook() {
-  const b = $('bookBox');
-  const open = b.style.display === 'none';
-  b.style.display = open ? 'block' : 'none';
-  $('openBook').textContent = open ? '✕ ปิดหน้าจองนัด' : BOOK_LABEL;
-  if (open) { setBookStep(1, false); setBMsg(''); setAMsg(''); }
-}
-
 function closeBook() {
-  $('bookBox').style.display = 'none';
-  $('openBook').textContent = BOOK_LABEL;
   document.querySelectorAll('input[name=btype]').forEach(function (r) { r.checked = false; });
   setBookStep(1, false);
   setBMsg('');
+  // ซ่อนปุ่มตาในหน้า login กลับเป็นแบบยังไม่พิมพ์ (ฟังก์ชันนี้ถูกเรียกตอนออกจากระบบด้วย)
+  document.querySelectorAll('.pw-wrap').forEach(function (w) { w.classList.remove('has-text'); });
 }
 
 function selectedType() {
@@ -1568,6 +1566,17 @@ document.addEventListener('keydown', function (e) {
 // กด Enter ในช่องกรอกเพื่อเข้าสู่ระบบ
 ['sid', 'email'].forEach(function (id) {
   $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+});
+  
+// แสดงปุ่มตาเมื่อเริ่มพิมพ์ ซ่อนเมื่อช่องว่าง
+['sid', 'email'].forEach(function (id) {
+  $(id).addEventListener('input', function () {
+    this.parentNode.classList.toggle('has-text', this.value.length > 0);
+    if (!this.value) {
+      this.type = 'password';
+      this.nextElementSibling.textContent = '👁';
+    }
+  });
 });
 
 // เช็กสถานะปิดปรับปรุงตอนเปิดหน้า และเช็กซ้ำทุก 60 วินาที
