@@ -520,6 +520,11 @@
     /* ปุ่มตา: ซ่อนไว้จนกว่าจะเริ่มพิมพ์ */
     .pw-toggle { display: none; }
     .pw-wrap.has-text .pw-toggle { display: block; }
+    /* หน้านัดของฉัน */
+    #apptBox > .sec:first-child { margin-top: 4px; }
+    @media (max-width: 420px) {
+      .tab { font-size: 14px; padding: 11px 4px; }
+    }
   </style>
 </head>
 <body>
@@ -562,6 +567,7 @@
       <div class="nav" role="tablist">
         <button class="tab active" id="tabLinks" role="tab" aria-selected="true" onclick="showTab('links')">🔗 ลิงก์</button>
         <button class="tab" id="tabBook" role="tab" aria-selected="false" onclick="showTab('book')">📅 จองนัด</button>
+        <button class="tab" id="tabAppts" role="tab" aria-selected="false" onclick="showTab('appts')">📋 นัดของฉัน</button>
       </div>
 
       <div class="pages">
@@ -610,6 +616,10 @@
             <div id="bmsg"></div>
           </div>
 
+        </div>
+
+        <!-- หน้า 3: นัดของฉัน + ประวัติ -->
+        <div id="pageAppts" role="tabpanel" style="display:none">
           <div id="amsg"></div>
           <div id="apptBox"></div>
         </div>
@@ -971,23 +981,31 @@ function doLogout(message) {
 }
 
 let currentTab = 'links';
+const TAB_ORDER = ['links', 'book', 'appts'];
+const TAB_IDS = {
+  links: ['pageLinks', 'tabLinks'],
+  book:  ['pageBook',  'tabBook'],
+  appts: ['pageAppts', 'tabAppts']
+};
+
 function showTab(name) {
-  const isBook = name === 'book';
   const changed = name !== currentTab;
+  const forward = TAB_ORDER.indexOf(name) > TAB_ORDER.indexOf(currentTab);
   currentTab = name;
-  $('pageLinks').style.display = isBook ? 'none' : 'block';
-  $('pageBook').style.display = isBook ? 'block' : 'none';
-  $('tabLinks').classList.toggle('active', !isBook);
-  $('tabBook').classList.toggle('active', isBook);
-  $('tabLinks').setAttribute('aria-selected', String(!isBook));
-  $('tabBook').setAttribute('aria-selected', String(isBook));
+
+  TAB_ORDER.forEach(function (t) {
+    const on = t === name;
+    $(TAB_IDS[t][0]).style.display = on ? 'block' : 'none';
+    $(TAB_IDS[t][1]).classList.toggle('active', on);
+    $(TAB_IDS[t][1]).setAttribute('aria-selected', String(on));
+  });
   try { window.scrollTo(0, 0); } catch (e) {}
 
   if (changed && !reduceMotion()) {
-    const page = $(isBook ? 'pageBook' : 'pageLinks');
+    const page = $(TAB_IDS[name][0]);
     page.classList.remove('slide-r', 'slide-l');
     void page.offsetWidth; // ทำให้อนิเมชันเริ่มใหม่ทุกครั้ง
-    page.classList.add(isBook ? 'slide-r' : 'slide-l');
+    page.classList.add(forward ? 'slide-r' : 'slide-l');
   }
 }
 
@@ -1218,7 +1236,10 @@ function buildApptCard(a, isPast) {
 function renderAppts() {
   const box = $('apptBox');
   box.textContent = '';
-  if (!appts.length) return;
+  if (!appts.length) {
+    box.appendChild(el('div', 'hint', 'ยังไม่มีนัด กดแท็บ "จองนัด" เพื่อจองได้เลย'));
+    return;
+  }
 
   const today = todayBkk();
   const upcoming = appts.filter(function (a) { return a.key >= today; })
@@ -1487,7 +1508,7 @@ function submitBook(keys, type) {
       const remind = type === 'onsite' ? ' อย่าลืมมาตามนัดนะ 🙂' : '';
       setAMsg('จองนัด ' + typeName(type) + ' เรียบร้อย: ' + (labels || []).join(', ') + remind +
               ' ดูรายละเอียดได้ที่ "นัดของฉัน" ด้านล่าง', 'ok');
-      try { $('amsg').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+      showTab('appts');
 
       showDialog({
         icon: '🎉',
