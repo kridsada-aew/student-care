@@ -501,6 +501,19 @@
     @media (hover: hover) {
       .cal-day.has:hover .dn { transform: scale(1.1); }
     }
+        /* ============ จองนัดทีละหน้า ============ */
+    #nextBook { margin-top: 18px; }
+    .book-nav { display: flex; gap: 10px; margin-top: 18px; }
+    .book-nav .btn { width: auto; flex: 1; }
+    .book-nav .btn.back { flex: 0 0 38%; }
+    .book-nav #submitBook { margin-top: 0; }
+    .book-summary { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: var(--primary-l); }
+    .book-summary .sum-title { font-size: 13px; color: var(--muted); }
+    .book-summary .sum-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .book-summary .sum-list span {
+      padding: 4px 10px; border-radius: 999px; background: #fff;
+      color: var(--primary-d); font-size: 14px; font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -559,23 +572,35 @@
         <div id="pageBook" role="tabpanel" style="display:none">
           <button class="btn primary" id="openBook" onclick="toggleBook()">📅 จองนัด Checkpoint กับพี่ๆ</button>
 
-          <div class="panel" id="bookBox" style="display:none">
-            <div class="step"><span class="num">1</span> เลือกวันที่ <small>(เลือกได้หลายวัน)</small></div>
-            <div id="slotList"></div>
+                    <div class="panel" id="bookBox" style="display:none">
 
-            <div class="step second"><span class="num">2</span> เลือกรูปแบบ</div>
-            <div class="seg">
-              <label class="opt">
-                <input type="radio" name="btype" value="onsite">
-                <span>🏫 Onsite<small id="onsiteHint">มาเจอกัน</small></span>
-              </label>
-              <label class="opt">
-                <input type="radio" name="btype" value="online">
-                <span>💻 Online<small>ผ่านลิงก์นัดหมาย</small></span>
-              </label>
+            <!-- หน้า 1: เลือกวันที่ -->
+            <div id="bookStep1">
+              <div class="step"><span class="num">1</span> เลือกวันที่ <small>(เลือกได้หลายวัน)</small></div>
+              <div id="slotList"></div>
+              <button type="button" class="btn primary" id="nextBook" onclick="goStep2()">ถัดไป ›</button>
             </div>
 
-            <button class="btn primary" id="submitBook" onclick="doBook()">ยืนยันการจอง</button>
+            <!-- หน้า 2: เลือกรูปแบบ -->
+            <div id="bookStep2" style="display:none">
+              <div class="step"><span class="num">2</span> เลือกรูปแบบ</div>
+              <div class="book-summary" id="bookSummary"></div>
+              <div class="seg">
+                <label class="opt">
+                  <input type="radio" name="btype" value="onsite">
+                  <span>🏫 Onsite<small id="onsiteHint">มาเจอกัน</small></span>
+                </label>
+                <label class="opt">
+                  <input type="radio" name="btype" value="online">
+                  <span>💻 Online<small>ผ่านลิงก์นัดหมาย</small></span>
+                </label>
+              </div>
+              <div class="book-nav">
+                <button type="button" class="btn ghost back" onclick="setBookStep(1)">‹ ย้อนกลับ</button>
+                <button class="btn primary" id="submitBook" onclick="doBook()">ยืนยันการจอง</button>
+              </div>
+            </div>
+
             <div id="bmsg"></div>
           </div>
 
@@ -1334,18 +1359,52 @@ function toggleDate(key) {
 /* =====================================================
    11) จอง / ยกเลิก
    ===================================================== */
+// สลับหน้าในกล่องจอง: 1 = เลือกวันที่, 2 = เลือกรูปแบบ
+function setBookStep(n, animate) {
+  $('bookStep1').style.display = n === 1 ? 'block' : 'none';
+  $('bookStep2').style.display = n === 2 ? 'block' : 'none';
+  setBMsg('');
+
+  if (n === 2) { // สรุปวันที่ที่เลือกไว้
+    const keys = Object.keys(selected).sort();
+    const sum = $('bookSummary');
+    sum.textContent = '';
+    sum.appendChild(el('div', 'sum-title', 'วันที่เลือก ' + keys.length + ' วัน'));
+    const list = el('div', 'sum-list');
+    keys.forEach(function (k) { list.appendChild(el('span', '', labelFor(k))); });
+    sum.appendChild(list);
+  }
+
+  if (animate !== false && !reduceMotion()) {
+    const page = $(n === 2 ? 'bookStep2' : 'bookStep1');
+    page.classList.remove('slide-r', 'slide-l');
+    void page.offsetWidth; // ทำให้อนิเมชันเริ่มใหม่ทุกครั้ง
+    page.classList.add(n === 2 ? 'slide-r' : 'slide-l');
+  }
+}
+
+function goStep2() {
+  if (!Object.keys(selected).length) {
+    setBMsg('กรุณากดเลือกวันที่อย่างน้อย 1 วัน', 'err');
+    return;
+  }
+  setBookStep(2);
+  try { $('bookBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+}
+
 function toggleBook() {
   const b = $('bookBox');
   const open = b.style.display === 'none';
   b.style.display = open ? 'block' : 'none';
   $('openBook').textContent = open ? '✕ ปิดหน้าจองนัด' : BOOK_LABEL;
-  if (open) { setBMsg(''); setAMsg(''); }
+  if (open) { setBookStep(1, false); setBMsg(''); setAMsg(''); }
 }
 
 function closeBook() {
   $('bookBox').style.display = 'none';
   $('openBook').textContent = BOOK_LABEL;
   document.querySelectorAll('input[name=btype]').forEach(function (r) { r.checked = false; });
+  setBookStep(1, false);
   setBMsg('');
 }
 
