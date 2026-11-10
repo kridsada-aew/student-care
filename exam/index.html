@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ข้อสอบออนไลน์ | SAT Math Check Point</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <link rel="stylesheet" href="style.css">
+  <!-- defer: ทำงานตามลำดับ KaTeX -> auto-render -> app.js -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- ป๊อปอัป -->
+  <div class="dlg-overlay" id="dlg">
+    <div class="dlg-win" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <div class="dlg-bar"><span id="dlgTitle"></span></div>
+      <div class="dlg-content">
+        <div class="dlg-icon" id="dlgIcon" aria-hidden="true"></div>
+        <div class="dlg-body" id="dlgBody"></div>
+        <div class="dlg-actions" id="dlgActions"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

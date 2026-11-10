@@ -1,0 +1,170 @@
+:root {
+  --bg1: #eef2ff; --bg2: #f8fafc;
+  --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
+  --primary: #4f46e5; --primary-d: #4338ca; --primary-l: #eef2ff;
+  --ok: #15803d; --ok-bg: #f0fdf4;
+  --err: #b91c1c; --err-bg: #fef2f2;
+  --warn: #92400e; --warn-bg: #fffbeb;
+  --info: #2563eb; --info-bg: #eff6ff;
+  --radius: 16px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; color: var(--ink); min-height: 100vh;
+  font-family: 'Prompt', 'Noto Sans Thai', -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(180deg, var(--bg1), var(--bg2) 320px);
+}
+button, input { font-family: inherit; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+.hint { font-size: 14px; color: var(--muted); }
+
+/* ---------- ปุ่ม ---------- */
+.btn {
+  display: block; width: 100%; border: 0; border-radius: 12px; cursor: pointer;
+  padding: 14px 16px; font-size: 16px; font-weight: 500; text-align: center; text-decoration: none;
+}
+.btn.primary { color: #fff; background: linear-gradient(135deg, var(--primary), #6366f1); box-shadow: 0 6px 16px rgba(79, 70, 229, .3); }
+.btn.ghost { background: #e2e8f0; color: #334155; }
+.btn.danger { color: #fff; background: #dc2626; }
+.btn:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.btn:focus-visible, .choice:focus-visible, .qnav button:focus-visible, .tool:focus-visible, .mark:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px;
+}
+
+/* ---------- กล่องข้อความ / การ์ด ---------- */
+.panel { background: #fff; border-radius: var(--radius); padding: 16px; margin-top: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.msgbox { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
+.msgbox.err { background: var(--err-bg); color: var(--err); }
+.msgbox.info { background: var(--info-bg); color: var(--info); }
+.center-screen { max-width: 440px; margin: 64px auto 0; text-align: center; }
+.center-screen .big { font-size: 44px; }
+.center-screen h2 { margin: 10px 0 6px; font-size: 22px; }
+.center-screen p { margin: 0 0 18px; color: var(--muted); line-height: 1.6; white-space: pre-line; }
+
+/* ---------- รายการชุดข้อสอบ ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.back { color: var(--primary-d); text-decoration: none; font-size: 15px; }
+.page-title { margin: 14px 4px 0; font-size: 22px; font-weight: 600; }
+.sec { margin: 22px 4px 4px; font-size: 16px; font-weight: 600; }
+.sets .card { margin-top: 10px; padding: 14px; background: #fff; border-radius: var(--radius); box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.card .name { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.card .meta { margin-top: 4px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.card .btn { margin-top: 12px; padding: 11px 14px; font-size: 15px; }
+.card .note { margin-top: 8px; font-size: 13px; color: var(--warn); }
+.tag { display: inline-block; margin-right: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--primary-l); color: var(--primary-d); }
+.tag.arena { background: #fef3c7; color: #92400e; }
+
+/* ---------- หน้ากติกา ---------- */
+.rules { margin: 10px 0 0; padding-left: 20px; line-height: 1.8; font-size: 15px; }
+.accept { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px; border: 2px solid var(--line); border-radius: 14px; background: #fff; cursor: pointer; line-height: 1.5; }
+.accept input { width: 20px; height: 20px; margin-top: 2px; flex: 0 0 20px; }
+
+/* ---------- หน้าสอบ ---------- */
+body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
+.ex-head {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: #fff; border-bottom: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
+}
+.ex-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer {
+  font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums;
+  padding: 2px 12px; border-radius: 10px; background: var(--primary-l); color: var(--primary-d);
+}
+.timer.warn { background: var(--warn-bg); color: var(--warn); }
+.timer.danger { background: var(--err-bg); color: var(--err); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .6; } }
+.tool {
+  padding: 7px 10px; border-radius: 10px; border: 0; background: #e2e8f0; color: #334155;
+  font-size: 13px; text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.tool.submit { background: var(--primary); color: #fff; }
+.net { display: none; padding: 6px 12px; font-size: 13px; text-align: center; background: var(--warn-bg); color: var(--warn); }
+.net.show { display: block; }
+
+.ex-body { display: block; padding: 12px; }
+.qcard { background: #fff; border-radius: var(--radius); padding: 16px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.q-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.q-num { font-weight: 600; }
+.mark {
+  border: 2px solid var(--line); background: #fff; color: #475569; border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; cursor: pointer;
+}
+.mark.on { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+.q-body { margin-top: 12px; font-size: 17px; line-height: 1.75; white-space: pre-line; overflow-wrap: anywhere; }
+.imgbox { display: block; position: relative; margin-top: 12px; min-height: 48px; }
+.imgbox img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: 8px; }
+.imgbox.loading { background: #f1f5f9; border-radius: 10px; }
+.imgbox.loading::after, .imgbox.err::after {
+  content: 'กำลังโหลดรูป…'; position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 13px; color: var(--muted);
+}
+.imgbox.err { cursor: pointer; background: var(--err-bg); border-radius: 10px; min-height: 64px; }
+.imgbox.err::after { content: 'โหลดรูปไม่สำเร็จ แตะเพื่อลองใหม่'; color: var(--err); }
+.imgbox.err img { display: none; }
+
+.choices { margin-top: 14px; }
+.choice {
+  display: flex; gap: 12px; align-items: flex-start; width: 100%; margin-top: 10px; padding: 12px;
+  text-align: left; font-size: 16px; line-height: 1.6; color: var(--ink); cursor: pointer;
+  background: #fff; border: 2px solid var(--line); border-radius: 14px;
+}
+.choice .letter {
+  flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-weight: 600; font-size: 14px; background: #f1f5f9; color: #334155;
+}
+.choice .ctext { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.choice .ctext .imgbox { margin-top: 0; }
+.choice.sel { border-color: var(--primary); background: var(--primary-l); }
+.choice.sel .letter { background: var(--primary); color: #fff; }
+.choices.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choices.grid .choice { margin-top: 0; }
+.numinput {
+  display: block; width: 100%; margin-top: 14px; padding: 13px 14px; font-size: 20px;
+  border: 2px solid var(--line); border-radius: 12px; background: #f8fafc; color: var(--ink);
+}
+.numinput:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, .15); }
+
+.navpanel { display: none; margin-top: 12px; padding: 12px; background: #fff; border-radius: var(--radius); box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.navpanel.open { display: block; }
+.qnav { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; }
+.qnav button {
+  position: relative; height: 44px; border-radius: 10px; border: 2px solid var(--line);
+  background: #fff; font-size: 15px; font-weight: 500; cursor: pointer;
+}
+.qnav button.ans { background: var(--primary-l); border-color: #c7d2fe; color: var(--primary-d); }
+.qnav button.cur { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79, 70, 229, .3); }
+.qnav button.mk::after { content: '⚑'; position: absolute; top: -6px; right: -4px; font-size: 14px; color: #d97706; }
+.legend { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+.ex-foot {
+  position: sticky; bottom: 0; z-index: 20; display: flex; gap: 8px; padding: 10px 12px;
+  background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgba(15, 23, 42, .06);
+}
+.ex-foot .btn { padding: 11px 10px; font-size: 15px; }
+.ex-foot .btn.mid { flex: 1.2; }
+
+@media (min-width: 900px) {
+  .ex-body { display: grid; grid-template-columns: 1fr 260px; gap: 14px; align-items: start; }
+  .navpanel, .navpanel.open { display: block; margin-top: 0; position: sticky; top: 76px; }
+  #navToggle { display: none; }
+}
+
+/* ---------- ป๊อปอัป ---------- */
+.dlg-overlay { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .45); }
+.dlg-overlay.open { display: flex; }
+.dlg-win { width: 100%; max-width: 380px; background: #fff; overflow: hidden; border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 6px 6px 0 rgba(15, 23, 42, .9); }
+.dlg-bar { padding: 8px 12px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 500; }
+.dlg-content { padding: 20px 18px 18px; text-align: center; }
+.dlg-icon { font-size: 34px; line-height: 1; }
+.dlg-body { margin-top: 10px; font-size: 15px; line-height: 1.6; word-break: break-word; }
+.dlg-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+.dlg-list span { padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 500; background: var(--primary-l); color: var(--primary-d); }
+.dlg-note { margin-top: 10px; font-size: 14px; color: var(--muted); }
+.dlg-actions { display: flex; gap: 10px; margin-top: 18px; }
+.dlg-actions .btn { flex: 1; width: auto; padding: 12px 8px; font-size: 15px; }
+
+.overlay-busy { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: rgba(248, 250, 252, .85); font-size: 18px; font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) { .timer.danger { animation: none; } }
