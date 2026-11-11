@@ -16,6 +16,7 @@ const IMG_BUCKET = 'exam-images';          // bucket แบบ Public ใน Sup
 const SESSION_KEY = 'ignite_session';      // key เดียวกับหน้าเดิม
 const HOME_URL = '../';                    // หน้าหลักเดิม
 const DESMOS_URL = 'https://www.desmos.com/calculator';
+const MINI_NAME = 'Mini Test';             // ชื่อที่นักเรียนเห็นของโหมดที่ในฐานข้อมูลเรียก arena
 const WARN_SECONDS = 300;                  // เหลือ 5 นาที: เตือนสีเหลือง
 const DANGER_SECONDS = 60;                 // เหลือ 1 นาที: เตือนสีแดง
 const NUM_DEBOUNCE_MS = 700;               // ช่องกรอกตัวเลข: รอพิมพ์เสร็จก่อนบันทึก
@@ -229,7 +230,10 @@ function boot() {
   S.token = s.token;
   S.name = s.name;
   const m = /^#\/a\/(\d+)$/.exec(location.hash);
-  if (m) loadExam(Number(m[1])); else showList();
+  const r = /^#\/r\/(\d+)$/.exec(location.hash);
+  if (m) loadExam(Number(m[1]));
+  else if (r) showResult(Number(r[1]));
+  else showList();
 }
 
 /* ---------- 7) รายการชุดข้อสอบ ---------- */
@@ -261,7 +265,7 @@ async function showList() {
     root.appendChild(box);
   }
   group('โหมดฝึก', practice, 'ยังไม่มีชุดฝึกที่เปิดอยู่');
-  group('Arena ที่เปิดอยู่', arena, 'ยังไม่มี Arena ที่เปิดอยู่');
+  group(MINI_NAME + ' ที่เปิดอยู่', arena, 'ยังไม่มี ' + MINI_NAME + ' ที่เปิดอยู่');
   if (ended.length) group('ที่จบแล้ว / ที่เคยสอบ', ended, '');
   mount(root);
 }
@@ -277,7 +281,7 @@ function setCard(s) {
   }
 
   const card = h('div', { class: 'card' },
-    h('div', { class: 'name' }, h('span', { class: 'tag' + (isArena ? ' arena' : ''), text: isArena ? 'Arena' : 'ฝึก' }), s.name),
+    h('div', { class: 'name' }, h('span', { class: 'tag' + (isArena ? ' arena' : ''), text: isArena ? MINI_NAME : 'ฝึก' }), s.name),
     h('div', { class: 'meta', text: meta.join(' • ') }));
 
   if (s.action === 'start') {
@@ -290,7 +294,6 @@ function setCard(s) {
     const b = btn('ghost', isArena ? 'สอบแล้ว' : 'ทำครบรอบแล้ว', null);
     b.disabled = true;
     card.appendChild(b);
-    card.appendChild(h('div', { class: 'hint', style: 'margin-top:6px', text: 'หน้าดูผลและเฉลยจะเปิดให้ใช้เร็วๆ นี้' }));
   } else if (s.action === 'closing') {
     const b = btn('ghost', 'ปิดรับแล้ว', null);
     b.disabled = true;
@@ -300,6 +303,17 @@ function setCard(s) {
     const b = btn('ghost', 'ปิดแล้ว', null);
     b.disabled = true;
     card.appendChild(b);
+  }
+  if (s.results && s.results.length) {
+    const wrap = h('div', { class: 'resbtns' });
+    s.results.forEach(function (r) {
+      wrap.appendChild(h('button', {
+        type: 'button', class: 'btn ghost small',
+        text: isArena ? 'ดูผลของฉัน' : 'ดูผลรอบที่ ' + r.attempt_no,
+        onclick: function () { showResult(r.attempt_id); }
+      }));
+    });
+    card.appendChild(wrap);
   }
   return card;
 }
@@ -313,7 +327,7 @@ function showRules(s) {
   rules.push('ถ้าหน้าเว็บรีเฟรชหรือเน็ตหลุด ให้กลับเข้ามาที่รายการข้อสอบแล้วกด "ทำต่อ" เวลาไม่รีเซ็ต');
   rules.push('เมื่อหมดเวลา ระบบส่งข้อสอบให้อัตโนมัติ คำตอบที่เลือกไว้แล้วจะถูกนับ');
   if (isArena) {
-    rules.push('Arena สอบได้ 1 ครั้งต่อชุดต่อ season');
+    rules.push(MINI_NAME + ' สอบได้ 1 ครั้งต่อชุดต่อ season');
   } else {
     rules.push('ทำได้ ' + (s.attempts_allowed || 3) + ' รอบต่อชุด (ออกกลางคันหรือหมดเวลานับเป็น 1 รอบ)');
     if (s.attempts_used >= 1) rules.push('นี่คือรอบที่ ' + (s.attempts_used + 1) + ' เวลาที่ลดลงส่วนหนึ่งอาจมาจากการจำข้อได้');
@@ -380,7 +394,7 @@ async function loadExam(attemptId, setName) {
   catch (e) { showError('โหลดข้อสอบไม่สำเร็จ', 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', function () { loadExam(attemptId, setName); }); return; }
   if (res && res.expired) { showExpired(); return; }
   if (!res || !res.ok) {
-    if (res && res.closed) { renderDone(res.status); return; }
+    if (res && res.closed) { renderDone(res.status, attemptId); return; }
     screenMessage('⚠️', 'เปิดข้อสอบไม่ได้', (res && res.message) || '', [btn('primary', 'กลับรายการข้อสอบ', showList)]);
     return;
   }
@@ -545,8 +559,8 @@ function hasAnswer(q) { return !!E.answers[q.question_version_id]; }
 function goTo(i) {
   if (!E || E.locked || E.ended || i < 0 || i >= E.q.length || i === E.i) return;
   commitNumeric();
-  pushEvent('leave', curQ().question_version_id);
-  E.i = i;
+  E.i = i;   // ไม่ส่ง leave: เซิร์ฟเวอร์ปิดข้อเดิมให้เองตอนได้ enter ข้อใหม่
+
   pushEvent('enter', curQ().question_version_id);
   renderQuestion();
   renderNav();
@@ -787,10 +801,10 @@ function handleEnded(status) {
   stopTimer();
   hideBusy();
   closeDialog();
-  renderDone(status);
+  renderDone(status, E ? E.attemptId : 0);
 }
 
-function renderDone(status) {
+function renderDone(status, attemptId) {
   stopTimer();
   E = null;
   try { history.replaceState(null, '', '#/'); } catch (e) { /* ไม่เป็นไร */ }
@@ -800,8 +814,179 @@ function renderDone(status) {
     voided: ['ℹ️', 'รอบนี้ไม่นับ', 'ไม่ได้เข้าทำข้อใดเลยจนหมดเวลา จึงไม่นับเป็นรอบ (โหมดฝึก) กลับไปเริ่มใหม่ได้']
   };
   const m = map[status] || ['✅', 'การสอบนี้จบแล้ว', ''];
-  screenMessage(m[0], m[1], m[2] + (status === 'voided' ? '' : '\n\nหน้าดูผลและเฉลยจะเปิดให้ใช้เร็วๆ นี้'),
-    [btn('primary', 'กลับรายการข้อสอบ', showList)]);
+  const canView = attemptId && status !== 'voided';
+  screenMessage(m[0], m[1], m[2], [
+    canView ? btn('primary', 'ดูผลของฉัน', function () { showResult(attemptId); }) : null,
+    canView ? h('div', { style: 'height:8px' }) : null,
+    btn(canView ? 'ghost' : 'primary', 'กลับรายการข้อสอบ', showList)
+  ]);
+}
+
+/* ---------- 14.5) หน้าผลลัพธ์ ---------- */
+async function showResult(attemptId) {
+  E = null;
+  showLoading('กำลังโหลดผลลัพธ์...');
+  let res;
+  try { res = await rpcRetry('exam_get_result', { p_token: S.token, p_attempt_id: attemptId }); }
+  catch (e) {
+    showError('โหลดผลลัพธ์ไม่สำเร็จ', 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่', function () { showResult(attemptId); });
+    return;
+  }
+  if (res && res.expired) { showExpired(); return; }
+  if (!res || !res.ok) {
+    screenMessage('ℹ️', 'ดูผลไม่ได้', (res && res.message) || '', [btn('primary', 'กลับรายการข้อสอบ', showList)]);
+    return;
+  }
+  try { history.replaceState(null, '', '#/r/' + attemptId); } catch (e) { /* ไม่เป็นไร */ }
+  renderResult(res);
+}
+
+function statBox(label, value, sub) {
+  return h('div', { class: 'stat' },
+    h('div', { class: 'sv', text: String(value) }),
+    h('div', { class: 'sl', text: label }),
+    sub ? h('div', { class: 'ss', text: sub }) : null);
+}
+
+function renderResult(res) {
+  const a = res.attempt;
+  const sm = res.summary;
+  const fl = res.flags || {};
+  const isMini = a.mode === 'arena';
+
+  const root = h('div', { class: 'wrap' },
+    h('div', { class: 'topbar' },
+      h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); showList(); }, text: '‹ กลับรายการข้อสอบ' })),
+    h('div', { class: 'page-title', text: 'ผลลัพธ์: ' + a.set_name }),
+    h('div', { class: 'hint', style: 'margin:4px 4px 0' },
+      h('span', { class: 'tag' + (isMini ? ' arena' : ''), text: isMini ? MINI_NAME : 'ฝึก' }),
+      isMini ? '' : 'รอบที่ ' + a.attempt_no));
+
+  // สรุป
+  const stats = h('div', { class: 'stats' },
+    statBox('คะแนน', sm.score + ' / ' + sm.total),
+    statBox('เวลารวมในข้อ', fmtClock(sm.time_secs)),
+    statBox('เวลาที่เสียไปกับข้อผิด', fmtClock(sm.wrong_secs),
+      sm.wrong_slow_count > 0 ? 'ติดป้ายกินเวลา ' + sm.wrong_slow_count + ' ข้อ (' + fmtClock(sm.wrong_slow_secs) + ')' : null),
+    statBox('ข้อที่ข้าม', sm.skipped),
+    statBox('ข้อที่ย้อนกลับ', sm.revisited),
+    a.status === 'timed_out' ? statBox('ข้อที่ไม่ทัน', sm.out_of_time) : statBox('ข้อที่ว่าง', sm.blank),
+    isMini ? statBox('เปอร์เซ็นไทล์ความเร็ว',
+      sm.speed_percentile === null || sm.speed_percentile === undefined ? 'ข้อมูลยังไม่พอ' : sm.speed_percentile,
+      'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null);
+  root.appendChild(stats);
+
+  // ข้อควรรู้
+  const notes = [];
+  if (!isMini && a.attempt_no >= 2) notes.push('รอบที่ ' + a.attempt_no + ': เวลาที่ลดลงส่วนหนึ่งอาจมาจากการจำข้อได้');
+  if (fl.timed_out) notes.push('รอบนี้หมดเวลา เวลาของข้อที่ค้างอยู่ถูกนับถึงจุดหมดเวลา');
+  if (fl.offline) notes.push('รอบนี้มีช่วงที่อินเทอร์เน็ตหลุด เวลาต่อข้ออาจคลาดเคลื่อน');
+  if (fl.tab_hidden > 0) notes.push('ออกจากหน้าจอสอบหรือสลับแท็บ ' + fl.tab_hidden + ' ครั้ง (เวลายังนับต่อ)');
+  notes.forEach(function (t) { root.appendChild(h('div', { class: 'msgbox info', text: t })); });
+
+  // โหมดฝึก: เทียบทุกรอบของตัวเอง
+  if (!isMini && res.compare && res.compare.length > 1) {
+    root.appendChild(h('div', { class: 'sec', text: 'เทียบกับรอบก่อนหน้า' }));
+    const nq = res.compare[0].per_q.length;
+    const head = h('tr', null, h('th', { text: 'รอบ' }), h('th', { text: 'คะแนน' }), h('th', { text: 'เวลารวม' }));
+    for (let i = 1; i <= nq; i++) head.appendChild(h('th', { text: 'ข้อ ' + i }));
+    const body = res.compare.map(function (c) {
+      const tr = h('tr', { class: c.is_current ? 'cur' : '' },
+        h('td', { text: 'รอบที่ ' + c.attempt_no }),
+        h('td', { text: c.score + '/' + nq }),
+        h('td', { text: fmtClock(c.time_secs) }));
+      c.per_q.forEach(function (q) {
+        tr.appendChild(h('td', { class: q.correct ? 'ok' : (q.answered ? 'bad' : ''), text: (q.correct ? '✓ ' : q.answered ? '✗ ' : '– ') + fmtClock(q.secs) }));
+      });
+      return tr;
+    });
+    root.appendChild(h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, body))));
+  }
+
+  // รายข้อ
+  root.appendChild(h('div', { class: 'sec', text: 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
+  (res.questions || []).forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini)); });
+
+  mount(root);
+}
+
+function resultQuestion(q, a, isMini) {
+  const icons = { correct: '✅', wrong: '❌', blank: '⬜', out_of_time: '⏰' };
+  const labels = { correct: 'ถูก', wrong: 'ผิด', blank: 'ว่าง', out_of_time: 'ไม่ทัน' };
+  const badges = [];
+  if (q.skipped) badges.push('ข้ามไป');
+  if (q.revisited) badges.push('ย้อนกลับ (เข้า ' + q.visits + ' รอบ)');
+  if (q.slow) badges.push('⏱ ใช้เวลานานเกิน ' + (a.slow_factor ? a.slow_factor + ' เท่า' : 'เกณฑ์') + 'ของค่าเฉลี่ย');
+  if (q.marked) badges.push('⚑ ติดดาว');
+
+  const sum = h('summary', { class: 'rq-sum' },
+    h('div', { class: 'rq-row' },
+      h('span', { class: 'rq-ic', text: icons[q.result] || '' }),
+      h('span', { class: 'rq-n', text: 'ข้อ ' + q.q_order }),
+      h('span', { class: 'rq-l', text: labels[q.result] || '' }),
+      h('span', { class: 'rq-t', text: fmtClock(q.secs) })),
+    badges.length ? h('div', { class: 'rq-badges' }, badges.map(function (b) { return h('span', { class: 'bd', text: b }); })) : null);
+
+  const det = h('details', { class: 'rq ' + q.result }, sum);
+  let built = false;
+  det.ontoggle = function () {
+    if (det.open && !built) { built = true; det.appendChild(resultBody(q, isMini)); }
+  };
+  return det;
+}
+
+function resultBody(q, isMini) {
+  const box = h('div', { class: 'rq-body' });
+  box.appendChild(h('div', { class: 'q-body', text: q.body }));
+  if (q.image_path) box.appendChild(imgEl(q.image_path));
+
+  if (q.qtype === 'mcq') {
+    const correct = (q.correct_answers || []).map(function (x) { return String(x).toUpperCase(); });
+    const mine = String(q.my_answer || '').toUpperCase();
+    const choices = q.choices || [];
+    const grid = choices.some(function (c) { return c.image_path; });
+    box.appendChild(h('div', { class: 'choices' + (grid ? ' grid' : '') }, choices.map(function (c) {
+      const id = String(c.id).toUpperCase();
+      const isC = correct.indexOf(id) >= 0;
+      const isMine = mine === id;
+      return h('div', { class: 'choice rs' + (isC ? ' good' : '') + (isMine && !isC ? ' bad' : '') + (isMine ? ' mine' : '') },
+        h('span', { class: 'letter', text: c.id }),
+        h('span', { class: 'ctext' },
+          c.text ? h('span', { text: c.text }) : null,
+          c.image_path ? imgEl(c.image_path) : null,
+          isC || isMine ? h('span', { class: 'tagl', text: isC ? (isMine ? '✓ คำตอบของคุณ (ถูก)' : '✓ เฉลย') : '✗ คำตอบของคุณ' }) : null));
+    })));
+    if (!mine) box.appendChild(h('div', { class: 'hint', style: 'margin-top:8px', text: 'คุณไม่ได้ตอบข้อนี้' }));
+  } else {
+    box.appendChild(h('div', { class: 'numrow' },
+      h('div', { text: 'คำตอบของคุณ: ' + (q.my_answer ? q.my_answer : '(ไม่ได้ตอบ)') }),
+      h('div', { text: 'คำตอบที่ถูก: ' + (q.correct_answers || []).join('  หรือ  ') })));
+  }
+
+  if (q.explanation) {
+    box.appendChild(h('div', { class: 'expl' }, h('b', { text: 'คำอธิบาย' }), h('div', { text: q.explanation })));
+  }
+
+  if (isMini) {
+    const rows = [
+      h('div', { text: '% คนตอบถูก: ' + (q.pct_correct === null || q.pct_correct === undefined ? 'ข้อมูลยังไม่พอ' : q.pct_correct + '%') }),
+      h('div', { text: 'เวลาเฉลี่ยของคนตอบถูก: ' + (q.avg_secs_correct === null || q.avg_secs_correct === undefined
+        ? 'ข้อมูลยังไม่พอ' : fmtClock(q.avg_secs_correct) + ' (ของคุณ ' + fmtClock(q.secs) + ')') })
+    ];
+    box.appendChild(h('div', { class: 'mstats' }, rows));
+    const top = q.top3 || [];
+    box.appendChild(h('div', { class: 'top3' },
+      h('b', { text: 'Top 3 ความเร็วของคนตอบถูก' }),
+      top.length ? top.map(function (t) {
+        return h('div', { class: 't3row' + (t.is_me ? ' me' : '') },
+          h('span', { text: 'อันดับ ' + t.rank }),
+          h('span', { text: fmtClock(t.secs) }),
+          h('span', { text: 'เข้าข้อ ' + t.visits + ' รอบ' }),
+          t.is_me ? h('span', { class: 'bd', text: 'คุณ' }) : null);
+      }) : h('div', { class: 'hint', text: 'ยังไม่มีคนตอบถูกข้อนี้' })));
+  }
+  renderMath(box);
+  return box;
 }
 
 /* ---------- 15) เริ่มทำงาน ---------- */
