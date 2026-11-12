@@ -213,3 +213,18 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .top3 { margin-top: 10px; font-size: 14px; }
 .t3row { display: flex; align-items: center; gap: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
 .t3row.me { font-weight: 600; color: var(--primary-d); }
+
+/* ---------- ปรับหน้าผลลัพธ์ (รอบ 2) ---------- */
+.stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.noteline { margin: 10px 4px 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.cmp th.rowh, .cmp td:first-child { text-align: left; }
+.cmp .rowh { position: sticky; left: 0; background: #f8fafc; color: #475569; font-weight: 500; z-index: 1; }
+.cmp td.curcol, .cmp th.curcol { background: var(--primary-l); }
+.cmp td.curcol { font-weight: 600; }
+.cmp .cur-r { color: var(--primary-d); font-weight: 600; font-size: 13px; }
+.cmp button.rb {
+  border: 0; border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer;
+  background: #e0e7ff; color: var(--primary-d); font-family: inherit;
+}
+.cmp button.rb:hover { background: #c7d2fe; }
+.cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }

@@ -823,7 +823,7 @@ function renderDone(status, attemptId) {
 }
 
 /* ---------- 14.5) หน้าผลลัพธ์ ---------- */
-async function showResult(attemptId) {
+async function showResult(attemptId, scrollToList) {
   E = null;
   showLoading('กำลังโหลดผลลัพธ์...');
   let res;
@@ -838,7 +838,7 @@ async function showResult(attemptId) {
     return;
   }
   try { history.replaceState(null, '', '#/r/' + attemptId); } catch (e) { /* ไม่เป็นไร */ }
-  renderResult(res);
+  renderResult(res, scrollToList);
 }
 
 function statBox(label, value, sub) {
@@ -848,11 +848,20 @@ function statBox(label, value, sub) {
     sub ? h('div', { class: 'ss', text: sub }) : null);
 }
 
-function renderResult(res) {
+function renderResult(res, scrollToList) {
   const a = res.attempt;
   const sm = res.summary;
   const fl = res.flags || {};
   const isMini = a.mode === 'arena';
+  const qs = res.questions || [];
+
+  // นับผิด/ว่าง/ไม่ทัน ไว้เป็นบรรทัดเล็กใต้คะแนน
+  const cnt = { wrong: 0, blank: 0, out_of_time: 0 };
+  qs.forEach(function (q) { if (cnt[q.result] !== undefined) cnt[q.result]++; });
+  const parts = [];
+  if (cnt.wrong) parts.push('ผิด ' + cnt.wrong);
+  if (cnt.blank) parts.push('ว่าง ' + cnt.blank);
+  if (cnt.out_of_time) parts.push('ไม่ทัน ' + cnt.out_of_time);
 
   const root = h('div', { class: 'wrap' },
     h('div', { class: 'topbar' },
@@ -862,60 +871,82 @@ function renderResult(res) {
       h('span', { class: 'tag' + (isMini ? ' arena' : ''), text: isMini ? MINI_NAME : 'ฝึก' }),
       isMini ? '' : 'รอบที่ ' + a.attempt_no));
 
-  // สรุป
-  const stats = h('div', { class: 'stats' },
-    statBox('คะแนน', sm.score + ' / ' + sm.total),
+  // สรุป 3 อย่าง (Mini Test เพิ่มเปอร์เซ็นไทล์ความเร็ว)
+  root.appendChild(h('div', { class: 'stats' },
+    statBox('คะแนน', sm.score + ' / ' + sm.total, parts.length ? parts.join(' • ') : null),
     statBox('เวลารวมในข้อ', fmtClock(sm.time_secs)),
     statBox('เวลาที่เสียไปกับข้อผิด', fmtClock(sm.wrong_secs),
       sm.wrong_slow_count > 0 ? 'ติดป้ายกินเวลา ' + sm.wrong_slow_count + ' ข้อ (' + fmtClock(sm.wrong_slow_secs) + ')' : null),
-    statBox('ข้อที่ข้าม', sm.skipped),
-    statBox('ข้อที่ย้อนกลับ', sm.revisited),
-    a.status === 'timed_out' ? statBox('ข้อที่ไม่ทัน', sm.out_of_time) : statBox('ข้อที่ว่าง', sm.blank),
     isMini ? statBox('เปอร์เซ็นไทล์ความเร็ว',
       sm.speed_percentile === null || sm.speed_percentile === undefined ? 'ข้อมูลยังไม่พอ' : sm.speed_percentile,
-      'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null);
-  root.appendChild(stats);
+      'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null));
 
-  // ข้อควรรู้
+  // หมายเหตุ: บรรทัดเดียว
   const notes = [];
-  if (!isMini && a.attempt_no >= 2) notes.push('รอบที่ ' + a.attempt_no + ': เวลาที่ลดลงส่วนหนึ่งอาจมาจากการจำข้อได้');
-  if (fl.timed_out) notes.push('รอบนี้หมดเวลา เวลาของข้อที่ค้างอยู่ถูกนับถึงจุดหมดเวลา');
-  if (fl.offline) notes.push('รอบนี้มีช่วงที่อินเทอร์เน็ตหลุด เวลาต่อข้ออาจคลาดเคลื่อน');
-  if (fl.tab_hidden > 0) notes.push('ออกจากหน้าจอสอบหรือสลับแท็บ ' + fl.tab_hidden + ' ครั้ง (เวลายังนับต่อ)');
-  notes.forEach(function (t) { root.appendChild(h('div', { class: 'msgbox info', text: t })); });
+  if (fl.timed_out) notes.push('หมดเวลา: ข้อที่ค้างนับเวลาถึงจุดหมดเวลา');
+  if (fl.offline) notes.push('เน็ตหลุด: เวลาต่อข้ออาจคลาดเคลื่อน');
+  if (fl.tab_hidden > 0) notes.push('ออกจากหน้าจอ ' + fl.tab_hidden + ' ครั้ง (เวลายังนับต่อ)');
+  if (notes.length) root.appendChild(h('div', { class: 'noteline', text: 'หมายเหตุ: ' + notes.join(' • ') }));
 
-  // โหมดฝึก: เทียบทุกรอบของตัวเอง
+  // โหมดฝึก: เทียบทุกรอบ (รอบเป็นคอลัมน์ ข้อเป็นแถว กดชื่อรอบเพื่อดูรายข้อของรอบนั้น)
   if (!isMini && res.compare && res.compare.length > 1) {
-    root.appendChild(h('div', { class: 'sec', text: 'เทียบกับรอบก่อนหน้า' }));
-    const nq = res.compare[0].per_q.length;
-    const head = h('tr', null, h('th', { text: 'รอบ' }), h('th', { text: 'คะแนน' }), h('th', { text: 'เวลารวม' }));
-    for (let i = 1; i <= nq; i++) head.appendChild(h('th', { text: 'ข้อ ' + i }));
-    const body = res.compare.map(function (c) {
-      const tr = h('tr', { class: c.is_current ? 'cur' : '' },
-        h('td', { text: 'รอบที่ ' + c.attempt_no }),
-        h('td', { text: c.score + '/' + nq }),
-        h('td', { text: fmtClock(c.time_secs) }));
-      c.per_q.forEach(function (q) {
-        tr.appendChild(h('td', { class: q.correct ? 'ok' : (q.answered ? 'bad' : ''), text: (q.correct ? '✓ ' : q.answered ? '✗ ' : '– ') + fmtClock(q.secs) }));
-      });
-      return tr;
-    });
-    root.appendChild(h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, body))));
+    root.appendChild(h('div', { class: 'sec', text: 'เทียบกับรอบอื่นของคุณ' }));
+    const cmp = res.compare;
+    const nq = cmp[0].per_q.length;
+
+    const head = h('tr', null, h('th', { class: 'rowh', text: '' }),
+      cmp.map(function (c) {
+        return h('th', { class: c.is_current ? 'curcol' : '' },
+          c.is_current
+            ? h('span', { class: 'cur-r', text: 'รอบที่ ' + c.attempt_no + ' (กำลังดู)' })
+            : h('button', { type: 'button', class: 'rb', text: 'รอบที่ ' + c.attempt_no,
+                            onclick: function () { showResult(c.attempt_id, true); } }));
+      }));
+
+    function cmpRow(label, cellFn) {
+      return h('tr', null, h('th', { class: 'rowh', text: label }),
+        cmp.map(function (c) {
+          const cell = cellFn(c);
+          return h('td', { class: (c.is_current ? 'curcol ' : '') + (cell.cls || ''), text: cell.text });
+        }));
+    }
+    const rows = [
+      cmpRow('คะแนน', function (c) { return { text: c.score + '/' + nq }; }),
+      cmpRow('เวลารวม', function (c) { return { text: fmtClock(c.time_secs) }; })
+    ];
+    for (let i = 0; i < nq; i++) {
+      rows.push(cmpRow('ข้อ ' + (i + 1), function (c) {
+        const q = c.per_q[i];
+        if (!q) return { text: '–' };
+        if (q.correct) return { text: '✓ ' + fmtClock(q.secs), cls: 'ok' };
+        if (q.answered) return { text: '✗ ' + fmtClock(q.secs), cls: 'bad' };
+        return { text: q.secs > 0 ? '– ' + fmtClock(q.secs) : '–' };
+      }));
+    }
+    root.appendChild(h('div', { class: 'cmp-wrap' },
+      h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, rows))));
+    if (a.attempt_no >= 2) {
+      root.appendChild(h('div', { class: 'hint', style: 'margin:6px 4px 0', text: 'เวลาที่ลดลงส่วนหนึ่งอาจมาจากการจำข้อได้' }));
+    }
   }
 
   // รายข้อ
-  root.appendChild(h('div', { class: 'sec', text: 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
-  (res.questions || []).forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini)); });
+  root.appendChild(h('div', { class: 'sec', id: 'qlist', text: 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
+  qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini)); });
 
   mount(root);
+  if (scrollToList) {
+    const el = $('qlist');
+    if (el && el.scrollIntoView) el.scrollIntoView();
+  }
 }
 
 function resultQuestion(q, a, isMini) {
   const icons = { correct: '✅', wrong: '❌', blank: '⬜', out_of_time: '⏰' };
   const labels = { correct: 'ถูก', wrong: 'ผิด', blank: 'ว่าง', out_of_time: 'ไม่ทัน' };
   const badges = [];
-  if (q.skipped) badges.push('ข้ามไป');
-  if (q.revisited) badges.push('ย้อนกลับ (เข้า ' + q.visits + ' รอบ)');
+  if (q.skipped && q.my_answer) badges.push('ข้ามก่อนแล้วกลับมาตอบ');
+  if (q.visits > 1) badges.push('เปิดข้อนี้ ' + q.visits + ' ครั้ง');
   if (q.slow) badges.push('⏱ ใช้เวลานานเกิน ' + (a.slow_factor ? a.slow_factor + ' เท่า' : 'เกณฑ์') + 'ของค่าเฉลี่ย');
   if (q.marked) badges.push('⚑ ติดดาว');
 
