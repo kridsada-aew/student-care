@@ -234,6 +234,60 @@ function imgEl(path) {
   return wrap;
 }
 
+/* ---------- ตำแหน่งรูปในโจทย์ ----------
+   เขียนในโจทย์ได้ว่าจะให้รูปอยู่ตรงไหน:
+     [[รูป]]                          วางรูปตรงนี้ (ขนาดกลาง)
+     [[รูป เล็ก]]  [[รูป กลาง]]  [[รูป ใหญ่]]   เลือกขนาด
+     [[รูป กลาง | Note: Figure not to scale.]]  มีคำบรรยายตัวหนาใต้รูป
+   ถ้าไม่ใส่ [[รูป]] เลย ระบบวางรูปไว้ใต้ข้อความ (เหมือนเดิม) */
+const STEM_TOKEN_SRC = '\\[\\[\\s*(?:รูป|img)([^\\]]*)\\]\\]';
+
+function parseStemToken(rest) {
+  const i = String(rest).indexOf('|');
+  const head = (i >= 0 ? String(rest).slice(0, i) : String(rest)).toLowerCase();
+  const caption = i >= 0 ? String(rest).slice(i + 1).trim() : '';
+  const size = /เล็ก|small/.test(head) ? 's' : /ใหญ่|large/.test(head) ? 'l' : 'm';
+  return { size: size, caption: caption };
+}
+
+function figureNode(path, size, caption) {
+  return h('div', { class: 'fig ' + size },
+    imgEl(path),
+    caption ? h('div', { class: 'fig-cap', text: caption }) : null);
+}
+
+function stemNode(body, imagePath) {
+  const wrap = h('div', { class: 'stem' });
+  const text = String(body === null || body === undefined ? '' : body);
+  const probe = new RegExp(STEM_TOKEN_SRC, 'i');
+  const hasToken = probe.test(text);
+  function addText(t, trimStart, trimEnd) {
+    let s = t;
+    if (trimStart) s = s.replace(/^\n+/, '');
+    if (trimEnd) s = s.replace(/\n+$/, '');
+    if (s.trim()) wrap.appendChild(h('div', { class: 'q-body', text: s }));
+  }
+  if (!imagePath || !hasToken) {
+    // ไม่มีรูป หรือไม่ได้ระบุตำแหน่ง: ข้อความแล้วรูปใต้ข้อความ (เหมือนเดิม) และตัด [[รูป]] ที่ไม่มีรูปให้ออก
+    addText(text.replace(new RegExp(STEM_TOKEN_SRC, 'ig'), ''), false, false);
+    if (imagePath) wrap.appendChild(figureNode(imagePath, 'l', ''));
+    return wrap;
+  }
+  const re = new RegExp(STEM_TOKEN_SRC, 'ig');
+  let last = 0, m, placed = false;
+  while ((m = re.exec(text)) !== null) {
+    addText(text.slice(last, m.index), last > 0, true);
+    if (!placed) {
+      placed = true;
+      const t = parseStemToken(m[1]);
+      wrap.appendChild(figureNode(imagePath, t.size, t.caption));
+    }
+    last = re.lastIndex;
+  }
+  addText(text.slice(last), true, false);
+  return wrap;
+}
+
 /* ---------- 5) ป๊อปอัป / ข้อความ ---------- */
 let dlgLastFocus = null;
 function showDialog(o) {
@@ -690,7 +744,20 @@ function renderEditor() {
       field('กลุ่มของข้อ', poolBox),
       verBox,
       field('ประเภท', typeSel),
-      field('โจทย์', bodyTa),
+          h('div', { class: 'field' },
+        h('label', { class: 'lb', text: 'โจทย์' }), bodyTa,
+        h('div', { class: 'imgrow' },
+          btn('ghost small', 'แทรกตำแหน่งรูป [[รูป]]', function () { insertAtCursor(bodyTa, '[[รูป]]'); }),
+          h('span', { class: 'hint', id: 'stemWarn' })),
+        h('details', { class: 'help' },
+          h('summary', { text: 'วิธีวางรูปและคำบรรยายในโจทย์' }),
+          h('div', { class: 'hint', text: 'พิมพ์ [[รูป]] ตรงที่อยากให้รูปอยู่ จะมีข้อความเหนือรูป ใต้รูป หรือทั้งสองด้านก็ได้ ถ้าไม่พิมพ์ รูปจะอยู่ใต้ข้อความ' }),
+          h('pre', { class: 'syn', text:
+            'ข้อความที่อยู่เหนือรูป\n[[รูป]]\nข้อความที่อยู่ใต้รูป\n\n' +
+            '[[รูป เล็ก]]   [[รูป กลาง]]   [[รูป ใหญ่]]   ← เลือกขนาด (ไม่ระบุ = กลาง)\n\n' +
+            '[[รูป กลาง | Note: Figure not to scale.]]\n' +
+            '           ↑ ข้อความหลังเครื่องหมาย | = คำบรรยายตัวหนา กึ่งกลาง ใต้รูป' }),
+          h('div', { class: 'hint', text: 'ใช้ [[รูป]] ได้ครั้งเดียวต่อข้อ (รูปประกอบโจทย์มีรูปเดียว) สูตร KaTeX ใช้ได้ทั้งในข้อความและคำบรรยาย' }))),
       field('รูปประกอบโจทย์ (ไม่บังคับ)', stemImg)),
     answerCard,
     h('div', { class: 'card' },
@@ -724,13 +791,33 @@ function renderEditor() {
   refreshPreview();
 }
 
+function insertAtCursor(ta, str) {
+  const v = ta.value;
+  const a = typeof ta.selectionStart === 'number' ? ta.selectionStart : v.length;
+  const b = typeof ta.selectionEnd === 'number' ? ta.selectionEnd : a;
+  ta.value = v.slice(0, a) + str + v.slice(b);
+  if (ta.setSelectionRange) ta.setSelectionRange(a + str.length, a + str.length);
+  if (ta.focus) ta.focus();
+  ta.oninput();
+}
+
+function updateStemWarn() {
+  const w = $('stemWarn');
+  if (!w || !ED) return;
+  const n = (ED.body.match(new RegExp(STEM_TOKEN_SRC, 'ig')) || []).length;
+  let t = '';
+  if (n > 0 && !ED.imagePath) t = '⚠ มี [[รูป]] ในโจทย์ แต่ยังไม่ได้อัปโหลดรูป';
+  else if (n > 1) t = '⚠ ใช้ [[รูป]] ได้ครั้งเดียว ตัวที่สองเป็นต้นไปจะไม่แสดงรูป';
+  w.textContent = t;
+}
+
 function refreshPreview() {
   const box = $('pvBox');
   if (!box || !ED) return;
   const ed = ED;
+  updateStemWarn();
   box.textContent = '';
-  box.appendChild(h('div', { class: 'q-body', text: ed.body || '(ยังไม่ได้พิมพ์โจทย์)' }));
-  if (ed.imagePath) box.appendChild(imgEl(ed.imagePath));
+  box.appendChild(stemNode(ed.body || '(ยังไม่ได้พิมพ์โจทย์)', ed.imagePath));
   if (ed.qtype === 'mcq') {
     const grid = ed.choices.some(function (c) { return c.image_path; });
     box.appendChild(h('div', { class: 'choices' + (grid ? ' grid' : '') }, ed.choices.map(function (c) {

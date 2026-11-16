@@ -133,3 +133,16 @@ button, input, textarea, select { font-family: inherit; font-size: 15px; }
 .dlg-actions { display: flex; gap: 10px; margin-top: 18px; }
 .dlg-actions .btn { flex: 1; padding: 11px 8px; }
 .overlay-busy { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: rgba(248, 250, 252, .85); font-size: 17px; font-weight: 500; }
+
+/* ---------- รูปในโจทย์ (ตำแหน่ง/ขนาด/คำบรรยาย) ---------- */
+.stem > .q-body + .q-body { margin-top: 10px; }
+.fig { margin: 12px auto 0; text-align: center; }
+.fig.s { max-width: 240px; }
+.fig.m { max-width: 440px; }
+.fig.l { max-width: 100%; }
+.fig .imgbox { margin-top: 0; }
+.fig-cap { margin-top: 6px; font-weight: 600; font-size: 15px; text-align: center; line-height: 1.5; }
+
+.help { margin-top: 8px; font-size: 13px; }
+.help summary { cursor: pointer; color: var(--primary-d); font-weight: 500; }
+.syn { margin: 8px 0; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-x: auto; }
