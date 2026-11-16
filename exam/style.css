@@ -228,3 +228,17 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 }
 .cmp button.rb:hover { background: #c7d2fe; }
 .cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }
+
+/* ---------- ส่วน Top 3 ผู้ทำคะแนนสูงสุด ---------- */
+.cmp th small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+.tp-sub { margin-top: 2px; font-size: 11px; font-weight: 400; color: var(--warn); white-space: normal; max-width: 120px; margin-left: auto; margin-right: auto; }
+.tp-sum { margin: 10px 4px 0; font-size: 13px; color: #334155; line-height: 1.8; }
+
+/* ---------- รูปในโจทย์ (ตำแหน่ง/ขนาด/คำบรรยาย) ---------- */
+.stem > .q-body + .q-body { margin-top: 10px; }
+.fig { margin: 12px auto 0; text-align: center; }
+.fig.s { max-width: 240px; }
+.fig.m { max-width: 440px; }
+.fig.l { max-width: 100%; }
+.fig .imgbox { margin-top: 0; }
+.fig-cap { margin-top: 6px; font-weight: 600; font-size: 15px; text-align: center; line-height: 1.5; }

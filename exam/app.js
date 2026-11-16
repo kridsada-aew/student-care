@@ -582,8 +582,7 @@ function renderQuestion() {
       text: on ? '⚑ ติดดาวไว้แล้ว' : '⚐ ติดดาวไว้ทบทวน', onclick: toggleMark
     })));
 
-  box.appendChild(h('div', { class: 'q-body', text: q.body }));
-  if (q.image_path) box.appendChild(imgEl(q.image_path));
+  box.appendChild(stemNode(q.body, q.image_path));
 
   if (q.qtype === 'mcq') {
     const choices = q.choices || [];
@@ -633,6 +632,60 @@ function imgEl(path) {
   };
   im.src = imageUrl(path);
   wrap.appendChild(im);
+  return wrap;
+}
+
+/* ---------- ตำแหน่งรูปในโจทย์ ----------
+   เขียนในโจทย์ได้ว่าจะให้รูปอยู่ตรงไหน:
+     [[รูป]]                          วางรูปตรงนี้ (ขนาดกลาง)
+     [[รูป เล็ก]]  [[รูป กลาง]]  [[รูป ใหญ่]]   เลือกขนาด
+     [[รูป กลาง | Note: Figure not to scale.]]  มีคำบรรยายตัวหนาใต้รูป
+   ถ้าไม่ใส่ [[รูป]] เลย ระบบวางรูปไว้ใต้ข้อความ (เหมือนเดิม) */
+const STEM_TOKEN_SRC = '\\[\\[\\s*(?:รูป|img)([^\\]]*)\\]\\]';
+
+function parseStemToken(rest) {
+  const i = String(rest).indexOf('|');
+  const head = (i >= 0 ? String(rest).slice(0, i) : String(rest)).toLowerCase();
+  const caption = i >= 0 ? String(rest).slice(i + 1).trim() : '';
+  const size = /เล็ก|small/.test(head) ? 's' : /ใหญ่|large/.test(head) ? 'l' : 'm';
+  return { size: size, caption: caption };
+}
+
+function figureNode(path, size, caption) {
+  return h('div', { class: 'fig ' + size },
+    imgEl(path),
+    caption ? h('div', { class: 'fig-cap', text: caption }) : null);
+}
+
+function stemNode(body, imagePath) {
+  const wrap = h('div', { class: 'stem' });
+  const text = String(body === null || body === undefined ? '' : body);
+  const probe = new RegExp(STEM_TOKEN_SRC, 'i');
+  const hasToken = probe.test(text);
+  function addText(t, trimStart, trimEnd) {
+    let s = t;
+    if (trimStart) s = s.replace(/^\n+/, '');
+    if (trimEnd) s = s.replace(/\n+$/, '');
+    if (s.trim()) wrap.appendChild(h('div', { class: 'q-body', text: s }));
+  }
+  if (!imagePath || !hasToken) {
+    // ไม่มีรูป หรือไม่ได้ระบุตำแหน่ง: ข้อความแล้วรูปใต้ข้อความ (เหมือนเดิม) และตัด [[รูป]] ที่ไม่มีรูปให้ออก
+    addText(text.replace(new RegExp(STEM_TOKEN_SRC, 'ig'), ''), false, false);
+    if (imagePath) wrap.appendChild(figureNode(imagePath, 'l', ''));
+    return wrap;
+  }
+  const re = new RegExp(STEM_TOKEN_SRC, 'ig');
+  let last = 0, m, placed = false;
+  while ((m = re.exec(text)) !== null) {
+    addText(text.slice(last, m.index), last > 0, true);
+    if (!placed) {
+      placed = true;
+      const t = parseStemToken(m[1]);
+      wrap.appendChild(figureNode(imagePath, t.size, t.caption));
+    }
+    last = re.lastIndex;
+  }
+  addText(text.slice(last), true, false);
   return wrap;
 }
 
@@ -930,6 +983,10 @@ function renderResult(res, scrollToList) {
     }
   }
 
+  // Mini Test: วิธีทำข้อสอบของผู้ทำคะแนนสูงสุด (ไม่แสดงอะไรเลยถ้าคนทำน้อยกว่าเกณฑ์)
+  const tpSec = isMini ? topProfileSection(res, qs) : null;
+  if (tpSec) root.appendChild(tpSec);
+
   // รายข้อ
   root.appendChild(h('div', { class: 'sec', id: 'qlist', text: 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
   qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini)); });
@@ -939,6 +996,74 @@ function renderResult(res, scrollToList) {
     const el = $('qlist');
     if (el && el.scrollIntoView) el.scrollIntoView();
   }
+}
+
+function topProfileSection(res, qs) {
+  const tp = res.top_profiles;
+  if (!tp || !tp.people || !tp.people.length) return null;   // น้อยกว่าเกณฑ์ขั้นต่ำ: ไม่แสดงข้อความอะไรเลย
+  const total = qs.length;
+  const meInTop = tp.people.some(function (p) { return p.is_me; });
+
+  // คอลัมน์: "คุณ" (ถ้าไม่ได้อยู่ใน Top 3) แล้วตามด้วยผู้ทำคะแนนสูงสุดเรียงตามอันดับ (A, B, C...)
+  const cols = [];
+  if (!meInTop) {
+    const byQ = {};
+    qs.forEach(function (q) {
+      byQ[q.q_order] = { correct: q.result === 'correct', answered: !!q.my_answer, secs: q.secs,
+                         visits: q.visits, skip_return: !!(q.skipped && q.my_answer) };
+    });
+    cols.push({ label: 'คุณ', me: true, rank: null, score: res.summary.score, total_secs: res.summary.time_secs, byQ: byQ });
+  }
+  let letter = 0;
+  tp.people.forEach(function (p) {
+    const byQ = {};
+    (p.questions || []).forEach(function (q) { byQ[q.q_order] = q; });
+    cols.push({ label: p.is_me ? 'คุณ' : String.fromCharCode(65 + (letter++)), me: p.is_me, rank: p.rank,
+                score: p.score, total_secs: p.total_secs, byQ: byQ });
+  });
+
+  const head = h('tr', null, h('th', { class: 'rowh', text: '' }), cols.map(function (c) {
+    return h('th', { class: c.me ? 'curcol' : '' }, c.label, c.rank ? h('small', { text: 'อันดับ ' + c.rank }) : null);
+  }));
+  const rows = [
+    h('tr', null, h('th', { class: 'rowh', text: 'คะแนน' }),
+      cols.map(function (c) { return h('td', { class: c.me ? 'curcol' : '', text: c.score + '/' + total }); })),
+    h('tr', null, h('th', { class: 'rowh', text: 'เวลารวม' }),
+      cols.map(function (c) { return h('td', { class: c.me ? 'curcol' : '', text: fmtClock(c.total_secs) }); }))
+  ];
+  qs.forEach(function (qq) {
+    rows.push(h('tr', null, h('th', { class: 'rowh', text: 'ข้อ ' + qq.q_order }), cols.map(function (c) {
+      const q = c.byQ[qq.q_order];
+      if (!q) return h('td', { text: '–' });
+      const mark = q.correct ? '✓ ' : q.answered ? '✗ ' : '– ';
+      const t = !q.answered && !q.secs ? '–' : mark + fmtClock(q.secs);
+      const sub = q.skip_return ? '↩ ข้ามก่อนแล้วกลับมาตอบ' : (q.visits > 1 ? 'เปิด ' + q.visits + ' ครั้ง' : '');
+      return h('td', { class: (c.me ? 'curcol ' : '') + (q.correct ? 'ok' : q.answered ? 'bad' : '') },
+        h('div', { text: t }), sub ? h('div', { class: 'tp-sub', text: sub }) : null);
+    })));
+  });
+
+  // สรุปรูปแบบการทำของแต่ละคน
+  const sums = cols.filter(function (c) { return c.rank; }).map(function (c) {
+    const sr = [], rv = [];
+    Object.keys(c.byQ).forEach(function (k) {
+      const q = c.byQ[k];
+      if (q.skip_return) sr.push(Number(k)); else if (q.visits > 1) rv.push(Number(k));
+    });
+    sr.sort(function (a, b) { return a - b; });
+    const parts = [];
+    if (sr.length) parts.push('ข้ามก่อนแล้วกลับมาตอบ ' + sr.length + ' ข้อ (ข้อ ' + sr.join(', ') + ')');
+    if (rv.length) parts.push('เปิดซ้ำ ' + rv.length + ' ข้อ');
+    return h('div', { text: c.label + ': ' + (parts.length ? parts.join(' • ') : 'ทำตามลำดับ ไม่ข้ามเลย') });
+  });
+
+  return h('div', null,
+    h('div', { class: 'sec', text: 'วิธีทำข้อสอบของผู้ทำคะแนนสูงสุด' }),
+    h('div', { class: 'hint', style: 'margin:2px 4px 0', text:
+      (tp.provisional ? 'อันดับ ณ ตอนนี้ (season ยังไม่จบ อาจเปลี่ยนได้) • ' : '') +
+      'จัดอันดับจากคะแนนสูงสุด ถ้าเท่ากันดูเวลารวมที่น้อยกว่า • ไม่แสดงชื่อผู้ทำข้อสอบ' }),
+    h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, rows))),
+    h('div', { class: 'tp-sum' }, sums));
 }
 
 function resultQuestion(q, a, isMini) {
@@ -968,8 +1093,7 @@ function resultQuestion(q, a, isMini) {
 
 function resultBody(q, isMini) {
   const box = h('div', { class: 'rq-body' });
-  box.appendChild(h('div', { class: 'q-body', text: q.body }));
-  if (q.image_path) box.appendChild(imgEl(q.image_path));
+  box.appendChild(stemNode(q.body, q.image_path));
 
   if (q.qtype === 'mcq') {
     const correct = (q.correct_answers || []).map(function (x) { return String(x).toUpperCase(); });
