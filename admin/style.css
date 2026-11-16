@@ -1,0 +1,135 @@
+:root {
+  --bg1: #eef2ff; --bg2: #f8fafc;
+  --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
+  --primary: #4f46e5; --primary-d: #4338ca; --primary-l: #eef2ff;
+  --ok: #15803d; --ok-bg: #f0fdf4;
+  --err: #b91c1c; --err-bg: #fef2f2;
+  --warn: #92400e; --warn-bg: #fffbeb;
+  --info: #2563eb; --info-bg: #eff6ff;
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--ink); min-height: 100vh;
+  font-family: 'Prompt', 'Noto Sans Thai', -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(180deg, var(--bg1), var(--bg2) 320px);
+}
+button, input, textarea, select { font-family: inherit; font-size: 15px; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 16px 14px 60px; }
+.wrap.wide { max-width: 1180px; }
+.hint { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ---------- ปุ่ม ---------- */
+.btn {
+  display: inline-block; border: 0; border-radius: 10px; cursor: pointer; text-decoration: none; text-align: center;
+  padding: 10px 16px; font-weight: 500;
+}
+.btn.block { display: block; width: 100%; }
+.btn.primary { color: #fff; background: linear-gradient(135deg, var(--primary), #6366f1); }
+.btn.ghost { background: #e2e8f0; color: #334155; }
+.btn.danger { color: #fff; background: #dc2626; }
+.btn.small { padding: 6px 12px; font-size: 13px; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid rgba(79, 70, 229, .35); outline-offset: 1px; }
+.filebtn { position: relative; overflow: hidden; }
+
+/* ---------- เข้าสู่ระบบ ---------- */
+.login { max-width: 400px; margin: 70px auto 0; background: #fff; border-radius: 18px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(79, 70, 229, .12); }
+.login h1 { margin: 0 0 4px; font-size: 22px; }
+.login input { display: block; width: 100%; margin-top: 12px; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: #f8fafc; }
+.login .btn { margin-top: 16px; }
+.msgbox { margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+.msgbox.err { background: var(--err-bg); color: var(--err); }
+.msgbox.ok { background: var(--ok-bg); color: var(--ok); }
+.msgbox.info { background: var(--info-bg); color: var(--info); }
+
+/* ---------- ส่วนหัวและแท็บ ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.topbar .who { font-size: 13px; color: var(--muted); }
+.title { margin: 10px 2px 0; font-size: 22px; font-weight: 600; }
+.tabs { display: flex; gap: 6px; margin-top: 12px; padding: 5px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(15, 23, 42, .06); overflow-x: auto; }
+.tab { flex: 0 0 auto; border: 0; background: transparent; padding: 9px 16px; border-radius: 9px; color: var(--muted); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.tab.active { background: var(--primary); color: #fff; }
+.tab:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------- รายการข้อสอบ ---------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.toolbar select, .toolbar input[type=search] { padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; }
+.toolbar input[type=search] { flex: 1; min-width: 160px; }
+.toolbar .grow { flex: 1; }
+.qitem { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; background: #fff; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(15, 23, 42, .06); }
+.qitem .qid { flex: 0 0 auto; font-weight: 600; color: var(--primary-d); min-width: 44px; }
+.qitem .qmain { flex: 1; min-width: 0; }
+.qitem .qsnip { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qitem .qmeta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.qitem .qact { display: flex; flex-direction: column; gap: 6px; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--primary-l); color: var(--primary-d); }
+.tag.mini { background: #fef3c7; color: #92400e; }
+.tag.gray { background: #f1f5f9; color: #475569; }
+
+/* ---------- ตัวแก้ไขข้อสอบ ---------- */
+.ed-grid { display: block; margin-top: 12px; }
+@media (min-width: 980px) { .ed-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; } }
+.card { background: #fff; border-radius: var(--radius); padding: 16px; margin-top: 12px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.card:first-child { margin-top: 0; }
+.card h3 { margin: 0 0 8px; font-size: 16px; }
+.field { margin-top: 12px; }
+.field:first-child { margin-top: 0; }
+.field label.lb { display: block; font-size: 13px; font-weight: 500; color: #334155; margin-bottom: 4px; }
+.field textarea, .field input[type=text], .field select {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #f8fafc; color: var(--ink);
+}
+.field textarea { min-height: 130px; line-height: 1.6; resize: vertical; }
+.pools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pool-opt { display: block; cursor: pointer; }
+.pool-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.pool-opt span { display: block; padding: 12px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font-weight: 500; }
+.pool-opt small { display: block; margin-top: 3px; font-weight: 400; font-size: 12px; color: var(--muted); }
+.pool-opt input:checked + span { border-color: var(--primary); background: var(--primary-l); }
+.imgrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.thumb { max-width: 160px; max-height: 120px; border-radius: 8px; border: 1px solid var(--line); background: #f8fafc; }
+.crow { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 10px; border: 1.5px solid var(--line); border-radius: 12px; }
+.crow.ok { border-color: #22c55e; background: var(--ok-bg); }
+.crow .letter { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; background: #e2e8f0; color: #334155; margin-top: 4px; }
+.crow .cbody { flex: 1; min-width: 0; }
+.crow .cbody input[type=text] { width: 100%; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; }
+.okpick { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ok); white-space: nowrap; margin-top: 8px; cursor: pointer; }
+.arow { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.arow input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #f8fafc; }
+.arow .val { min-width: 90px; font-size: 13px; color: var(--muted); }
+.arow .val.bad { color: var(--err); }
+.savebar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.savebar .btn { flex: 1 1 220px; }
+
+/* ตัวอย่างที่นักเรียนเห็น (ใช้หน้าตาเดียวกับหน้าสอบ) */
+.preview { position: sticky; top: 12px; }
+.preview .pv-note { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.q-body { font-size: 17px; line-height: 1.75; white-space: pre-line; overflow-wrap: anywhere; }
+.imgbox { display: block; position: relative; margin-top: 12px; min-height: 40px; }
+.imgbox img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: 8px; }
+.imgbox.loading { background: #f1f5f9; border-radius: 10px; }
+.imgbox.err { background: var(--err-bg); border-radius: 10px; min-height: 50px; cursor: pointer; }
+.imgbox.err img { display: none; }
+.imgbox.err::after { content: 'โหลดรูปไม่สำเร็จ แตะเพื่อลองใหม่'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--err); }
+.choices { margin-top: 12px; }
+.choices.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choice { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; font-size: 16px; line-height: 1.6; background: #fff; }
+.choices.grid .choice { margin-top: 0; }
+.choice .letter { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; background: #f1f5f9; color: #334155; }
+.choice .ctext { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.choice.good { border-color: #22c55e; background: var(--ok-bg); }
+.choice .ck { display: block; margin-top: 4px; font-size: 12px; color: var(--ok); font-weight: 500; }
+.numpv { margin-top: 12px; padding: 12px; border-radius: 12px; background: #f8fafc; line-height: 1.8; font-size: 15px; }
+.expl { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--info-bg); line-height: 1.7; white-space: pre-line; font-size: 15px; }
+
+/* ---------- ป๊อปอัป ---------- */
+.dlg-overlay { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .45); }
+.dlg-overlay.open { display: flex; }
+.dlg-win { width: 100%; max-width: 400px; background: #fff; overflow: hidden; border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 6px 6px 0 rgba(15, 23, 42, .9); }
+.dlg-bar { padding: 8px 12px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 500; }
+.dlg-content { padding: 20px 18px 18px; text-align: center; }
+.dlg-icon { font-size: 34px; line-height: 1; }
+.dlg-body { margin-top: 10px; font-size: 15px; line-height: 1.6; word-break: break-word; white-space: pre-line; }
+.dlg-actions { display: flex; gap: 10px; margin-top: 18px; }
+.dlg-actions .btn { flex: 1; padding: 11px 8px; }
+.overlay-busy { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; background: rgba(248, 250, 252, .85); font-size: 17px; font-weight: 500; }
