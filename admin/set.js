@@ -60,7 +60,7 @@ function dtInput(value, onInput) {
    ===================================================================== */
 let SS = null;   // state ของตัวแก้ไข season
 
-async function showSeasons() {
+async function showSeasons(msg) {
   SS = null; SE = null;
   showBusy('กำลังโหลด season...');
   let rows;
@@ -69,6 +69,7 @@ async function showSeasons() {
   hideBusy();
 
   const body = h('div', null,
+    msg ? h('div', { class: 'msgbox ok', text: msg }) : null,
     h('div', { class: 'toolbar' }, h('span', { class: 'grow' }), btn('primary', '+ สร้าง season', function () { openSeasonEditor(null); })));
   if (!rows.length) {
     body.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px', text: 'ยังไม่มี season กด "+ สร้าง season" เพื่อเริ่ม (Season ใช้กับชุด Mini Test เท่านั้น)' }));
@@ -88,6 +89,7 @@ async function showSeasons() {
           h('span', { class: 'tag gray', text: nSets + ' ชุด' }))),
       h('div', { class: 'qact' },
         btn('ghost small', s.locked ? 'ดู' : 'แก้ไข', function () { openSeasonEditor(s); }),
+        btn('ghost small', s.locked ? 'ปลดล็อกผล' : 'ล็อกผล', function () { confirmSeasonLock(s); }),
         s.locked ? null : btn('ghost small', 'ลบ', function () { confirmDeleteSeason(s, nSets); }))));
   });
   mount(shell('seasons', body));
@@ -600,11 +602,14 @@ const ATT_STATUS = {
 async function showAttempts(s, msg) {
   SS = null; SE = null;
   showBusy('กำลังโหลดรายชื่อผู้สอบ...');
-  let rows;
-  try { rows = await rpc('exam_admin_list_attempts', { p_set_id: s.id }); }
-  catch (e) { hideBusy(); handleErr(e, 'โหลดรายชื่อผู้สอบไม่สำเร็จ'); return; }
+  let rows, allow = [];
+  try {
+    rows = await rpc('exam_admin_list_attempts', { p_set_id: s.id });
+    if (s.mode === 'practice') allow = await rpc('exam_admin_list_allowances', { p_set_id: s.id });
+  } catch (e) { hideBusy(); handleErr(e, 'โหลดรายชื่อผู้สอบไม่สำเร็จ'); return; }
   hideBusy();
   rows = rows || [];
+  allow = allow || [];
 
   const count = { in_progress: 0, submitted: 0, timed_out: 0, voided: 0 };
   rows.forEach(function (a) { if (count[a.status] !== undefined) count[a.status]++; });
@@ -657,6 +662,7 @@ async function showAttempts(s, msg) {
       h('div', { class: 'hint', style: 'margin-top:6px',
         text: '"ยกเลิกรอบ" ใช้เมื่อรอบนั้นเสียไปโดยไม่ใช่ความผิดนักเรียน เช่น เน็ตหลุดก่อนเริ่มทำ รอบจะไม่นับในคะแนนและสถิติ และนักเรียนเริ่มสอบใหม่ได้ (Mini Test ต้องยังอยู่ในช่วง season)' })),
     msg ? h('div', { class: 'msgbox ok', text: msg }) : null,
+    s.mode === 'practice' ? allowanceCard(s, rows, allow) : null,
     h('div', { class: 'toolbar' }, search),
     list));
 }
@@ -693,6 +699,76 @@ async function doVoid(a, s, reason) {
   catch (e) { hideBusy(); handleErr(e, 'ยกเลิกรอบไม่สำเร็จ'); return; }
   hideBusy();
   showAttempts(s, 'ยกเลิกรอบของ ' + (a.name || a.student_id) + ' แล้ว นักเรียนเริ่มสอบใหม่ได้');
+}
+
+
+/* =====================================================================
+   ล็อก/ปลดล็อกผล season + สิทธิ์รอบฝึกรายคน (ขั้น 5 ส่วนที่ 2)
+   ===================================================================== */
+function confirmSeasonLock(s) {
+  const lock = !s.locked;
+  showDialog({
+    icon: lock ? '🔒' : '🔓',
+    title: lock ? 'ล็อกผล season' : 'ปลดล็อก season',
+    message: lock
+      ? 'ล็อกผล "' + s.name + '" ใช่ไหม?\nนักเรียนจะเริ่มสอบใหม่ใน season นี้ไม่ได้ และอันดับถือเป็นผลสุดท้าย ระบบปิดรอบที่เลยเวลาแล้วให้เอง ถ้ายังมีคนกำลังสอบอยู่จะล็อกไม่ได้ ต้องรอให้ครบเวลาก่อน'
+      : 'ปลดล็อก "' + s.name + '" ใช่ไหม?\nใช้เมื่อล็อกผิด จะแก้ไข season ได้อีก และถ้ายังไม่ถึงวันจบ นักเรียนจะเริ่มสอบได้อีก อันดับที่เห็นจะเป็นค่าชั่วคราว',
+    buttons: [
+      { text: 'ยกเลิก', cls: 'ghost', focus: true },
+      { text: lock ? 'ล็อกผล' : 'ปลดล็อก', cls: lock ? 'danger' : 'primary', onClick: async function () {
+        showBusy(lock ? 'กำลังล็อกผล...' : 'กำลังปลดล็อก...');
+        let res;
+        try { res = await rpc('exam_admin_set_season_lock', { p_season_id: s.id, p_locked: lock }); }
+        catch (e) { hideBusy(); handleErr(e, lock ? 'ล็อกผลไม่สำเร็จ' : 'ปลดล็อกไม่สำเร็จ'); return; }
+        hideBusy();
+        const extra = lock && res && res.finalized ? ' (ปิดรอบที่เลยเวลาให้ ' + res.finalized + ' รอบ)' : '';
+        showSeasons((lock ? 'ล็อกผล ' : 'ปลดล็อก ') + s.name + ' แล้ว' + extra);
+      } }
+    ]
+  });
+}
+
+function allowanceCard(s, rows, allow) {
+  const extraMap = {};
+  allow.forEach(function (x) { extraMap[x.student_id] = x.extra; });
+  const stu = {};
+  rows.forEach(function (a) {
+    if (!stu[a.student_id]) stu[a.student_id] = { id: a.student_id, name: a.name, used: 0 };
+    if (a.status !== 'voided') stu[a.student_id].used++;
+  });
+  const ids = Object.keys(stu).sort(function (x, y) {
+    return String(stu[x].name || x).localeCompare(String(stu[y].name || y), 'th');
+  });
+
+  const box = h('div', { class: 'card' },
+    h('h3', { text: 'สิทธิ์รอบฝึกรายคน' }),
+    h('div', { class: 'hint', text: 'ชุดนี้ให้ทำได้ ' + s.practice_attempts_allowed + ' รอบต่อคน กด "+1 รอบ" เมื่อนักเรียนใช้ครบแล้วและครูอนุญาตให้ทำเพิ่ม (รอบที่ยกเลิกไม่นับในโควตา)' }));
+  if (!ids.length) {
+    box.appendChild(h('div', { class: 'hint', style: 'margin-top:8px', text: 'ยังไม่มีนักเรียนที่เคยสอบชุดนี้' }));
+    return box;
+  }
+  ids.forEach(function (id) {
+    const x = stu[id];
+    const extra = extraMap[id] || 0;
+    const allowed = s.practice_attempts_allowed + extra;
+    box.appendChild(h('div', { class: 'arow', style: 'justify-content:space-between;flex-wrap:wrap' },
+      h('div', null,
+        h('div', { class: 'qsnip', text: x.name || '(ไม่พบชื่อ) ' + id }),
+        h('div', { class: 'hint', text: 'ทำแล้ว ' + x.used + ' / ' + allowed + ' รอบ' +
+          (extra ? '  (ครูเพิ่มให้ ' + extra + ')' : '') + (x.used >= allowed ? '  • ครบโควตาแล้ว' : '') })),
+      h('div', { class: 'qact', style: 'flex-direction:row' },
+        btn('ghost small', '+1 รอบ', function () { changeAllowance(s, id, extra + 1, x); }),
+        extra > 0 ? btn('ghost small', '−1', function () { changeAllowance(s, id, extra - 1, x); }) : null)));
+  });
+  return box;
+}
+
+async function changeAllowance(s, studentId, extra, x) {
+  showBusy('กำลังบันทึก...');
+  try { await rpc('exam_admin_set_allowance', { p_set_id: s.id, p_student_id: studentId, p_extra: extra }); }
+  catch (e) { hideBusy(); handleErr(e, 'บันทึกสิทธิ์ไม่สำเร็จ'); return; }
+  hideBusy();
+  showAttempts(s, 'ปรับสิทธิ์รอบฝึกของ ' + (x.name || studentId) + ' แล้ว');
 }
 
 /* ---------- เปิดแท็บ "ชุดข้อสอบ" และ "Season" โดยไม่ต้องแก้ shell() ใน app.js ----------
