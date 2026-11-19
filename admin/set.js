@@ -221,6 +221,7 @@ async function showSets() {
           s.n_questions === 0 ? h('span', { class: 'tag mini', text: 'ยังไม่มีข้อ (นักเรียนเริ่มสอบไม่ได้)' }) : null)),
       h('div', { class: 'qact' },
         btn('ghost small', 'แก้ไข', function () { openSetEditor(s.id); }),
+        btn('ghost small', 'ผู้สอบ', function () { showAttempts(s); }),
         btn('ghost small', 'ทำสำเนา', function () { openSetEditor(null, null, s.id); }),
         btn('ghost small', 'ลบ', function () { confirmDeleteSet(s); }))));
   });
@@ -581,6 +582,118 @@ async function openPicker() {
 window.addEventListener('beforeunload', function (e) {
   if ((SE && SE.dirty) || (SS && SS.dirty)) { e.preventDefault(); e.returnValue = ''; }
 });
+
+
+/* =====================================================================
+   ผู้สอบของชุด + รีเซ็ตสิทธิ์ (ขั้น 5 ส่วนที่ 1)
+   - ดูรอบสอบทั้งหมดของชุดหนึ่ง (ชื่อ สถานะ เวลา) ค้นหาด้วยชื่อหรือรหัสนักเรียนได้
+   - "ยกเลิกรอบ" = รีเซ็ตสิทธิ์: รอบนั้นไม่นับและนักเรียนสอบใหม่ได้ ข้อมูลเดิมยังเก็บไว้
+     ต้องระบุเหตุผลทุกครั้ง และระบบบันทึกว่าใครยกเลิกเมื่อไหร่ (ตาราง exam_attempt_resets)
+   ===================================================================== */
+const ATT_STATUS = {
+  in_progress: { t: 'กำลังสอบ', c: 'mini' },
+  submitted: { t: 'ส่งแล้ว', c: '' },
+  timed_out: { t: 'หมดเวลา', c: 'gray' },
+  voided: { t: 'ยกเลิก (ไม่นับ)', c: 'gray' }
+};
+
+async function showAttempts(s, msg) {
+  SS = null; SE = null;
+  showBusy('กำลังโหลดรายชื่อผู้สอบ...');
+  let rows;
+  try { rows = await rpc('exam_admin_list_attempts', { p_set_id: s.id }); }
+  catch (e) { hideBusy(); handleErr(e, 'โหลดรายชื่อผู้สอบไม่สำเร็จ'); return; }
+  hideBusy();
+  rows = rows || [];
+
+  const count = { in_progress: 0, submitted: 0, timed_out: 0, voided: 0 };
+  rows.forEach(function (a) { if (count[a.status] !== undefined) count[a.status]++; });
+
+  const list = h('div', null);
+  const search = h('input', { type: 'search', placeholder: 'ค้นหาชื่อหรือรหัสนักเรียน', 'aria-label': 'ค้นหา' });
+
+  function draw() {
+    const q = search.value.trim().toLowerCase();
+    list.textContent = '';
+    let shown = 0;
+    rows.forEach(function (a) {
+      const label = (a.name || '(ไม่พบชื่อ)') + ' ' + a.student_id;
+      if (q && label.toLowerCase().indexOf(q) < 0) return;
+      shown++;
+      const st = ATT_STATUS[a.status] || { t: a.status, c: 'gray' };
+      const isVoid = a.status === 'voided';
+      list.appendChild(h('div', { class: 'qitem' },
+        h('div', { class: 'qid', text: '#' + a.attempt_id }),
+        h('div', { class: 'qmain' },
+          h('div', { class: 'qsnip', text: a.name || '(ไม่พบชื่อในระบบ)' }),
+          h('div', { class: 'hint', text: 'รหัส ' + a.student_id + '  •  เริ่ม ' + fmtDT(a.started_at) +
+            (a.submitted_at ? '  •  ส่ง ' + fmtDT(a.submitted_at) : '') }),
+          h('div', { class: 'qmeta' },
+            h('span', { class: 'tag ' + st.c, text: st.t }),
+            h('span', { class: 'tag gray', text: 'รอบที่ ' + a.attempt_no })),
+          isVoid && a.void_reason
+            ? h('div', { class: 'hint', style: 'margin-top:6px',
+                text: 'เหตุผลที่ยกเลิก: ' + a.void_reason + (a.void_by ? '  (โดย ' + a.void_by + ')' : '') +
+                      (a.void_at ? '  ' + fmtDT(a.void_at) : '') })
+            : null),
+        h('div', { class: 'qact' },
+          isVoid ? null : btn('ghost small', 'ยกเลิกรอบ', function () { askVoid(a, s); }))));
+    });
+    if (!shown) {
+      list.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px',
+        text: rows.length ? 'ไม่พบรายการที่ตรงกับคำค้น' : 'ยังไม่มีใครสอบชุดนี้' }));
+    }
+  }
+  search.oninput = draw;
+  draw();
+
+  const back = btn('ghost small', '‹ กลับรายการชุด', function () { showSets(); });
+  mount(h('div', { class: 'wrap' },
+    h('div', { class: 'topbar' }, back, h('div', { class: 'who', text: 'เข้าสู่ระบบ: ' + (SESS ? SESS.user.email : '') })),
+    h('div', { class: 'card', style: 'margin-top:12px' },
+      h('h3', { text: 'ผู้สอบ: ' + s.name }),
+      h('div', { class: 'hint', text: 'ทั้งหมด ' + rows.length + ' รอบ  •  ส่งแล้ว ' + count.submitted +
+        '  •  หมดเวลา ' + count.timed_out + '  •  กำลังสอบ ' + count.in_progress + '  •  ยกเลิก ' + count.voided }),
+      h('div', { class: 'hint', style: 'margin-top:6px',
+        text: '"ยกเลิกรอบ" ใช้เมื่อรอบนั้นเสียไปโดยไม่ใช่ความผิดนักเรียน เช่น เน็ตหลุดก่อนเริ่มทำ รอบจะไม่นับในคะแนนและสถิติ และนักเรียนเริ่มสอบใหม่ได้ (Mini Test ต้องยังอยู่ในช่วง season)' })),
+    msg ? h('div', { class: 'msgbox ok', text: msg }) : null,
+    h('div', { class: 'toolbar' }, search),
+    list));
+}
+
+function askVoid(a, s) {
+  const who = (a.name || a.student_id) + ' (รอบที่ ' + a.attempt_no + ')';
+  const reason = h('input', {
+    type: 'text', maxlength: '200', 'aria-label': 'เหตุผล',
+    placeholder: 'เหตุผล เช่น เน็ตหลุดก่อนเริ่มข้อแรก',
+    style: 'margin-top:12px;width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px'
+  });
+  showDialog({
+    icon: '↩️', title: 'ยกเลิกรอบสอบ (รีเซ็ตสิทธิ์)',
+    message: 'ยกเลิกรอบของ ' + who + ' ใช่ไหม?\nรอบนี้จะไม่นับในคะแนนและสถิติ และนักเรียนสอบใหม่ได้ ข้อมูลเดิมยังเก็บไว้ตรวจย้อนหลัง',
+    buttons: [
+      { text: 'ไม่ยกเลิก', cls: 'ghost', focus: true },
+      { text: 'ยืนยันยกเลิกรอบ', cls: 'danger', onClick: function () {
+        const text = reason.value.trim();
+        if (text.length < 3) {
+          showDialog({ icon: 'ℹ️', title: 'ต้องระบุเหตุผล', message: 'กรุณาพิมพ์เหตุผลอย่างน้อย 3 ตัวอักษร เพื่อใช้ตรวจย้อนหลัง',
+            buttons: [{ text: 'ตกลง', cls: 'primary', onClick: function () { askVoid(a, s); } }] });
+          return;
+        }
+        doVoid(a, s, text);
+      } }
+    ]
+  });
+  $('dlgBody').appendChild(reason);
+}
+
+async function doVoid(a, s, reason) {
+  showBusy('กำลังยกเลิกรอบ...');
+  try { await rpc('exam_admin_void_attempt', { p_attempt_id: a.attempt_id, p_reason: reason }); }
+  catch (e) { hideBusy(); handleErr(e, 'ยกเลิกรอบไม่สำเร็จ'); return; }
+  hideBusy();
+  showAttempts(s, 'ยกเลิกรอบของ ' + (a.name || a.student_id) + ' แล้ว นักเรียนเริ่มสอบใหม่ได้');
+}
 
 /* ---------- เปิดแท็บ "ชุดข้อสอบ" และ "Season" โดยไม่ต้องแก้ shell() ใน app.js ----------
    ห่อ shell() เดิม: สร้างหน้าตามปกติ แล้วเปลี่ยนปุ่มแท็บที่ 2 และ 3 (เดิมกดไม่ได้) ให้ใช้งานได้
