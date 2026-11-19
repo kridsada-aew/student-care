@@ -581,3 +581,25 @@ async function openPicker() {
 window.addEventListener('beforeunload', function (e) {
   if ((SE && SE.dirty) || (SS && SS.dirty)) { e.preventDefault(); e.returnValue = ''; }
 });
+
+/* ---------- เปิดแท็บ "ชุดข้อสอบ" และ "Season" โดยไม่ต้องแก้ shell() ใน app.js ----------
+   ห่อ shell() เดิม: สร้างหน้าตามปกติ แล้วเปลี่ยนปุ่มแท็บที่ 2 และ 3 (เดิมกดไม่ได้) ให้ใช้งานได้
+   ถ้าภายหลังแก้ shell() ใน app.js ให้เปิดแท็บเองแล้ว ส่วนนี้ก็ยังทำงานได้ไม่ซ้ำซ้อน */
+(function () {
+  const origShell = window.shell;
+  if (typeof origShell !== 'function') return;
+  window.shell = function (active, children) {
+    const root = origShell(active, children);
+    const tabs = root.querySelectorAll('.tabs .tab');
+    const defs = [null, ['sets', 'ชุดข้อสอบ', showSets], ['seasons', 'Season', showSeasons]];
+    defs.forEach(function (d, i) {
+      const b = tabs[i];
+      if (!d || !b) return;
+      b.disabled = false;
+      b.textContent = d[1];
+      b.classList.toggle('active', active === d[0]);
+      b.onclick = function () { d[2](); };
+    });
+    return root;
+  };
+})();
