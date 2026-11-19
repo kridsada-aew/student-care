@@ -904,9 +904,10 @@ async function save(newVersion) {
   hideBusy();
   ED.dirty = false;
   // จำรหัสที่ได้ไว้ก่อน: ถ้าโหลดซ้ำไม่สำเร็จ การกดบันทึกอีกครั้งจะแก้ข้อเดิม ไม่สร้างข้อซ้ำ
-  if (ED.questionId === null) ED.questionId = res.question_id;
+  const wasNew = ED.questionId === null;
+  if (wasNew) ED.questionId = res.question_id;
   ED.versionId = res.version_id;
-  const text = newVersion ? 'บันทึกเป็นเวอร์ชันใหม่แล้ว' : (ED.questionId === null ? 'บันทึกข้อใหม่แล้ว (#' + res.question_id + ')' : 'บันทึกแล้ว');
+  const text = newVersion ? 'บันทึกเป็นเวอร์ชันใหม่แล้ว' : (wasNew ? 'บันทึกข้อใหม่แล้ว (#' + res.question_id + ')' : 'บันทึกแล้ว');
   openEditor(res.question_id, res.version_id, { text: text, cls: 'ok' });
 }
 
