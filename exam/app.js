@@ -909,6 +909,7 @@ function renderResult(res, scrollToList) {
   const fl = res.flags || {};
   const isMini = a.mode === 'arena';
   const qs = res.questions || [];
+  const hidden = !!res.answers_hidden;   // Mini Test ที่ season ยังไม่ล็อก: เซิร์ฟเวอร์ไม่ส่งเฉลย/คำอธิบายมา
 
   // นับผิด/ว่าง/ไม่ทัน ไว้เป็นบรรทัดเล็กใต้คะแนน
   const cnt = { wrong: 0, blank: 0, out_of_time: 0 };
@@ -990,8 +991,12 @@ function renderResult(res, scrollToList) {
   if (tpSec) root.appendChild(tpSec);
 
   // รายข้อ
-  root.appendChild(h('div', { class: 'sec', id: 'qlist', text: 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
-  qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini)); });
+  root.appendChild(h('div', { class: 'sec', id: 'qlist', text: hidden ? 'รายข้อ (แตะเพื่อดูโจทย์และสถิติ)' : 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
+  if (hidden) {
+    root.appendChild(h('div', { class: 'hint', style: 'margin:2px 4px 8px',
+      text: '🔒 เฉลยและคำอธิบายของ ' + MINI_NAME + ' จะเปิดให้ดูเมื่อ season ถูกล็อกผล กลับมาดูอีกครั้งได้ที่ "ดูผลของฉัน"' }));
+  }
+  qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini, hidden)); });
 
   mount(root);
   if (scrollToList) {
@@ -1068,7 +1073,7 @@ function topProfileSection(res, qs) {
     h('div', { class: 'tp-sum' }, sums));
 }
 
-function resultQuestion(q, a, isMini) {
+function resultQuestion(q, a, isMini, hidden) {
   const icons = { correct: '✅', wrong: '❌', blank: '⬜', out_of_time: '⏰' };
   const labels = { correct: 'ถูก', wrong: 'ผิด', blank: 'ว่าง', out_of_time: 'ไม่ทัน' };
   const badges = [];
@@ -1088,12 +1093,12 @@ function resultQuestion(q, a, isMini) {
   const det = h('details', { class: 'rq ' + q.result }, sum);
   let built = false;
   det.ontoggle = function () {
-    if (det.open && !built) { built = true; det.appendChild(resultBody(q, isMini)); }
+    if (det.open && !built) { built = true; det.appendChild(resultBody(q, isMini, hidden)); }
   };
   return det;
 }
 
-function resultBody(q, isMini) {
+function resultBody(q, isMini, hidden) {
   const box = h('div', { class: 'rq-body' });
   box.appendChild(stemNode(q.body, q.image_path));
 
@@ -1104,20 +1109,20 @@ function resultBody(q, isMini) {
     const grid = choices.some(function (c) { return c.image_path; });
     box.appendChild(h('div', { class: 'choices' + (grid ? ' grid' : '') }, choices.map(function (c) {
       const id = String(c.id).toUpperCase();
-      const isC = correct.indexOf(id) >= 0;
+      const isC = !hidden && correct.indexOf(id) >= 0;
       const isMine = mine === id;
-      return h('div', { class: 'choice rs' + (isC ? ' good' : '') + (isMine && !isC ? ' bad' : '') + (isMine ? ' mine' : '') },
+      return h('div', { class: 'choice rs' + (isC ? ' good' : '') + (isMine && !isC && !hidden ? ' bad' : '') + (isMine ? ' mine' : '') },
         h('span', { class: 'letter', text: c.id }),
         h('span', { class: 'ctext' },
           c.text ? h('span', { text: c.text }) : null,
           c.image_path ? imgEl(c.image_path) : null,
-          isC || isMine ? h('span', { class: 'tagl', text: isC ? (isMine ? '✓ คำตอบของคุณ (ถูก)' : '✓ เฉลย') : '✗ คำตอบของคุณ' }) : null));
+          isC || isMine ? h('span', { class: 'tagl', text: hidden ? 'คำตอบของคุณ' : isC ? (isMine ? '✓ คำตอบของคุณ (ถูก)' : '✓ เฉลย') : '✗ คำตอบของคุณ' }) : null));
     })));
     if (!mine) box.appendChild(h('div', { class: 'hint', style: 'margin-top:8px', text: 'คุณไม่ได้ตอบข้อนี้' }));
   } else {
     box.appendChild(h('div', { class: 'numrow' },
       h('div', { text: 'คำตอบของคุณ: ' + (q.my_answer ? q.my_answer : '(ไม่ได้ตอบ)') }),
-      h('div', { text: 'คำตอบที่ถูก: ' + (q.correct_answers || []).join('  หรือ  ') })));
+      hidden ? null : h('div', { text: 'คำตอบที่ถูก: ' + (q.correct_answers || []).join('  หรือ  ') })));
   }
 
   if (q.explanation) {
