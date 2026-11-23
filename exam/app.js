@@ -247,6 +247,10 @@ async function showList() {
   if (res && res.expired) { showExpired(); return; }
   if (!res || !res.ok) { showError('โหลดรายการไม่สำเร็จ', (res && res.message) || '', showList); return; }
 
+  let win = null;
+  try { win = await rpcRetry('exam_winner_overview', { p_token: S.token }, 2); } catch (e) { win = null; }
+  if (!win || !win.ok) win = null;
+
   const sets = res.sets || [];
   const practice = sets.filter(function (s) { return s.mode === 'practice' && s.phase === 'open'; });
   const arena = sets.filter(function (s) { return s.mode === 'arena' && s.phase === 'open'; });
@@ -256,6 +260,11 @@ async function showList() {
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: HOME_URL, text: '‹ กลับหน้าหลัก' })),
     h('div', { class: 'page-title', text: 'ข้อสอบ' }),
     h('div', { class: 'hint', style: 'margin:2px 4px 0', text: 'สวัสดี ' + S.name }));
+
+  if (win && win.mine && win.mine.length) {
+    root.appendChild(h('div', { class: 'sec', text: '🏆 ยินดีด้วย คุณเป็นผู้ชนะ' }));
+    root.appendChild(h('div', { class: 'sets' }, win.mine.map(winnerMineCard)));
+  }
 
   function group(title, list, emptyText) {
     root.appendChild(h('div', { class: 'sec', text: title }));
@@ -267,7 +276,167 @@ async function showList() {
   group('โหมดฝึก', practice, 'ยังไม่มีชุดฝึกที่เปิดอยู่');
   group(MINI_NAME + ' ที่เปิดอยู่', arena, 'ยังไม่มี ' + MINI_NAME + ' ที่เปิดอยู่');
   if (ended.length) group('ที่จบแล้ว / ที่เคยสอบ', ended, '');
+  if (win && win.board && win.board.length) {
+    root.appendChild(h('div', { class: 'sec', text: '🏆 ผู้ชนะ season ที่ผ่านมา' }));
+    root.appendChild(h('div', { class: 'sets' }, winnerBoardCards(win.board)));
+  }
   mount(root);
+}
+
+/* ---------- 7.5) ประกาศผู้ชนะ (ขั้น 5.5) ---------- */
+const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+function winnerScoreText(w) {
+  return 'คะแนน ' + w.score + '/' + w.total + '  •  เวลารวม ' + fmtClock(w.total_secs);
+}
+
+function winnerPreview(w) {
+  return h('div', { style: 'margin-top:8px;padding:10px 12px;border-radius:10px;background:#f1f5f9' },
+    h('div', { style: 'font-weight:700', text: (w.nickname || '') + (w.faculty ? '  •  ' + w.faculty : '') }),
+    w.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: w.message }) : null);
+}
+
+// การ์ดของผู้ชนะเอง: แสดงตามสถานะ (ยังไม่ตอบ / รอครูตรวจ / แสดงแล้ว / ครูขอให้แก้ / เลือกไม่ประกาศ)
+function winnerMineCard(w) {
+  const card = h('div', { class: 'card' },
+    h('div', { class: 'name', text: (MEDAL[w.rank] || '🏆') + ' อันดับ ' + w.rank + ' ของ ' + w.set_name }),
+    h('div', { class: 'meta', text: 'Season: ' + w.season_name + '  •  ' + winnerScoreText(w) }));
+  const acts = h('div', { class: 'resbtns' });
+  function write(label) { return btn('primary small', label, function () { openWinnerForm(w); }); }
+  function decline(label) { return btn('ghost small', label, function () { askDeclineWinner(w); }); }
+
+  if (w.status === 'invited') {
+    card.appendChild(h('div', { class: 'note', text: 'เขียนข้อความสั้นๆ ถึงเพื่อนๆ ได้ เช่น คณะที่อยากเข้า หรือคติประจำใจ ครูจะตรวจก่อนแสดง หรือจะเลือกไม่ประกาศก็ได้' }));
+    acts.appendChild(write('เขียนข้อความ'));
+    acts.appendChild(decline('ไม่ประสงค์ประกาศ'));
+  } else if (w.status === 'pending') {
+    card.appendChild(h('div', { class: 'note', text: '⏳ ส่งแล้ว รอครูตรวจ' }));
+    card.appendChild(winnerPreview(w));
+    acts.appendChild(write('แก้ไขข้อความ'));
+    acts.appendChild(decline('ไม่ประสงค์ประกาศ'));
+  } else if (w.status === 'approved') {
+    card.appendChild(h('div', { class: 'note', text: '✅ แสดงให้เพื่อนๆ เห็นแล้ว' }));
+    card.appendChild(winnerPreview(w));
+    acts.appendChild(decline('ถอนการประกาศ'));
+  } else if (w.status === 'rejected') {
+    card.appendChild(h('div', { class: 'note', text: 'ครูขอให้แก้ไขข้อความ' + (w.review_note ? ': ' + w.review_note : '') }));
+    if (w.nickname) card.appendChild(winnerPreview(w));
+    acts.appendChild(write('แก้ไขและส่งใหม่'));
+    acts.appendChild(decline('ไม่ประสงค์ประกาศ'));
+  } else {   // declined
+    card.appendChild(h('div', { class: 'note', text: 'คุณเลือกไม่ประกาศ (เปลี่ยนใจได้ถ้ายังต้องการ)' }));
+    acts.appendChild(write('เปลี่ยนใจ เขียนข้อความ'));
+  }
+  card.appendChild(acts);
+  return card;
+}
+
+function openWinnerForm(w, vals) {
+  vals = vals || { nickname: w.nickname || '', faculty: w.faculty || '', message: w.message || '' };
+  const st = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e2e8f0;' +
+    'border-radius:10px;font-size:15px;font-family:inherit;margin-top:10px';
+  const nick = h('input', { type: 'text', maxlength: '30', 'aria-label': 'ชื่อเล่น', style: st,
+    placeholder: 'ชื่อเล่นที่จะแสดง (ไม่เกิน 30 ตัวอักษร)' });
+  const fac = h('input', { type: 'text', maxlength: '60', 'aria-label': 'คณะที่อยากเข้า', style: st,
+    placeholder: 'คณะที่อยากเข้า (ไม่บังคับ)' });
+  const msg = h('textarea', { maxlength: '140', rows: '3', 'aria-label': 'ข้อความถึงเพื่อนๆ', style: st,
+    placeholder: 'ข้อความถึงเพื่อนๆ (ไม่บังคับ ไม่เกิน 140 ตัวอักษร)' });
+  nick.value = vals.nickname; fac.value = vals.faculty; msg.value = vals.message;
+  const cnt = h('div', { class: 'hint', style: 'text-align:right;margin-top:2px', text: msg.value.length + '/140' });
+  msg.oninput = function () { cnt.textContent = msg.value.length + '/140'; };
+
+  showDialog({
+    icon: '🏆', title: 'ข้อความถึงเพื่อนๆ',
+    message: 'ครูจะตรวจก่อนแสดง ข้อความนี้นักเรียนทุกคนที่ล็อกอินเห็นได้ อย่าใส่ข้อมูลส่วนตัว เช่น เบอร์โทร',
+    buttons: [
+      { text: 'ยกเลิก', cls: 'ghost' },
+      { text: 'ส่งให้ครูตรวจ', cls: 'primary', focus: true, onClick: function () {
+        const v = { nickname: nick.value.trim(), faculty: fac.value.trim(), message: msg.value.trim() };
+        if (!v.nickname) {
+          showDialog({ icon: 'ℹ️', title: 'ต้องใส่ชื่อเล่น', message: 'กรุณาใส่ชื่อเล่นที่จะแสดงในประกาศ',
+            buttons: [{ text: 'ตกลง', cls: 'primary', onClick: function () { openWinnerForm(w, v); } }] });
+          return;
+        }
+        submitWinner(w, v);
+      } }
+    ]
+  });
+  const body = $('dlgBody');
+  body.appendChild(nick); body.appendChild(fac); body.appendChild(msg); body.appendChild(cnt);
+}
+
+async function submitWinner(w, v) {
+  showBusy('กำลังส่ง...');
+  let res;
+  try {
+    res = await rpcRetry('exam_winner_submit', {
+      p_token: S.token, p_winner_id: w.id, p_nickname: v.nickname, p_faculty: v.faculty, p_message: v.message });
+  } catch (e) {
+    hideBusy();
+    showDialog({ icon: '⚠️', title: 'ส่งไม่สำเร็จ', message: 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+      buttons: [{ text: 'ลองใหม่', cls: 'primary', onClick: function () { openWinnerForm(w, v); } },
+                { text: 'ปิด', cls: 'ghost' }] });
+    return;
+  }
+  hideBusy();
+  if (res && res.expired) { showExpired(); return; }
+  if (!res || !res.ok) {
+    showDialog({ icon: 'ℹ️', title: 'ส่งไม่ได้', message: (res && res.message) || '',
+      buttons: [{ text: 'ตกลง', cls: 'primary', onClick: showList }] });
+    return;
+  }
+  showDialog({ icon: '✅', title: 'ส่งให้ครูตรวจแล้ว', message: 'เมื่อครูอนุมัติ ข้อความจะแสดงให้เพื่อนๆ เห็น',
+    buttons: [{ text: 'ตกลง', cls: 'primary', onClick: showList }] });
+}
+
+function askDeclineWinner(w) {
+  const wasShown = w.status === 'approved';
+  showDialog({
+    icon: '🙈', title: wasShown ? 'ถอนการประกาศ' : 'ไม่ประสงค์ประกาศ',
+    message: wasShown
+      ? 'ข้อความของคุณจะหายจากหน้าผู้ชนะ และข้อความที่เคยกรอกจะถูกลบ ถ้าเปลี่ยนใจต้องกรอกใหม่'
+      : 'คุณจะไม่ถูกประกาศชื่อ และข้อความที่เคยกรอกจะถูกลบ เปลี่ยนใจกลับมากรอกได้ภายหลัง',
+    buttons: [
+      { text: 'ยกเลิก', cls: 'ghost', focus: true },
+      { text: 'ยืนยัน', cls: 'primary', onClick: async function () {
+        showBusy('กำลังบันทึก...');
+        let res;
+        try { res = await rpcRetry('exam_winner_decline', { p_token: S.token, p_winner_id: w.id }); }
+        catch (e) {
+          hideBusy();
+          showDialog({ icon: '⚠️', title: 'บันทึกไม่สำเร็จ', message: 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+            buttons: [{ text: 'ตกลง', cls: 'primary' }] });
+          return;
+        }
+        hideBusy();
+        if (res && res.expired) { showExpired(); return; }
+        showList();
+      } }
+    ]
+  });
+}
+
+// กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ
+function winnerBoardCards(board) {
+  const groups = [];
+  const index = {};
+  board.forEach(function (r) {
+    const key = r.season_name + '||' + r.set_name;
+    if (index[key] === undefined) { index[key] = groups.length; groups.push({ season: r.season_name, set: r.set_name, rows: [] }); }
+    groups[index[key]].rows.push(r);
+  });
+  return groups.map(function (g) {
+    const card = h('div', { class: 'card' },
+      h('div', { class: 'name', text: g.set }),
+      h('div', { class: 'meta', text: 'Season: ' + g.season }));
+    g.rows.forEach(function (r) {
+      card.appendChild(h('div', { style: 'margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0' },
+        h('div', { style: 'font-weight:700', text: (MEDAL[r.rank] || '#' + r.rank) + '  ' + r.nickname + (r.faculty ? '  •  ' + r.faculty : '') }),
+        r.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: r.message }) : null,
+        h('div', { class: 'hint', style: 'margin-top:4px', text: winnerScoreText(r) })));
+    });
+    return card;
+  });
 }
 
 function setCard(s) {
