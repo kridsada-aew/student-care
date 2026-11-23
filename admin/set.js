@@ -89,6 +89,7 @@ async function showSeasons(msg) {
           h('span', { class: 'tag gray', text: nSets + ' ชุด' }))),
       h('div', { class: 'qact' },
         btn('ghost small', s.locked ? 'ดู' : 'แก้ไข', function () { openSeasonEditor(s); }),
+        s.locked ? btn('ghost small', 'ผู้ชนะ', function () { showWinners(s); }) : null,
         btn('ghost small', s.locked ? 'ปลดล็อกผล' : 'ล็อกผล', function () { confirmSeasonLock(s); }),
         s.locked ? null : btn('ghost small', 'ลบ', function () { confirmDeleteSeason(s, nSets); }))));
   });
@@ -792,3 +793,102 @@ async function changeAllowance(s, studentId, extra, x) {
     return root;
   };
 })();
+
+
+/* =====================================================================
+   ผู้ชนะ season: ตรวจและอนุมัติข้อความประกาศ (ขั้น 5.5)
+   ===================================================================== */
+const WIN_STATUS = {
+  invited:  { t: 'รอผู้ชนะตอบ', c: 'gray' },
+  pending:  { t: 'รอครูตรวจ', c: 'mini' },
+  approved: { t: 'แสดงแล้ว', c: '' },
+  rejected: { t: 'ไม่อนุมัติ', c: 'gray' },
+  declined: { t: 'ผู้ชนะไม่ประสงค์ประกาศ', c: 'gray' }
+};
+
+function fmtSecs(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  return Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
+}
+
+async function showWinners(s, msg) {
+  SS = null; SE = null;
+  showBusy('กำลังโหลดผู้ชนะ...');
+  let rows;
+  try { rows = await rpc('exam_admin_list_winners', { p_season_id: s.id }); }
+  catch (e) { hideBusy(); handleErr(e, 'โหลดผู้ชนะไม่สำเร็จ'); return; }
+  hideBusy();
+  rows = rows || [];
+
+  const pending = rows.filter(function (r) { return r.status === 'pending'; }).length;
+  const list = h('div', null);
+  if (!rows.length) {
+    list.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px',
+      text: 'season นี้ไม่มีผู้ชนะ (ไม่มีชุด Mini Test หรือมีผู้สอบเสร็จน้อยกว่าเกณฑ์ขั้นต่ำ ' + s.min_people + ' คน)' }));
+  }
+  let lastSet = null;
+  rows.forEach(function (r) {
+    if (r.set_name !== lastSet) {
+      lastSet = r.set_name;
+      list.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px 4px;font-weight:700', text: 'ชุด: ' + r.set_name }));
+    }
+    const st = WIN_STATUS[r.status] || { t: r.status, c: 'gray' };
+    const hasText = r.nickname || r.faculty || r.message;
+    list.appendChild(h('div', { class: 'qitem' },
+      h('div', { class: 'qid', text: 'อันดับ ' + r.rank }),
+      h('div', { class: 'qmain' },
+        h('div', { class: 'qsnip', text: (r.name || '(ไม่พบชื่อในระบบ)') + '  (รหัส ' + r.student_id + ')' }),
+        h('div', { class: 'hint', text: 'คะแนน ' + r.score + '/' + r.total + '  •  เวลารวม ' + fmtSecs(r.total_secs) +
+          (r.submitted_at ? '  •  ส่งข้อความ ' + fmtDT(r.submitted_at) : '') }),
+        h('div', { class: 'qmeta' }, h('span', { class: 'tag ' + st.c, text: st.t })),
+        hasText ? h('div', { style: 'margin-top:8px;padding:10px 12px;border-radius:10px;background:#f1f5f9' },
+          h('div', { style: 'font-weight:700', text: (r.nickname || '') + (r.faculty ? '  •  ' + r.faculty : '') }),
+          r.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: r.message }) : null) : null,
+        r.status === 'rejected' && r.review_note
+          ? h('div', { class: 'hint', style: 'margin-top:6px', text: 'เหตุผลที่ไม่อนุมัติ: ' + r.review_note }) : null),
+      h('div', { class: 'qact' },
+        r.status === 'pending' ? btn('primary small', 'อนุมัติ', function () { reviewWinner(s, r, 'approve', null); }) : null,
+        r.status === 'pending' ? btn('ghost small', 'ไม่อนุมัติ', function () { askRejectWinner(s, r); }) : null,
+        r.status === 'approved' ? btn('ghost small', 'ถอดออก', function () { askRejectWinner(s, r); }) : null)));
+  });
+
+  const back = btn('ghost small', '‹ กลับรายการ season', function () { showSeasons(); });
+  mount(h('div', { class: 'wrap' },
+    h('div', { class: 'topbar' }, back, h('div', { class: 'who', text: 'เข้าสู่ระบบ: ' + (SESS ? SESS.user.email : '') })),
+    h('div', { class: 'card', style: 'margin-top:12px' },
+      h('h3', { text: 'ผู้ชนะ: ' + s.name }),
+      h('div', { class: 'hint', text: 'รอครูตรวจ ' + pending + ' รายการ จากทั้งหมด ' + rows.length + ' รายการ' }),
+      h('div', { class: 'hint', style: 'margin-top:6px',
+        text: 'อันดับ 1-3 ของแต่ละชุด Mini Test (คะแนนมากสุด เสมอกันดูเวลารวมน้อยกว่า) ข้อความจะแสดงให้นักเรียนที่ล็อกอินเห็นเมื่อกด \"อนุมัติ\" เท่านั้น ผู้ชนะเลือกไม่ประกาศได้ และปลดล็อก season จะซ่อนประกาศทั้งหมดชั่วคราว' })),
+    msg ? h('div', { class: 'msgbox ok', text: msg }) : null,
+    list));
+}
+
+function askRejectWinner(s, r) {
+  const wasShown = r.status === 'approved';
+  const note = h('input', {
+    type: 'text', maxlength: '200', 'aria-label': 'เหตุผล',
+    placeholder: 'เหตุผลที่นักเรียนจะเห็น เช่น ขอให้ตัดข้อมูลส่วนตัวออก (ไม่บังคับ)',
+    style: 'margin-top:12px;width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:15px'
+  });
+  showDialog({
+    icon: '🚫', title: wasShown ? 'ถอดข้อความออกจากประกาศ' : 'ไม่อนุมัติข้อความ',
+    message: (wasShown ? 'ถอดข้อความของ ' : 'ไม่อนุมัติข้อความของ ') + (r.name || r.student_id) +
+      ' ใช่ไหม?\nนักเรียนจะเห็นเหตุผลและแก้ไขส่งใหม่ได้',
+    buttons: [
+      { text: 'ยกเลิก', cls: 'ghost', focus: true },
+      { text: 'ยืนยัน', cls: 'danger', onClick: function () { reviewWinner(s, r, 'reject', note.value.trim()); } }
+    ]
+  });
+  $('dlgBody').appendChild(note);
+}
+
+async function reviewWinner(s, r, decision, note) {
+  showBusy('กำลังบันทึก...');
+  try { await rpc('exam_admin_review_winner', { p_winner_id: r.id, p_decision: decision, p_note: note || null }); }
+  catch (e) { hideBusy(); handleErr(e, 'บันทึกไม่สำเร็จ'); return; }
+  hideBusy();
+  showWinners(s, decision === 'approve'
+    ? 'อนุมัติแล้ว นักเรียนที่ล็อกอินจะเห็นข้อความนี้ในหน้ารายการข้อสอบ'
+    : 'บันทึกแล้ว นักเรียนจะเห็นเหตุผลและแก้ไขส่งใหม่ได้');
+}
