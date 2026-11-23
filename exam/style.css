@@ -242,3 +242,13 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .fig.l { max-width: 100%; }
 .fig .imgbox { margin-top: 0; }
 .fig-cap { margin-top: 6px; font-weight: 600; font-size: 15px; text-align: center; line-height: 1.5; }
+
+/* ---------- แท็บหน้ารายการข้อสอบ ---------- */
+.tabs { display: flex; gap: 6px; margin-top: 16px; padding: 4px; background: #e2e8f0; border-radius: 14px; }
+.tabs button {
+  flex: 1; position: relative; border: 0; background: transparent; cursor: pointer;
+  padding: 10px 6px; border-radius: 11px; font-size: 15px; font-weight: 500; color: #475569;
+}
+.tabs button.on { background: #fff; color: var(--primary-d); font-weight: 600; box-shadow: 0 1px 6px rgba(15, 23, 42, .12); }
+.tabs button:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+.tabs .dot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #dc2626; }
