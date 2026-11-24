@@ -1631,8 +1631,8 @@ function renderResult(res, scrollToList) {
   root.appendChild(h('div', { class: 'stats' },
     statBox('คะแนน', sm.score + ' / ' + sm.total, parts.length ? parts.join(' • ') : null),
     statBox('เวลารวมในข้อ', fmtClock(sm.time_secs)),
-    statBox('เวลาที่เสียไปกับข้อผิด', fmtClock(sm.wrong_secs),
-      sm.wrong_slow_count > 0 ? 'ติดป้ายกินเวลา ' + sm.wrong_slow_count + ' ข้อ (' + fmtClock(sm.wrong_slow_secs) + ')' : null),
+    isMini ? statBox('เวลาที่เสียไปกับข้อผิด', fmtClock(sm.wrong_secs),
+      sm.wrong_slow_count > 0 ? 'ติดป้ายกินเวลา ' + sm.wrong_slow_count + ' ข้อ (' + fmtClock(sm.wrong_slow_secs) + ')' : null) : null,
     isMini ? statBox('เปอร์เซ็นไทล์ความเร็ว',
       sm.speed_percentile === null || sm.speed_percentile === undefined ? 'ข้อมูลยังไม่พอ' : sm.speed_percentile,
       'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null));
@@ -1644,44 +1644,65 @@ function renderResult(res, scrollToList) {
   if (fl.tab_hidden > 0) notes.push('ออกจากหน้าจอ ' + fl.tab_hidden + ' ครั้ง (เวลายังนับต่อ)');
   if (notes.length) root.appendChild(h('div', { class: 'noteline', text: 'หมายเหตุ: ' + notes.join(' • ') }));
 
-  // โหมดฝึก: เทียบทุกรอบ (รอบเป็นคอลัมน์ ข้อเป็นแถว กดชื่อรอบเพื่อดูรายข้อของรอบนั้น)
-  if (!isMini && res.compare && res.compare.length > 1) {
-    root.appendChild(h('div', { class: 'sec', text: 'เทียบกับรอบอื่นของคุณ' }));
-    const cmp = res.compare;
+  // โหมดฝึก: ตารางผลรายข้อ (รอบเป็นคอลัมน์ ข้อเป็นแถว กดชื่อรอบเพื่อดูรอบนั้น กดชื่อข้อเพื่อดูโจทย์+เฉลย)
+  // ป้ายพฤติกรรม (ข้ามก่อนแล้วกลับมาตอบ / เปิดกี่ครั้ง / ติดดาว) อยู่ในช่องของรอบที่กำลังดู
+  if (!isMini) {
+    const multi = !!(res.compare && res.compare.length > 1);
+    const cmp = multi ? res.compare : [{
+      attempt_id: a.id, attempt_no: a.attempt_no, is_current: true,
+      score: sm.score, time_secs: sm.time_secs,
+      per_q: qs.map(function (q) { return { correct: q.result === 'correct', answered: !!q.my_answer, secs: q.secs }; })
+    }];
     const nq = cmp[0].per_q.length;
+
+    root.appendChild(h('div', { class: 'sec', id: 'qlist', text: multi ? 'เทียบกับรอบอื่นของคุณ' : 'ผลรายข้อ' }));
+    root.appendChild(h('div', { class: 'hint', style: 'margin:2px 4px 0', text: 'แตะ \"ข้อ ...\" เพื่อดูโจทย์และเฉลย' }));
 
     const head = h('tr', null, h('th', { class: 'rowh', text: '' }),
       cmp.map(function (c) {
         return h('th', { class: c.is_current ? 'curcol' : '' },
           c.is_current
-            ? h('span', { class: 'cur-r', text: 'รอบที่ ' + c.attempt_no + ' (กำลังดู)' })
+            ? h('span', { class: 'cur-r', text: 'รอบที่ ' + c.attempt_no + (multi ? ' (กำลังดู)' : '') })
             : h('button', { type: 'button', class: 'rb', text: 'รอบที่ ' + c.attempt_no,
                             onclick: function () { showResult(c.attempt_id, true); } }));
       }));
 
-    function cmpRow(label, cellFn) {
-      return h('tr', null, h('th', { class: 'rowh', text: label }),
+    function cmpRow(labelNode, cellFn) {
+      return h('tr', null, h('th', { class: 'rowh' }, labelNode),
         cmp.map(function (c) {
           const cell = cellFn(c);
-          return h('td', { class: (c.is_current ? 'curcol ' : '') + (cell.cls || ''), text: cell.text });
+          return h('td', { class: (c.is_current ? 'curcol ' : '') + (cell.cls || '') },
+            h('div', { text: cell.text }),
+            (cell.subs || []).map(function (t) { return h('div', { class: 'tp-sub', text: t }); }));
         }));
+    }
+    function subsOf(q) {
+      const t = [];
+      if (q.skipped && q.my_answer) t.push('↩ ข้ามก่อนแล้วกลับมาตอบ');
+      if (q.visits > 1) t.push('เปิด ' + q.visits + ' ครั้ง');
+      if (q.marked) t.push('⚑ ติดดาว');
+      return t;
     }
     const rows = [
       cmpRow('คะแนน', function (c) { return { text: c.score + '/' + nq }; }),
       cmpRow('เวลารวม', function (c) { return { text: fmtClock(c.time_secs) }; })
     ];
     for (let i = 0; i < nq; i++) {
-      rows.push(cmpRow('ข้อ ' + (i + 1), function (c) {
-        const q = c.per_q[i];
-        if (!q) return { text: '–' };
-        if (q.correct) return { text: '✓ ' + fmtClock(q.secs), cls: 'ok' };
-        if (q.answered) return { text: '✗ ' + fmtClock(q.secs), cls: 'bad' };
-        return { text: q.secs > 0 ? '– ' + fmtClock(q.secs) : '–' };
-      }));
+      rows.push(cmpRow(
+        h('button', { type: 'button', class: 'qrow-b', text: 'ข้อ ' + (qs[i] ? qs[i].q_order : i + 1),
+                      onclick: function () { openQuestionModal(qs, i); } }),
+        function (c) {
+          const q = c.per_q[i];
+          if (!q) return { text: '–' };
+          const subs = c.is_current && qs[i] ? subsOf(qs[i]) : [];
+          if (q.correct) return { text: '✓ ' + fmtClock(q.secs), cls: 'ok', subs: subs };
+          if (q.answered) return { text: '✗ ' + fmtClock(q.secs), cls: 'bad', subs: subs };
+          return { text: q.secs > 0 ? '– ' + fmtClock(q.secs) : '–', subs: subs };
+        }));
     }
     root.appendChild(h('div', { class: 'cmp-wrap' },
       h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, rows))));
-    if (a.attempt_no >= 2) {
+    if (multi && a.attempt_no >= 2) {
       root.appendChild(h('div', { class: 'hint', style: 'margin:6px 4px 0', text: 'เวลาที่ลดลงส่วนหนึ่งอาจมาจากการจำข้อได้' }));
     }
   }
@@ -1690,13 +1711,15 @@ function renderResult(res, scrollToList) {
   const tpSec = isMini ? topProfileSection(res, qs) : null;
   if (tpSec) root.appendChild(tpSec);
 
-  // รายข้อ
-  root.appendChild(h('div', { class: 'sec', id: 'qlist', text: hidden ? 'รายข้อ (แตะเพื่อดูโจทย์และสถิติ)' : 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
-  if (hidden) {
-    root.appendChild(h('div', { class: 'hint', style: 'margin:2px 4px 8px',
-      text: '🔒 เฉลยและคำอธิบายของ ' + MINI_NAME + ' จะเปิดให้ดูเมื่อ season ถูกล็อกผล กลับมาดูอีกครั้งได้ที่ "ดูผลของฉัน"' }));
+  // รายข้อ (เฉพาะ Mini Test: มีสถิติและ Top 3 ต่อข้อ / โหมดฝึกใช้ตารางด้านบนแทน)
+  if (isMini) {
+    root.appendChild(h('div', { class: 'sec', id: 'qlist', text: hidden ? 'รายข้อ (แตะเพื่อดูโจทย์และสถิติ)' : 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
+    if (hidden) {
+      root.appendChild(h('div', { class: 'hint', style: 'margin:2px 4px 8px',
+        text: '🔒 เฉลยและคำอธิบายของ ' + MINI_NAME + ' จะเปิดให้ดูเมื่อ season ถูกล็อกผล กลับมาดูอีกครั้งได้ที่ \"ดูผลของฉัน\"' }));
+    }
+    qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini, hidden)); });
   }
-  qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini, hidden)); });
 
   mount(root);
   if (scrollToList) {
@@ -1771,6 +1794,53 @@ function topProfileSection(res, qs) {
       'จัดอันดับจากคะแนนสูงสุด ถ้าเท่ากันดูเวลารวมที่น้อยกว่า • ไม่แสดงชื่อผู้ทำข้อสอบ' }),
     h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp' }, h('thead', null, head), h('tbody', null, rows))),
     h('div', { class: 'tp-sum' }, sums));
+}
+
+// หน้าต่างโจทย์ + เฉลยของข้อที่กดจากตาราง (โหมดฝึก) เลื่อนไปข้อก่อนหน้า/ถัดไปได้ ปิดด้วย Esc หรือกดพื้นหลัง
+function openQuestionModal(qs, idx) {
+  const icons = { correct: '✅', wrong: '❌', blank: '⬜', out_of_time: '⏰' };
+  const labels = { correct: 'ถูก', wrong: 'ผิด', blank: 'ว่าง', out_of_time: 'ไม่ทัน' };
+  const prevFocus = document.activeElement;
+  let i = idx;
+
+  const title = h('div', { class: 'qm-title' });
+  const content = h('div', { class: 'qm-content' });
+  const closeB = h('button', { type: 'button', class: 'qm-x', 'aria-label': 'ปิด', text: '✕', onclick: close });
+  const prevB = btn('ghost small', '‹ ข้อก่อนหน้า', function () { go(i - 1); });
+  const nextB = btn('ghost small', 'ข้อถัดไป ›', function () { go(i + 1); });
+  const ov = h('div', { class: 'qm-overlay' },
+    h('div', { class: 'qm-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'โจทย์และเฉลย' },
+      h('div', { class: 'qm-bar' }, title, closeB),
+      content,
+      h('div', { class: 'qm-nav' }, prevB, nextB)));
+
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') go(i - 1);
+    else if (e.key === 'ArrowRight') go(i + 1);
+  }
+  function close() {
+    document.removeEventListener('keydown', onKey);
+    ov.remove();
+    document.body.classList.remove('qm-open');
+    if (prevFocus && prevFocus.focus) prevFocus.focus();
+  }
+  function go(n) { if (n >= 0 && n < qs.length) { i = n; draw(); } }
+  function draw() {
+    const q = qs[i];
+    title.textContent = (icons[q.result] || '') + ' ข้อ ' + q.q_order + '  ' + (labels[q.result] || '') + '  •  ' + fmtClock(q.secs);
+    content.textContent = '';
+    content.appendChild(resultBody(q, false, false));
+    content.scrollTop = 0;
+    prevB.disabled = i === 0;
+    nextB.disabled = i === qs.length - 1;
+  }
+  ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  document.body.classList.add('qm-open');
+  draw();
+  closeB.focus();
 }
 
 function resultQuestion(q, a, isMini, hidden) {
