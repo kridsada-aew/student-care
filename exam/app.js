@@ -781,9 +781,8 @@ function renderReplay(r, res, back) {
   }
   const cards = slots.filter(function (x) { return x.card; }).map(function (x) { return x.card; });
   const maxT = Math.max.apply(null, [1].concat(tracks.map(function (t) { return t.end; })));
-  // 3 ใบขึ้นไป: ซ่อนโจทย์ไว้ก่อนให้เห็นครบทุกการ์ด (ติ๊ก "แสดงโจทย์" เมื่ออยากอ่าน)
+  // 3 ใบขึ้นไป: ซ่อนโจทย์ไว้ก่อนให้หน้าไม่ยาวเกินไป (ติ๊ก "แสดงโจทย์" เมื่ออยากอ่าน)
   const compact = slots.length >= 3;
-  const layout = slots.length <= 1 ? 'solo' : slots.length === 2 ? 'pair' : 'podium';
 
   const P = { T: 0, playing: false, speed: 1, showQ: !compact, last: 0, raf: 0 };
 
@@ -862,14 +861,7 @@ function renderReplay(r, res, back) {
       h('div', { class: 'rp-opts' },
         h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns,
         h('label', { class: 'rp-chk', for: 'rpShowQ' }, showQ, h('span', { text: ' แสดงโจทย์' })))),
-    h('div', { class: 'rp-grid ' + layout }, slots.map(function (x, i) {
-      const el = x.card ? x.card.el : x.el;
-      if (layout === 'podium') {
-        if (i === 0) el.classList.add('rp-first');
-        if (x.kind === 'me') el.classList.add('rp-me');
-      }
-      return el;
-    })),
+    h('div', { class: 'rp-grid' }, slots.map(function (x) { return x.card ? x.card.el : x.el; })),   // เรียงจากบนลงล่าง: อันดับ 1, 2, 3 แล้วตามด้วยคุณ
     h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม "ขั้นถัดไป" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }));
 
   mount(root);
@@ -939,7 +931,8 @@ async function showWinnerDetail(r) {
     h('div', { class: 'hint', style: 'margin:10px 4px', text: 'แถบแสดงสัดส่วนเวลาของแต่ละข้อเทียบกับข้อที่ใช้เวลานานที่สุด ลองเทียบกับตาราง Top 3 ในหน้า "ดูผลของฉัน" เพื่อดูว่าผู้ชนะแบ่งเวลาต่างจากคุณตรงไหน' })));
 }
 
-// กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ (mine = สิทธิ์ของตัวเอง ใช้ติดป้าย "คุณ" และปุ่มถอนการประกาศ)
+// กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ แล้ววางเป็นโพเดียม (อันดับ 1 บนกลาง อันดับถัดไปแถวล่างซ้าย-ขวา)
+// mine = สิทธิ์ของตัวเอง ใช้ติดป้าย "คุณ" และปุ่มถอนการประกาศ
 function winnerBoardCards(board, mine) {
   const mineById = {};
   (mine || []).forEach(function (w) { mineById[w.id] = w; });
@@ -951,21 +944,25 @@ function winnerBoardCards(board, mine) {
     groups[index[key]].rows.push(r);
   });
   return groups.map(function (g) {
-    const card = h('div', { class: 'card' },
-      h('div', { class: 'name', text: g.set }),
-      h('div', { class: 'meta', text: 'Season: ' + g.season }));
-    g.rows.forEach(function (r) {
+    const pod = h('div', { class: 'wpod' });
+    g.rows.forEach(function (r, i) {
       const me = mineById[r.id];
-      card.appendChild(h('div', { style: 'margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0' },
-        h('div', { style: 'font-weight:700;font-size:16px' },
-          (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
-          me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
+      const first = g.rows.length >= 3 && i === 0;   // 3 คนขึ้นไป: คนแรกอยู่บนกลาง
+      pod.appendChild(h('div', { class: 'wcell' + (first ? ' first' : '') + (me ? ' me' : '') },
+        h('div', { class: 'wcell-head' },
+          h('div', { style: 'font-weight:700;font-size:16px' },
+            (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
+            me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
+          h('div', { class: 'hint', text: winnerScoreText(r) })),
         winnerLines(r, false),
-        h('div', { class: 'hint', style: 'margin-top:6px', text: winnerScoreText(r) }),
-        h('div', { class: 'resbtns', style: 'margin-top:8px' },
+        h('div', { class: 'resbtns', style: 'margin-top:10px' },
           r.can_detail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อ', function () { showWinnerDetail(r); }) : null,
           me ? btn('ghost small', 'ถอนการประกาศ', function () { askDeclineWinner(me); }) : null)));
     });
+    const card = h('div', { class: 'card' },
+      h('div', { class: 'name', text: g.set }),
+      h('div', { class: 'meta', text: 'Season: ' + g.season }),
+      pod);
     if (!g.rows.some(function (r) { return r.can_detail; })) {
       card.appendChild(h('div', { class: 'hint', style: 'margin-top:10px', text: 'ดูเวลารายข้อของผู้ชนะได้เฉพาะผู้ที่ทำชุดนี้จนจบแล้ว' }));
     }
