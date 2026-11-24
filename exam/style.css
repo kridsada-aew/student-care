@@ -271,3 +271,39 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
   .ltab { flex: none; text-align: left; padding: 13px 14px; }
 }
 @media (max-width: 420px) { .ltab { font-size: 14px; padding: 11px 4px; } }
+
+/* ---------- ย้อนดูการสอบ (replay) ---------- */
+.rp-ctl { display: grid; gap: 12px; }
+.rp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.rp-btns .btn { width: auto; flex: none; }
+.rp-scrub { display: flex; align-items: center; gap: 12px; }
+.rp-slider { flex: 1; min-width: 0; accent-color: var(--primary); }
+.rp-time { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--primary-d); font-size: 14px; }
+.rp-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rp-sp { border: 1.5px solid var(--line); background: #fff; color: var(--muted); padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.rp-sp.on { background: var(--primary-l); border-color: var(--primary); color: var(--primary-d); font-weight: 600; }
+.rp-chk { margin-left: auto; font-size: 14px; color: var(--muted); cursor: pointer; }
+
+.rp-grid { display: grid; gap: 14px; margin-top: 14px; }
+@media (min-width: 768px) { .rp-grid.two { grid-template-columns: 1fr 1fr; align-items: start; } }
+.rp-card { background: #fff; border-radius: var(--radius); padding: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); min-width: 0; }
+.rp-who { font-size: 13px; font-weight: 600; color: var(--primary-d); }
+.rp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.rp-qno { font-size: 20px; font-weight: 700; }
+.rp-timer { font-size: 18px; font-weight: 600; color: var(--primary-d); font-variant-numeric: tabular-nums; }
+.rp-note { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.rp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rp-chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--primary-l); color: var(--primary-d); }
+.rp-chip.ok { background: #dcfce7; color: #15803d; }
+.rp-chip.none { background: #f1f5f9; color: #64748b; }
+.rp-chip.warn { background: #fef3c7; color: #b45309; }
+.rp-q { margin-top: 10px; }
+.rp-logs { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 4px; min-height: 20px; }
+.rp-log { display: flex; gap: 10px; font-size: 13px; color: #334155; }
+.rp-log.good { color: #15803d; }
+.rp-log.bad { color: #b91c1c; }
+.rp-log.warn { color: #b45309; }
+.rp-lt { flex: none; width: 38px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rp-body.flip { animation: rpIn .3s ease both; }
+@keyframes rpIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rp-body.flip { animation: none; } }

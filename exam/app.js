@@ -391,7 +391,7 @@ function winnerMineCard(w) {
   function decline(label) { return btn('ghost small', label, function () { askDeclineWinner(w); }); }
 
   if (w.status === 'invited') {
-    card.appendChild(h('div', { class: 'note', text: 'เขียนข้อความสั้นๆ ถึงเพื่อนๆ ได้ เช่น คณะที่อยากเข้า หรือคติประจำใจ ครูจะตรวจก่อนแสดง เพื่อนที่ทำชุดเดียวกันจะเห็นคะแนนและเวลารายข้อของคุณคู่กับชื่อเล่น หรือจะเลือกไม่ประกาศก็ได้' }));
+    card.appendChild(h('div', { class: 'note', text: 'เขียนข้อความสั้นๆ ถึงเพื่อนๆ ได้ เช่น คณะที่อยากเข้า หรือคติประจำใจ ครูจะตรวจก่อนแสดง เพื่อนที่ทำชุดเดียวกันจะย้อนดูการสอบของคุณได้ (คะแนน เวลา คำตอบที่เลือก ลำดับการทำข้อสอบ) คู่กับชื่อเล่น หรือจะเลือกไม่ประกาศก็ได้' }));
     acts.appendChild(write('เขียนข้อความ'));
     acts.appendChild(decline('ไม่ประสงค์ประกาศ'));
   } else if (w.status === 'pending') {
@@ -432,7 +432,7 @@ function openWinnerForm(w, vals) {
 
   showDialog({
     icon: '🏆', title: 'ข้อความถึงเพื่อนๆ',
-    message: 'ครูจะตรวจก่อนแสดง ชื่อเล่น คณะ และข้อความนี้นักเรียนทุกคนที่ล็อกอินเห็นได้ และผู้ที่ทำชุดเดียวกันจะเห็นคะแนน เวลา และข้อที่ถูก/ผิดรายข้อของคุณคู่กับชื่อเล่นด้วย (ไม่เห็นคำตอบที่คุณเลือก) อย่าใส่ข้อมูลส่วนตัว เช่น เบอร์โทร',
+    message: 'ครูจะตรวจก่อนแสดง ชื่อเล่น คณะ และข้อความนี้นักเรียนทุกคนที่ล็อกอินเห็นได้ และผู้ที่ทำชุดเดียวกันจะย้อนดูการสอบของคุณได้ทั้งคะแนน เวลา คำตอบที่คุณเลือกในแต่ละข้อ และลำดับการทำข้อสอบ คู่กับชื่อเล่นของคุณ อย่าใส่ข้อมูลส่วนตัว เช่น เบอร์โทร',
     buttons: [
       { text: 'ยกเลิก', cls: 'ghost' },
       { text: 'ส่งให้ครูตรวจ', cls: 'primary', focus: true, onClick: function () {
@@ -501,6 +501,327 @@ function askDeclineWinner(w) {
   });
 }
 
+/* ---------- ย้อนดูการสอบ (replay) ----------
+   เล่นเหตุการณ์จริงตามลำดับเวลา: การ์ดแสดงข้อที่กำลังทำ เวลาที่อยู่หน้านี้ คำตอบ ณ เวลานั้น และสิ่งที่ทำต่อ
+   เล่นพร้อมกัน 2 การ์ด (ผู้ชนะ / คุณ) บนนาฬิกาเดียวกัน ทุกอย่างคำนวณจากเวลา T จึงเล่น/หยุด/เลื่อน/เร็วช้าได้ */
+const RP_SPEEDS = [1, 5, 10, 30];
+let RP_STOP = null;   // ฟังก์ชันหยุด animation ของรอบที่เล่นอยู่
+
+function rpClock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  return Math.floor(sec / 60) + ':' + pad2(sec % 60);
+}
+
+async function showWinnerReplay(r, back) {
+  showBusy('กำลังโหลดการสอบ...');
+  let res;
+  try { res = await rpcRetry('exam_winner_replay', { p_token: S.token, p_winner_id: r.id }); }
+  catch (e) {
+    hideBusy();
+    showDialog({ icon: '⚠️', title: 'โหลดไม่สำเร็จ', message: 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+      buttons: [{ text: 'ลองใหม่', cls: 'primary', onClick: function () { showWinnerReplay(r, back); } }, { text: 'ปิด', cls: 'ghost' }] });
+    return;
+  }
+  hideBusy();
+  if (res && res.expired) { showExpired(); return; }
+  if (!res || !res.ok) {
+    showDialog({ icon: 'ℹ️', title: 'ย้อนดูไม่ได้', message: (res && res.message) || '',
+      buttons: [{ text: 'ตกลง', cls: 'primary', onClick: back }] });
+    return;
+  }
+  renderReplay(r, res, back);
+}
+
+// ---- สร้าง "แทร็ก" ของคนหนึ่งคนจากรายการเหตุการณ์ ----
+function rpAnsAt(tr, q, T) {
+  const list = tr.ans[q] || [];
+  let a = { v: '', ok: false };
+  for (let i = 0; i < list.length && list[i].t <= T; i++) a = list[i];
+  return a;
+}
+function rpMarkAt(tr, q, T) {
+  const list = tr.marks[q] || [];
+  let on = false;
+  for (let i = 0; i < list.length && list[i].t <= T; i++) on = list[i].on;
+  return on;
+}
+function rpFlagAt(tr, T, onKey, offKey) {
+  let on = false;
+  for (let i = 0; i < tr.flags.length && tr.flags[i].t <= T; i++) {
+    if (tr.flags[i].k === onKey) on = true;
+    else if (tr.flags[i].k === offKey) on = false;
+  }
+  return on;
+}
+
+function rpBuildTrack(label, data) {
+  const ev = (data && data.events) || [];
+  const tr = { label: label, visits: [], ans: {}, marks: {}, flags: [], end: 0 };
+  const lastAns = {}, counts = {};
+  let open = null, lastT = 0;
+  const FLAG_TEXT = { tab_hidden: '⚠ ออกจากหน้าจอสอบ', tab_visible: 'กลับมาที่หน้าจอสอบ', offline: '📡 อินเทอร์เน็ตหลุด', online: 'อินเทอร์เน็ตกลับมา' };
+
+  function logTo(t, text, kind) {
+    const v = open || tr.visits[tr.visits.length - 1];
+    if (v) v.logs.push({ t: t, text: text, kind: kind || '' });
+  }
+
+  ev.forEach(function (e) {
+    lastT = Math.max(lastT, e.t || 0);
+    const q = e.q;
+    if (e.k === 'enter') {
+      if (q === null || q === undefined) return;
+      if (open) open.t1 = e.t;
+      counts[q] = (counts[q] || 0) + 1;
+      open = { q: q, t0: e.t, t1: null, nth: counts[q], logs: [], note: '' };
+      tr.visits.push(open);
+    } else if (e.k === 'leave') {
+      if (open && open.q === q) { open.t1 = e.t; open = null; }
+    } else if (e.k === 'answer_change') {
+      const v = String(e.v === null || e.v === undefined ? '' : e.v).trim();
+      const prev = lastAns[q] || '';
+      lastAns[q] = v;
+      (tr.ans[q] = tr.ans[q] || []).push({ t: e.t, v: v, ok: e.ok === true });
+      let text = v === '' ? 'ลบคำตอบ' : (prev === '' ? 'เลือกตอบ ' + v : 'เปลี่ยนคำตอบจาก ' + prev + ' เป็น ' + v);
+      if (v !== '') text += e.ok === true ? '  ✓ ถูก' : '  ✗ ผิด';
+      logTo(e.t, text, v === '' ? '' : (e.ok === true ? 'good' : 'bad'));
+    } else if (e.k === 'mark_review') {
+      const on = String(e.v) === 'true';
+      (tr.marks[q] = tr.marks[q] || []).push({ t: e.t, on: on });
+      logTo(e.t, on ? '⭐ ติดดาวทบทวน' : 'เอาดาวออก', '');
+    } else if (FLAG_TEXT[e.k]) {
+      tr.flags.push({ t: e.t, k: e.k });
+      logTo(e.t, FLAG_TEXT[e.k], e.k === 'tab_hidden' || e.k === 'offline' ? 'warn' : '');
+    }
+  });
+
+  tr.end = Math.max((data && data.end) || 0, lastT);
+  tr.visits.forEach(function (v) { if (v.t1 === null) v.t1 = tr.end; });
+
+  // ข้อความ "มาถึงข้อนี้ได้ยังไง" (ข้ามข้อ / ถัดไป / ย้อนกลับ / เลือกจากรายการ)
+  tr.visits.forEach(function (v, i) {
+    if (i === 0) { v.note = 'เริ่มทำข้อสอบที่ข้อ ' + v.q; return; }
+    const p = tr.visits[i - 1];
+    const a = rpAnsAt(tr, p.q, p.t1);
+    const how = v.q === p.q + 1 ? 'กด ถัดไป' : v.q === p.q - 1 ? 'กด ก่อนหน้า' : v.q === p.q ? 'กลับเข้าข้อเดิม' : 'เลือกข้อ ' + v.q + ' จากรายการทุกข้อ';
+    v.note = 'จากข้อ ' + p.q + (a.v ? ' (ตอบ ' + a.v + ' แล้ว)' : ' (ยังไม่ตอบ ข้ามไป)') + '  ›  ' + how;
+  });
+  return tr;
+}
+
+function rpScore(tr, qMap) {
+  let n = 0;
+  Object.keys(qMap).forEach(function (q) {
+    const list = tr.ans[q] || [];
+    const last = list[list.length - 1];
+    if (last && last.v !== '' && last.ok) n++;
+  });
+  return n;
+}
+
+function rpState(tr, T) {
+  const vs = tr.visits;
+  if (!vs.length || T < vs[0].t0) return { phase: 'before' };
+  if (T >= tr.end) return { phase: 'done' };
+  let i = vs.length - 1;
+  while (i > 0 && vs[i].t0 > T) i--;
+  const v = vs[i];
+  return { phase: 'in', i: i, v: v, tin: Math.min(T, v.t1) - v.t0 };
+}
+
+// ---- การ์ดของคนหนึ่งคน: update(T) วาดซ้ำเฉพาะส่วนที่เปลี่ยน ----
+function rpMakeCard(tr, qMap) {
+  const nQ = Object.keys(qMap).length;
+  const el = h('div', { class: 'rp-card' });
+  const qno = h('div', { class: 'rp-qno' });
+  const timer = h('div', { class: 'rp-timer' });
+  const note = h('div', { class: 'rp-note' });
+  const chips = h('div', { class: 'rp-chips' });
+  const qbox = h('div', { class: 'rp-q' });
+  const logs = h('div', { class: 'rp-logs' });
+  const body = h('div', { class: 'rp-body' }, note, chips, qbox, logs);
+  el.appendChild(h('div', { class: 'rp-who', text: tr.label }));
+  el.appendChild(h('div', { class: 'rp-top' }, qno, timer));
+  el.appendChild(body);
+
+  let mode = '', curVisit = -1, curShowQ = null, ansSig = null, chipSig = '', logN = -1;
+  let choiceEls = {}, numEl = null;
+
+  function flip() { body.classList.remove('flip'); void body.offsetWidth; body.classList.add('flip'); }
+
+  function buildQuestion(q, showQ) {
+    qbox.textContent = ''; choiceEls = {}; numEl = null;
+    if (!showQ || !q) return;
+    qbox.appendChild(stemNode(q.body, q.image_path));
+    if (q.qtype === 'mcq') {
+      const choices = q.choices || [];
+      const grid = choices.some(function (c) { return c.image_path; });
+      qbox.appendChild(h('div', { class: 'choices' + (grid ? ' grid' : '') }, choices.map(function (c) {
+        const tag = h('span', { class: 'tagl', style: 'display:none' });
+        const row = h('div', { class: 'choice rs' },
+          h('span', { class: 'letter', text: c.id }),
+          h('span', { class: 'ctext' }, c.text ? h('span', { text: c.text }) : null, c.image_path ? imgEl(c.image_path) : null, tag));
+        choiceEls[String(c.id).toUpperCase()] = { row: row, tag: tag };
+        return row;
+      })));
+    } else {
+      numEl = h('div', { class: 'numrow' });
+      qbox.appendChild(numEl);
+    }
+    renderMath(qbox);
+  }
+
+  function paintAnswer(q, a) {
+    if (!q) return;
+    if (q.qtype === 'mcq') {
+      const mine = String(a.v || '').toUpperCase();
+      Object.keys(choiceEls).forEach(function (id) {
+        const c = choiceEls[id];
+        const on = id === mine;
+        c.row.className = 'choice rs' + (on ? ' mine ' + (a.ok ? 'good' : 'bad') : '');
+        c.tag.style.display = on ? '' : 'none';
+        c.tag.textContent = a.ok ? '✓ ที่เลือก (ถูก)' : '✗ ที่เลือก (ผิด)';
+      });
+    } else if (numEl) {
+      numEl.textContent = 'คำตอบที่กรอก: ' + (a.v ? a.v + (a.ok ? '   ✓ ถูก' : '   ✗ ผิด') : '(ยังไม่ได้กรอก)');
+    }
+  }
+
+  function clearAll() { note.textContent = ''; chips.textContent = ''; qbox.textContent = ''; logs.textContent = ''; }
+
+  function update(T, showQ) {
+    const st = rpState(tr, T);
+    if (st.phase !== mode) { mode = st.phase; curVisit = -1; ansSig = null; chipSig = ''; logN = -1; }
+    if (st.phase === 'before') {
+      qno.textContent = 'ยังไม่เริ่ม'; timer.textContent = ''; clearAll();
+      return;
+    }
+    if (st.phase === 'done') {
+      qno.textContent = '🏁 ส่งข้อสอบแล้ว';
+      timer.textContent = 'ใช้เวลา ' + rpClock(tr.end);
+      clearAll();
+      note.textContent = 'ได้ ' + rpScore(tr, qMap) + '/' + nQ + ' ข้อ  •  เข้าข้อทั้งหมด ' + tr.visits.length + ' ครั้ง';
+      return;
+    }
+    const v = st.v;
+    if (curVisit !== st.i || curShowQ !== showQ) {
+      curVisit = st.i; curShowQ = showQ; ansSig = null; chipSig = ''; logN = -1;
+      qno.textContent = 'ข้อที่ ' + v.q;
+      note.textContent = v.note + (v.nth > 1 ? '  •  เข้าข้อนี้ครั้งที่ ' + v.nth : '');
+      buildQuestion(qMap[v.q], showQ);
+      flip();
+    }
+    timer.textContent = 'อยู่หน้านี้ ' + rpClock(st.tin);
+
+    const a = rpAnsAt(tr, v.q, T);
+    const sig = a.v + '|' + a.ok;
+    if (sig !== ansSig) { ansSig = sig; paintAnswer(qMap[v.q], a); }
+
+    const c = [a.v ? 'ตอบแล้ว' : 'ยังไม่ตอบ'];
+    if (rpMarkAt(tr, v.q, T)) c.push('⭐ ติดดาวทบทวน');
+    if (rpFlagAt(tr, T, 'tab_hidden', 'tab_visible')) c.push('⚠ ออกจากหน้าจอสอบอยู่');
+    if (rpFlagAt(tr, T, 'offline', 'online')) c.push('📡 เน็ตหลุดอยู่');
+    const cs = c.join('|');
+    if (cs !== chipSig) {
+      chipSig = cs; chips.textContent = '';
+      c.forEach(function (t, i) { chips.appendChild(h('span', { class: 'rp-chip' + (i === 0 ? (a.v ? ' ok' : ' none') : (t.indexOf('⭐') === 0 ? '' : ' warn')), text: t })); });
+    }
+
+    const shown = v.logs.filter(function (l) { return l.t <= T; });
+    if (shown.length !== logN) {
+      logN = shown.length; logs.textContent = '';
+      shown.slice(-6).forEach(function (l) {
+        logs.appendChild(h('div', { class: 'rp-log ' + l.kind },
+          h('span', { class: 'rp-lt', text: rpClock(Math.max(0, l.t - v.t0)) }),
+          h('span', { text: l.text })));
+      });
+    }
+  }
+  return { el: el, update: update };
+}
+
+function renderReplay(r, res, back) {
+  if (RP_STOP) RP_STOP();
+  const qMap = {};
+  (res.questions || []).forEach(function (q) { qMap[q.q_order] = q; });
+
+  const tracks = [rpBuildTrack((MEDAL[res.rank] || '#' + res.rank) + ' ' + res.nickname + (res.is_me ? ' (คุณ)' : ' (ผู้ชนะ)'), res.winner)];
+  if (res.me) tracks.push(rpBuildTrack('🙋 คุณ', res.me));
+  const cards = tracks.map(function (t) { return rpMakeCard(t, qMap); });
+  const maxT = Math.max.apply(null, [1].concat(tracks.map(function (t) { return t.end; })));
+
+  const P = { T: 0, playing: false, speed: 10, showQ: true, last: 0, raf: 0 };
+
+  const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
+  const slider = h('input', { type: 'range', min: '0', max: String(Math.ceil(maxT)), step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
+  const timeLbl = h('div', { class: 'rp-time' });
+  const speedBtns = RP_SPEEDS.map(function (sp) {
+    return h('button', { type: 'button', class: 'rp-sp', text: '×' + sp, onclick: function () { P.speed = sp; syncSpeed(); } });
+  });
+  const showQ = h('input', { type: 'checkbox', id: 'rpShowQ' });
+  showQ.checked = true;
+  showQ.onchange = function () { P.showQ = showQ.checked; paint(); };
+
+  function syncPlay() { playBtn.textContent = P.playing ? '⏸ หยุด' : '▶ เล่น'; }
+  function syncSpeed() { speedBtns.forEach(function (b, i) { b.className = 'rp-sp' + (RP_SPEEDS[i] === P.speed ? ' on' : ''); }); }
+  function paint() {
+    cards.forEach(function (c) { c.update(P.T, P.showQ); });
+    slider.value = String(P.T);
+    timeLbl.textContent = rpClock(P.T) + ' / ' + rpClock(maxT);
+  }
+  function frame(now) {
+    P.raf = 0;
+    if (!root.isConnected) return;   // ออกจากหน้านี้แล้ว
+    const dt = Math.min(0.25, (now - P.last) / 1000);
+    P.last = now;
+    if (P.playing) {
+      P.T = Math.min(maxT, P.T + dt * P.speed);
+      if (P.T >= maxT) { P.playing = false; syncPlay(); }
+    }
+    paint();
+    if (P.playing) P.raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    if (P.T >= maxT) P.T = 0;
+    P.playing = true; P.last = performance.now(); syncPlay();
+    if (!P.raf) P.raf = requestAnimationFrame(frame);
+  }
+  function pause() { P.playing = false; syncPlay(); }
+  RP_STOP = function () { P.playing = false; if (P.raf) cancelAnimationFrame(P.raf); P.raf = 0; };
+
+  slider.oninput = function () { P.T = parseFloat(slider.value) || 0; paint(); };
+  function jump(t) { P.T = Math.max(0, Math.min(maxT, t)); paint(); }
+  const lead = tracks[0].visits;
+  const prevBtn = btn('ghost small', '‹ ช่วงก่อนหน้า', function () {
+    let t = 0;
+    for (let i = 0; i < lead.length; i++) if (lead[i].t0 < P.T - 0.5) t = lead[i].t0;
+    jump(t);
+  });
+  const nextBtn = btn('ghost small', 'ช่วงถัดไป ›', function () {
+    let t = maxT;
+    for (let i = 0; i < lead.length; i++) if (lead[i].t0 > P.T + 0.01) { t = lead[i].t0; break; }
+    jump(t);
+  });
+  const restartBtn = btn('ghost small', '↺ เริ่มใหม่', function () { P.T = 0; paint(); play(); });
+
+  const root = h('div', { class: 'wrap wide' },
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); if (RP_STOP) RP_STOP(); back(); }, text: '‹ กลับ' })),
+    h('div', { class: 'page-title', text: '🎬 ย้อนดูการสอบ' }),
+    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: r.set_name + '  •  Season: ' + r.season_name }),
+    h('div', { class: 'panel rp-ctl' },
+      h('div', { class: 'rp-btns' }, playBtn, restartBtn, prevBtn, nextBtn),
+      h('div', { class: 'rp-scrub' }, slider, timeLbl),
+      h('div', { class: 'rp-opts' },
+        h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns,
+        h('label', { class: 'rp-chk', for: 'rpShowQ' }, showQ, h('span', { text: ' แสดงโจทย์' })))),
+    h('div', { class: 'rp-grid' + (cards.length > 1 ? ' two' : '') }, cards.map(function (c) { return c.el; })),
+    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ลองดูว่าผู้ชนะข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด เทียบกับของคุณ' }));
+
+  mount(root);
+  syncSpeed(); syncPlay(); paint();
+  play();
+}
+
 // หน้ารายละเอียดคะแนน/เวลารายข้อของผู้ชนะ (เห็นเฉพาะผู้ที่ทำชุดเดียวกันจบแล้ว ไม่มีคำตอบที่เลือก)
 async function showWinnerDetail(r) {
   showBusy('กำลังโหลด...');
@@ -550,6 +871,10 @@ async function showWinnerDetail(r) {
         h('div', { class: 'stat' }, h('div', { class: 'sv', text: fmtClock(avg) }), h('div', { class: 'sl', text: 'เฉลี่ยต่อข้อ' }))),
       h('div', { class: 'hint', style: 'margin-top:10px',
         text: 'กลับมาดูข้อเดิม ' + nRevisit + ' ข้อ  •  ข้ามแล้วกลับมาทำ ' + nSkipReturn + ' ข้อ  •  ถูก ' + nRight + ' ข้อ' })),
+    h('div', { style: 'margin-top:14px' },
+      btn('primary', '🎬 ย้อนดูการสอบ' + (res.is_me ? '' : ' เทียบกับของคุณ'), function () {
+        showWinnerReplay(r, function () { showWinnerDetail(r); });
+      })),
     h('div', { class: 'sec', text: 'เวลาและผลรายข้อ' }),
     h('div', { class: 'panel', style: 'margin-top:8px' },
       h('div', { class: 'cmp-wrap' },
