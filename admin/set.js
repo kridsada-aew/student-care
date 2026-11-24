@@ -806,6 +806,12 @@ const WIN_STATUS = {
   declined: { t: 'ผู้ชนะไม่ประสงค์ประกาศ', c: 'gray' }
 };
 
+function winLine(label, value, bold) {
+  return h('div', { style: 'margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere' },
+    h('span', { style: 'color:#64748b;font-size:13px', text: label + ': ' }),
+    h('span', { style: bold ? 'font-weight:700' : '', text: value }));
+}
+
 function fmtSecs(sec) {
   sec = Math.max(0, Math.round(sec || 0));
   return Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
@@ -842,8 +848,9 @@ async function showWinners(s, msg) {
           (r.submitted_at ? '  •  ส่งข้อความ ' + fmtDT(r.submitted_at) : '') }),
         h('div', { class: 'qmeta' }, h('span', { class: 'tag ' + st.c, text: st.t })),
         hasText ? h('div', { style: 'margin-top:8px;padding:10px 12px;border-radius:10px;background:#f1f5f9' },
-          h('div', { style: 'font-weight:700', text: (r.nickname || '') + (r.faculty ? '  •  ' + r.faculty : '') }),
-          r.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: r.message }) : null) : null,
+          winLine('ชื่อ', r.nickname || '-', true),
+          r.faculty ? winLine('คณะที่อยากเข้า', r.faculty) : null,
+          r.message ? winLine('อยากบอกเพื่อนๆ / คำคม', r.message) : null) : null,
         r.status === 'rejected' && r.review_note
           ? h('div', { class: 'hint', style: 'margin-top:6px', text: 'เหตุผลที่ไม่อนุมัติ: ' + r.review_note }) : null),
       h('div', { class: 'qact' },
