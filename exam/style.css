@@ -243,12 +243,31 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .fig .imgbox { margin-top: 0; }
 .fig-cap { margin-top: 6px; font-weight: 600; font-size: 15px; text-align: center; line-height: 1.5; }
 
-/* ---------- แท็บหน้ารายการข้อสอบ ---------- */
-.tabs { display: flex; gap: 6px; margin-top: 16px; padding: 4px; background: #e2e8f0; border-radius: 14px; }
-.tabs button {
-  flex: 1; position: relative; border: 0; background: transparent; cursor: pointer;
-  padding: 10px 6px; border-radius: 11px; font-size: 15px; font-weight: 500; color: #475569;
+/* ---------- แท็บหน้ารายการข้อสอบ (แท็บหลักเป็นแถบข้างบนจอกว้าง / แนวนอนบนมือถือ เหมือนหน้านักเรียน) ---------- */
+.wrap.wide { max-width: 920px; }
+.lnav { display: flex; gap: 6px; padding: 6px; margin-top: 16px; background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); }
+.ltab {
+  position: relative; flex: 1; border: 0; background: transparent; cursor: pointer;
+  color: var(--muted); padding: 11px 8px; border-radius: 10px; font-size: 15px; font-weight: 500;
+  transition: background .25s, color .25s, box-shadow .25s;
 }
-.tabs button.on { background: #fff; color: var(--primary-d); font-weight: 600; box-shadow: 0 1px 6px rgba(15, 23, 42, .12); }
-.tabs button:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
-.tabs .dot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #dc2626; }
+.ltab.on { background: linear-gradient(135deg, var(--primary), #7c3aed); color: #fff; box-shadow: 0 6px 16px rgba(79, 70, 229, .35); }
+@media (hover: hover) { .ltab:not(.on):hover { background: var(--primary-l); color: var(--primary-d); } }
+.ltab:focus-visible, .subtabs button:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+.dot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: #dc2626; }
+
+.subtabs { display: flex; gap: 8px; margin-top: 16px; overflow-x: auto; padding: 2px 2px 4px; }
+.subtabs button {
+  position: relative; flex: none; white-space: nowrap; cursor: pointer;
+  padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff;
+  color: var(--muted); font-size: 14px; font-weight: 500;
+}
+.subtabs button.on { background: var(--primary-l); border-color: var(--primary); color: var(--primary-d); font-weight: 600; }
+.subtabs .dot { top: 3px; right: 5px; }
+
+@media (min-width: 768px) {
+  .llayout { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
+  .lnav { flex-direction: column; position: sticky; top: 16px; padding: 10px; }
+  .ltab { flex: none; text-align: left; padding: 13px 14px; }
+}
+@media (max-width: 420px) { .ltab { font-size: 14px; padding: 11px 4px; } }

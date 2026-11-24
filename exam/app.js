@@ -237,8 +237,15 @@ function boot() {
 }
 
 /* ---------- 7) รายการชุดข้อสอบ ---------- */
-let LIST_TAB = 'practice';   // แท็บล่าสุดของหน้ารายการ (จำไว้เวลากดกลับจากหน้าสอบ/หน้าผล)
-try { LIST_TAB = sessionStorage.getItem('exam_list_tab') || 'practice'; } catch (e) { /* ไม่เป็นไร */ }
+// แท็บล่าสุดของหน้ารายการ (จำไว้เวลากดกลับจากหน้าสอบ/หน้าผล)
+// LIST_TAB: 'practice' | 'arena'   LIST_SUB (เฉพาะ Mini Test): 'open' | 'ended' | 'win'
+let LIST_TAB = 'practice';
+let LIST_SUB = 'open';
+try {
+  LIST_TAB = sessionStorage.getItem('exam_list_tab') || 'practice';
+  LIST_SUB = sessionStorage.getItem('exam_list_sub') || 'open';
+  if (LIST_TAB === 'win') { LIST_TAB = 'arena'; LIST_SUB = 'win'; }   // ค่าเก่าจากเวอร์ชันก่อน
+} catch (e) { /* ไม่เป็นไร */ }
 
 async function showList() {
   E = null;
@@ -260,25 +267,35 @@ async function showList() {
   const endedPractice = sets.filter(function (s) { return s.mode === 'practice' && s.phase !== 'open'; });
   const endedArena = sets.filter(function (s) { return s.mode !== 'practice' && s.phase !== 'open'; });
 
-  // จุดแดงบนแท็บประกาศผล: ผู้ชนะที่ยังไม่ได้ตอบ หรือครูขอให้แก้ข้อความ
   const mine = win ? (win.mine || []) : [];
   const board = win ? (win.board || []) : [];
+  // สิ่งที่ผู้ชนะต้องทำ: ยังไม่ได้ตอบ หรือครูขอให้แก้ข้อความ (ใช้ทำจุดแดง)
   const todo = mine.filter(function (w) { return w.status === 'invited' || w.status === 'rejected'; }).length;
 
-  const root = h('div', { class: 'wrap' },
+  const root = h('div', { class: 'wrap wide' },
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: HOME_URL, text: '‹ กลับหน้าหลัก' })),
     h('div', { class: 'page-title', text: 'ข้อสอบ' }),
     h('div', { class: 'hint', style: 'margin:2px 4px 0', text: 'สวัสดี ' + S.name }));
 
-  const TABS = [
-    { id: 'practice', label: 'โหมดฝึก', dot: false },
-    { id: 'arena', label: MINI_NAME, dot: false },
-    { id: 'win', label: '🏆 ประกาศผล', dot: todo > 0 }
+  const TOPS = [
+    { id: 'practice', label: '📝 โหมดฝึก', dot: false },
+    { id: 'arena', label: '🏆 ' + MINI_NAME, dot: todo > 0 }
   ];
-  if (!TABS.some(function (t) { return t.id === LIST_TAB; })) LIST_TAB = 'practice';
+  const SUBS = [
+    { id: 'open', label: MINI_NAME + ' ที่เปิดอยู่', dot: false },
+    { id: 'ended', label: 'ที่จบแล้ว / ที่เคยสอบ', dot: false },
+    { id: 'win', label: 'ประกาศผลประจำ season', dot: todo > 0 }
+  ];
+  if (LIST_TAB !== 'practice' && LIST_TAB !== 'arena') LIST_TAB = 'practice';
+  if (!SUBS.some(function (t) { return t.id === LIST_SUB; })) LIST_SUB = 'open';
 
-  const tabBar = h('div', { class: 'tabs', role: 'tablist' });
+  const nav = h('div', { class: 'lnav', role: 'tablist' });
+  const subBar = h('div', { class: 'subtabs', role: 'tablist' });
   const body = h('div', null);
+
+  function remember() {
+    try { sessionStorage.setItem('exam_list_tab', LIST_TAB); sessionStorage.setItem('exam_list_sub', LIST_SUB); } catch (e) { /* ไม่เป็นไร */ }
+  }
 
   function group(title, list, emptyText) {
     if (!list.length && !emptyText) return;
@@ -289,43 +306,52 @@ async function showList() {
     body.appendChild(box);
   }
 
+  function drawWinners() {
+    // ผู้ชนะที่ยังต้องทำอะไรต่อ (ยังไม่ตอบ/รอครูตรวจ/ครูขอแก้/เลือกไม่ประกาศ) ส่วนที่แสดงแล้วอยู่ในกระดานด้านล่างอยู่แล้ว ไม่ต้องซ้ำ
+    const needAct = mine.filter(function (w) { return w.status !== 'approved'; });
+    if (needAct.length) {
+      body.appendChild(h('div', { class: 'sec', text: '🏆 ยินดีด้วย คุณเป็นผู้ชนะ' }));
+      body.appendChild(h('div', { class: 'sets' }, needAct.map(winnerMineCard)));
+    }
+    body.appendChild(h('div', { class: 'sec', text: 'ผู้ชนะ ' + MINI_NAME + ' ประจำ season' }));
+    if (board.length) body.appendChild(h('div', { class: 'sets' }, winnerBoardCards(board, mine)));
+    else body.appendChild(h('div', { class: 'hint', style: 'margin:8px 4px', text: 'ยังไม่มีการประกาศผู้ชนะ จะแสดงเมื่อครูล็อกผล season และอนุมัติข้อความของผู้ชนะ' }));
+  }
+
   function drawTab() {
     body.textContent = '';
-    Array.prototype.forEach.call(tabBar.children, function (b) {
+    subBar.textContent = '';
+    Array.prototype.forEach.call(nav.children, function (b) {
       const on = b.getAttribute('data-tab') === LIST_TAB;
-      b.className = on ? 'on' : '';
+      b.className = 'ltab' + (on ? ' on' : '');
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     if (LIST_TAB === 'practice') {
       group('ชุดฝึกที่เปิดอยู่', practice, 'ยังไม่มีชุดฝึกที่เปิดอยู่');
       group('ที่จบแล้ว / ที่เคยสอบ', endedPractice, '');
-    } else if (LIST_TAB === 'arena') {
-      group(MINI_NAME + ' ที่เปิดอยู่', arena, 'ยังไม่มี ' + MINI_NAME + ' ที่เปิดอยู่');
-      group('ที่จบแล้ว / ที่เคยสอบ', endedArena, '');
-    } else {
-      if (mine.length) {
-        body.appendChild(h('div', { class: 'sec', text: '🏆 ยินดีด้วย คุณเป็นผู้ชนะ' }));
-        body.appendChild(h('div', { class: 'sets' }, mine.map(winnerMineCard)));
-      }
-      body.appendChild(h('div', { class: 'sec', text: 'ผู้ชนะ ' + MINI_NAME + ' ประจำ season' }));
-      if (board.length) body.appendChild(h('div', { class: 'sets' }, winnerBoardCards(board)));
-      else body.appendChild(h('div', { class: 'hint', style: 'margin:8px 4px', text: 'ยังไม่มีการประกาศผู้ชนะ จะแสดงเมื่อครูล็อกผล season และอนุมัติข้อความของผู้ชนะ' }));
+      return;
     }
+    SUBS.forEach(function (t) {
+      subBar.appendChild(h('button', {
+        type: 'button', role: 'tab', class: t.id === LIST_SUB ? 'on' : '',
+        'aria-selected': t.id === LIST_SUB ? 'true' : 'false',
+        onclick: function () { LIST_SUB = t.id; remember(); drawTab(); }
+      }, t.label, t.dot ? h('span', { class: 'dot', 'aria-label': 'มีรายการที่ต้องทำ' }) : null));
+    });
+    body.appendChild(subBar);
+    if (LIST_SUB === 'open') group(MINI_NAME + ' ที่เปิดอยู่', arena, 'ยังไม่มี ' + MINI_NAME + ' ที่เปิดอยู่');
+    else if (LIST_SUB === 'ended') group('ที่จบแล้ว / ที่เคยสอบ', endedArena, 'ยังไม่เคยสอบ ' + MINI_NAME);
+    else drawWinners();
   }
 
-  TABS.forEach(function (t) {
-    tabBar.appendChild(h('button', {
+  TOPS.forEach(function (t) {
+    nav.appendChild(h('button', {
       type: 'button', role: 'tab', 'data-tab': t.id,
-      onclick: function () {
-        LIST_TAB = t.id;
-        try { sessionStorage.setItem('exam_list_tab', t.id); } catch (e) { /* ไม่เป็นไร */ }
-        drawTab();
-      }
+      onclick: function () { LIST_TAB = t.id; remember(); drawTab(); }
     }, t.label, t.dot ? h('span', { class: 'dot', 'aria-label': 'มีรายการที่ต้องทำ' }) : null));
   });
 
-  root.appendChild(tabBar);
-  root.appendChild(body);
+  root.appendChild(h('div', { class: 'llayout' }, nav, h('div', { class: 'lpages' }, body)));
   drawTab();
   mount(root);
 }
@@ -337,10 +363,22 @@ function winnerScoreText(w) {
   return 'คะแนน ' + w.score + '/' + w.total + '  •  เวลารวม ' + fmtClock(w.total_secs);
 }
 
+// บรรทัดที่มีป้ายกำกับ: "ชื่อ: น้ำปลา" / "คณะที่อยากเข้า: วิดวะ" / "อยากบอกเพื่อนๆ / คำคม: ง่วงจัง"
+function winnerLine(label, value, bold) {
+  return h('div', { style: 'margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere' },
+    h('span', { style: 'color:#64748b;font-size:13px', text: label + ': ' }),
+    h('span', { style: bold ? 'font-weight:700' : '', text: value }));
+}
+function winnerLines(w, bold) {
+  return [
+    winnerLine('ชื่อ', w.nickname || '-', bold),
+    w.faculty ? winnerLine('คณะที่อยากเข้า', w.faculty) : null,
+    w.message ? winnerLine('อยากบอกเพื่อนๆ / คำคม', w.message) : null
+  ];
+}
+
 function winnerPreview(w) {
-  return h('div', { style: 'margin-top:8px;padding:10px 12px;border-radius:10px;background:#f1f5f9' },
-    h('div', { style: 'font-weight:700', text: (w.nickname || '') + (w.faculty ? '  •  ' + w.faculty : '') }),
-    w.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: w.message }) : null);
+  return h('div', { style: 'margin-top:8px;padding:10px 12px;border-radius:10px;background:#f1f5f9' }, winnerLines(w, true));
 }
 
 // การ์ดของผู้ชนะเอง: แสดงตามสถานะ (ยังไม่ตอบ / รอครูตรวจ / แสดงแล้ว / ครูขอให้แก้ / เลือกไม่ประกาศ)
@@ -383,11 +421,11 @@ function openWinnerForm(w, vals) {
   const st = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #e2e8f0;' +
     'border-radius:10px;font-size:15px;font-family:inherit;margin-top:10px';
   const nick = h('input', { type: 'text', maxlength: '30', 'aria-label': 'ชื่อเล่น', style: st,
-    placeholder: 'ชื่อเล่นที่จะแสดง (ไม่เกิน 30 ตัวอักษร)' });
+    placeholder: 'ชื่อที่จะแสดง เช่น ชื่อเล่น (ไม่เกิน 30 ตัวอักษร)' });
   const fac = h('input', { type: 'text', maxlength: '60', 'aria-label': 'คณะที่อยากเข้า', style: st,
     placeholder: 'คณะที่อยากเข้า (ไม่บังคับ)' });
-  const msg = h('textarea', { maxlength: '140', rows: '3', 'aria-label': 'ข้อความถึงเพื่อนๆ', style: st,
-    placeholder: 'ข้อความถึงเพื่อนๆ (ไม่บังคับ ไม่เกิน 140 ตัวอักษร)' });
+  const msg = h('textarea', { maxlength: '140', rows: '3', 'aria-label': 'อยากบอกเพื่อนๆ หรือคำคม', style: st,
+    placeholder: 'อยากบอกอะไรเพื่อนๆ หรือคำคม (ไม่บังคับ ไม่เกิน 140 ตัวอักษร)' });
   nick.value = vals.nickname; fac.value = vals.faculty; msg.value = vals.message;
   const cnt = h('div', { class: 'hint', style: 'text-align:right;margin-top:2px', text: msg.value.length + '/140' });
   msg.oninput = function () { cnt.textContent = msg.value.length + '/140'; };
@@ -504,7 +542,7 @@ async function showWinnerDetail(r) {
   mount(h('div', { class: 'wrap' },
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); showList(); }, text: '‹ กลับหน้าประกาศผล' })),
     h('div', { class: 'page-title', text: (MEDAL[res.rank] || '#' + res.rank) + ' ' + res.nickname }),
-    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: (res.faculty ? res.faculty + '  •  ' : '') + r.set_name + '  •  Season: ' + r.season_name }),
+    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: (res.faculty ? 'คณะที่อยากเข้า: ' + res.faculty + '  •  ' : '') + r.set_name + '  •  Season: ' + r.season_name }),
     h('div', { class: 'panel' },
       h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('div', { class: 'sv', text: res.score + '/' + res.total }), h('div', { class: 'sl', text: 'คะแนน' })),
@@ -521,8 +559,10 @@ async function showWinnerDetail(r) {
     h('div', { class: 'hint', style: 'margin:10px 4px', text: 'แถบแสดงสัดส่วนเวลาของแต่ละข้อเทียบกับข้อที่ใช้เวลานานที่สุด ลองเทียบกับตาราง Top 3 ในหน้า "ดูผลของฉัน" เพื่อดูว่าผู้ชนะแบ่งเวลาต่างจากคุณตรงไหน' })));
 }
 
-// กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ
-function winnerBoardCards(board) {
+// กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ (mine = สิทธิ์ของตัวเอง ใช้ติดป้าย "คุณ" และปุ่มถอนการประกาศ)
+function winnerBoardCards(board, mine) {
+  const mineById = {};
+  (mine || []).forEach(function (w) { mineById[w.id] = w; });
   const groups = [];
   const index = {};
   board.forEach(function (r) {
@@ -535,11 +575,16 @@ function winnerBoardCards(board) {
       h('div', { class: 'name', text: g.set }),
       h('div', { class: 'meta', text: 'Season: ' + g.season }));
     g.rows.forEach(function (r) {
-      card.appendChild(h('div', { style: 'margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0' },
-        h('div', { style: 'font-weight:700', text: (MEDAL[r.rank] || '#' + r.rank) + '  ' + r.nickname + (r.faculty ? '  •  ' + r.faculty : '') }),
-        r.message ? h('div', { style: 'margin-top:4px;white-space:pre-wrap', text: r.message }) : null,
-        h('div', { class: 'hint', style: 'margin-top:4px', text: winnerScoreText(r) }),
-        r.can_detail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อ', function () { showWinnerDetail(r); }) : null));
+      const me = mineById[r.id];
+      card.appendChild(h('div', { style: 'margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0' },
+        h('div', { style: 'font-weight:700;font-size:16px' },
+          (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
+          me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
+        winnerLines(r, false),
+        h('div', { class: 'hint', style: 'margin-top:6px', text: winnerScoreText(r) }),
+        h('div', { class: 'resbtns', style: 'margin-top:8px' },
+          r.can_detail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อ', function () { showWinnerDetail(r); }) : null,
+          me ? btn('ghost small', 'ถอนการประกาศ', function () { askDeclineWinner(me); }) : null)));
     });
     if (!g.rows.some(function (r) { return r.can_detail; })) {
       card.appendChild(h('div', { class: 'hint', style: 'margin-top:10px', text: 'ดูเวลารายข้อของผู้ชนะได้เฉพาะผู้ที่ทำชุดนี้จนจบแล้ว' }));
