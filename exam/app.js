@@ -555,7 +555,15 @@ function rpFlagAt(tr, T, onKey, offKey) {
 }
 
 function rpBuildTrack(label, data) {
-  const ev = (data && data.events) || [];
+  // เริ่มนับเวลาของแต่ละคนจาก "ตอนที่เห็นข้อแรก" เพื่อให้ทุกการ์ดเริ่มพร้อมกันที่ 0:00
+  // (เวลาในฐานข้อมูลนับจากตอนกดเริ่มสอบ ซึ่งแต่ละคนห่างจากการเห็นข้อแรกไม่เท่ากัน เพราะต้องโหลดข้อสอบก่อน)
+  const raw = (data && data.events) || [];
+  let off = null;
+  raw.forEach(function (e) { if (e.k === 'enter' && (off === null || e.t < off)) off = e.t; });
+  off = off === null ? 0 : off;
+  const ev = raw.map(function (e) {
+    return { t: Math.max(0, Math.round((e.t - off) * 10) / 10), k: e.k, q: e.q, v: e.v, ok: e.ok };
+  });
   const tr = { label: label, visits: [], ans: {}, marks: {}, flags: [], end: 0 };
   const lastAns = {}, counts = {};
   let open = null, lastT = 0;
@@ -595,7 +603,7 @@ function rpBuildTrack(label, data) {
     }
   });
 
-  tr.end = Math.max((data && data.end) || 0, lastT);
+  tr.end = Math.max(Math.max(0, ((data && data.end) || 0) - off), lastT);
   tr.visits.forEach(function (v) { if (v.t1 === null) v.t1 = tr.end; });
 
   // ข้อความ "มาถึงข้อนี้ได้ยังไง" (ข้ามข้อ / ถัดไป / ย้อนกลับ / เลือกจากรายการ)
