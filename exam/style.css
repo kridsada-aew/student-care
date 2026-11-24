@@ -273,7 +273,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 @media (max-width: 420px) { .ltab { font-size: 14px; padding: 11px 4px; } }
 
 /* ---------- ย้อนดูการสอบ (replay) ---------- */
-.rp-ctl { display: grid; gap: 12px; }
+.rp-ctl { display: grid; gap: 12px; position: sticky; top: 8px; z-index: 5; box-shadow: 0 8px 24px rgba(15, 23, 42, .14); }
 .rp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .rp-btns .btn { width: auto; flex: none; }
 .rp-scrub { display: flex; align-items: center; gap: 12px; }
@@ -285,7 +285,11 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rp-chk { margin-left: auto; font-size: 14px; color: var(--muted); cursor: pointer; }
 
 .rp-grid { display: grid; gap: 14px; margin-top: 14px; }
-@media (min-width: 768px) { .rp-grid.two { grid-template-columns: 1fr 1fr; align-items: start; } }
+@media (min-width: 768px) {
+  .rp-grid.pair, .rp-grid.podium { grid-template-columns: 1fr 1fr; align-items: start; }
+  /* โพเดียม: อันดับ 1 อยู่บนกลาง, อันดับ 2-3 ล่างซ้าย-ขวา, การ์ดของคุณอยู่ล่างสุดตรงกลาง */
+  .rp-grid.podium .rp-first, .rp-grid.podium .rp-me { grid-column: 1 / -1; justify-self: center; width: calc(50% - 7px); }
+}
 .rp-card { background: #fff; border-radius: var(--radius); padding: 14px; box-shadow: 0 2px 10px rgba(15, 23, 42, .06); min-width: 0; }
 .rp-who { font-size: 13px; font-weight: 600; color: var(--primary-d); }
 .rp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 6px; }
@@ -307,3 +311,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rp-body.flip { animation: rpIn .3s ease both; }
 @keyframes rpIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rp-body.flip { animation: none; } }
+.rp-card.mine { box-shadow: 0 0 0 2px var(--primary), 0 2px 10px rgba(15, 23, 42, .06); }
+.rp-ghost { background: #f8fafc; border: 1.5px dashed #cbd5e1; box-shadow: none; color: #64748b; min-height: 90px; }
+.rp-ansline { margin-top: 8px; font-weight: 600; font-size: 15px; }
+.rp-ansline:empty { display: none; }

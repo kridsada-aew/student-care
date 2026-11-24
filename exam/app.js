@@ -637,9 +637,11 @@ function rpMakeCard(tr, qMap) {
   const timer = h('div', { class: 'rp-timer' });
   const note = h('div', { class: 'rp-note' });
   const chips = h('div', { class: 'rp-chips' });
+  const ansLine = h('div', { class: 'rp-ansline' });
   const qbox = h('div', { class: 'rp-q' });
   const logs = h('div', { class: 'rp-logs' });
-  const body = h('div', { class: 'rp-body' }, note, chips, qbox, logs);
+  const body = h('div', { class: 'rp-body' }, note, chips, ansLine, qbox, logs);
+  if (tr.isMe) el.classList.add('mine');
   el.appendChild(h('div', { class: 'rp-who', text: tr.label }));
   el.appendChild(h('div', { class: 'rp-top' }, qno, timer));
   el.appendChild(body);
@@ -687,7 +689,7 @@ function rpMakeCard(tr, qMap) {
     }
   }
 
-  function clearAll() { note.textContent = ''; chips.textContent = ''; qbox.textContent = ''; logs.textContent = ''; }
+  function clearAll() { note.textContent = ''; chips.textContent = ''; ansLine.textContent = ''; qbox.textContent = ''; logs.textContent = ''; }
 
   function update(T, showQ) {
     const st = rpState(tr, T);
@@ -715,7 +717,10 @@ function rpMakeCard(tr, qMap) {
 
     const a = rpAnsAt(tr, v.q, T);
     const sig = a.v + '|' + a.ok;
-    if (sig !== ansSig) { ansSig = sig; paintAnswer(qMap[v.q], a); }
+    if (sig !== ansSig) {
+      ansSig = sig; paintAnswer(qMap[v.q], a);
+      ansLine.textContent = showQ ? '' : 'คำตอบที่เลือก: ' + (a.v ? a.v + (a.ok ? '   ✓ ถูก' : '   ✗ ผิด') : '(ยังไม่ตอบ)');
+    }
 
     const c = [a.v ? 'ตอบแล้ว' : 'ยังไม่ตอบ'];
     if (rpMarkAt(tr, v.q, T)) c.push('⭐ ติดดาวทบทวน');
@@ -745,12 +750,34 @@ function renderReplay(r, res, back) {
   const qMap = {};
   (res.questions || []).forEach(function (q) { qMap[q.q_order] = q; });
 
-  const tracks = [rpBuildTrack((MEDAL[res.rank] || '#' + res.rank) + ' ' + res.nickname + (res.is_me ? ' (คุณ)' : ' (ผู้ชนะ)'), res.winner)];
-  if (res.me) tracks.push(rpBuildTrack('🙋 คุณ', res.me));
-  const cards = tracks.map(function (t) { return rpMakeCard(t, qMap); });
+  const tracks = [];
+  const slots = [];   // การ์ดตามลำดับที่วางในผัง: ผู้ชนะทุกอันดับของชุด แล้วตามด้วยการ์ดของผู้ดู
+  (res.winners || []).forEach(function (w) {
+    const medal = MEDAL[w.rank] || '#' + w.rank;
+    if (w.shown && w.replay) {
+      const tr = rpBuildTrack(medal + ' อันดับ ' + w.rank + '  ' + w.nickname + (w.is_me ? ' (คุณ)' : ''), w.replay);
+      tr.isMe = !!w.is_me;
+      tracks.push(tr);
+      slots.push({ card: rpMakeCard(tr, qMap), kind: 'win' });
+    } else {
+      slots.push({ kind: 'win', el: h('div', { class: 'rp-card rp-ghost' },
+        h('div', { class: 'rp-who', text: medal + ' อันดับ ' + w.rank }),
+        h('div', { class: 'hint', style: 'margin-top:10px', text: 'ผู้ชนะอันดับนี้ไม่ได้เปิดเผยการสอบ' })) });
+    }
+  });
+  if (res.me) {
+    const me = rpBuildTrack('🙋 คุณ', res.me);
+    me.isMe = true;
+    tracks.push(me);
+    slots.push({ card: rpMakeCard(me, qMap), kind: 'me' });
+  }
+  const cards = slots.filter(function (x) { return x.card; }).map(function (x) { return x.card; });
   const maxT = Math.max.apply(null, [1].concat(tracks.map(function (t) { return t.end; })));
+  // 3 ใบขึ้นไป: ซ่อนโจทย์ไว้ก่อนให้เห็นครบทุกการ์ด (ติ๊ก "แสดงโจทย์" เมื่ออยากอ่าน)
+  const compact = slots.length >= 3;
+  const layout = slots.length <= 1 ? 'solo' : slots.length === 2 ? 'pair' : 'podium';
 
-  const P = { T: 0, playing: false, speed: 1, showQ: true, last: 0, raf: 0 };
+  const P = { T: 0, playing: false, speed: 1, showQ: !compact, last: 0, raf: 0 };
 
   const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
   const slider = h('input', { type: 'range', min: '0', max: String(Math.ceil(maxT)), step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
@@ -759,7 +786,7 @@ function renderReplay(r, res, back) {
     return h('button', { type: 'button', class: 'rp-sp', text: '×' + sp, onclick: function () { P.speed = sp; syncSpeed(); } });
   });
   const showQ = h('input', { type: 'checkbox', id: 'rpShowQ' });
-  showQ.checked = true;
+  showQ.checked = P.showQ;
   showQ.onchange = function () { P.showQ = showQ.checked; paint(); };
 
   function syncPlay() { playBtn.textContent = P.playing ? '⏸ หยุด' : '▶ เล่น'; }
@@ -827,7 +854,14 @@ function renderReplay(r, res, back) {
       h('div', { class: 'rp-opts' },
         h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns,
         h('label', { class: 'rp-chk', for: 'rpShowQ' }, showQ, h('span', { text: ' แสดงโจทย์' })))),
-    h('div', { class: 'rp-grid' + (cards.length > 1 ? ' two' : '') }, cards.map(function (c) { return c.el; })),
+    h('div', { class: 'rp-grid ' + layout }, slots.map(function (x, i) {
+      const el = x.card ? x.card.el : x.el;
+      if (layout === 'podium') {
+        if (i === 0) el.classList.add('rp-first');
+        if (x.kind === 'me') el.classList.add('rp-me');
+      }
+      return el;
+    })),
     h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม "ขั้นถัดไป" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }));
 
   mount(root);
