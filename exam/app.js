@@ -750,7 +750,7 @@ function renderReplay(r, res, back) {
   const cards = tracks.map(function (t) { return rpMakeCard(t, qMap); });
   const maxT = Math.max.apply(null, [1].concat(tracks.map(function (t) { return t.end; })));
 
-  const P = { T: 0, playing: false, speed: 10, showQ: true, last: 0, raf: 0 };
+  const P = { T: 0, playing: false, speed: 1, showQ: true, last: 0, raf: 0 };
 
   const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
   const slider = h('input', { type: 'range', min: '0', max: String(Math.ceil(maxT)), step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
@@ -791,16 +791,29 @@ function renderReplay(r, res, back) {
 
   slider.oninput = function () { P.T = parseFloat(slider.value) || 0; paint(); };
   function jump(t) { P.T = Math.max(0, Math.min(maxT, t)); paint(); }
-  const lead = tracks[0].visits;
-  const prevBtn = btn('ghost small', '‹ ช่วงก่อนหน้า', function () {
+  // จุดเวลาสำคัญของทุกการ์ด: เริ่ม, เข้าข้อ, ทุกเหตุการณ์ (เลือกตอบ/ติดดาว/ออกจากหน้าจอ ฯลฯ), ส่งข้อสอบ
+  const keyTimes = (function () {
+    const all = [0];
+    tracks.forEach(function (t) {
+      t.visits.forEach(function (v) {
+        all.push(v.t0);
+        v.logs.forEach(function (l) { all.push(l.t); });
+      });
+      all.push(t.end);
+    });
+    all.sort(function (a, b) { return a - b; });
+    return all.filter(function (t, i) { return i === 0 || t - all[i - 1] > 0.05; });
+  })();
+  function stepTo(t) { pause(); jump(t); }
+  const prevBtn = btn('ghost small', '‹ ขั้นก่อนหน้า', function () {
     let t = 0;
-    for (let i = 0; i < lead.length; i++) if (lead[i].t0 < P.T - 0.5) t = lead[i].t0;
-    jump(t);
+    for (let i = 0; i < keyTimes.length; i++) if (keyTimes[i] < P.T - 0.05) t = keyTimes[i];
+    stepTo(t);
   });
-  const nextBtn = btn('ghost small', 'ช่วงถัดไป ›', function () {
+  const nextBtn = btn('ghost small', 'ขั้นถัดไป ›', function () {
     let t = maxT;
-    for (let i = 0; i < lead.length; i++) if (lead[i].t0 > P.T + 0.01) { t = lead[i].t0; break; }
-    jump(t);
+    for (let i = 0; i < keyTimes.length; i++) if (keyTimes[i] > P.T + 0.05) { t = keyTimes[i]; break; }
+    stepTo(t);
   });
   const restartBtn = btn('ghost small', '↺ เริ่มใหม่', function () { P.T = 0; paint(); play(); });
 
@@ -815,7 +828,7 @@ function renderReplay(r, res, back) {
         h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns,
         h('label', { class: 'rp-chk', for: 'rpShowQ' }, showQ, h('span', { text: ' แสดงโจทย์' })))),
     h('div', { class: 'rp-grid' + (cards.length > 1 ? ' two' : '') }, cards.map(function (c) { return c.el; })),
-    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ลองดูว่าผู้ชนะข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด เทียบกับของคุณ' }));
+    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม "ขั้นถัดไป" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }));
 
   mount(root);
   syncSpeed(); syncPlay(); paint();
