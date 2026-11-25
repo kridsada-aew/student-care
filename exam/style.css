@@ -273,9 +273,16 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 @media (max-width: 420px) { .ltab { font-size: 14px; padding: 11px 4px; } }
 
 /* ---------- ย้อนดูการสอบ (replay) ---------- */
-.rp-ctl { display: grid; gap: 12px; position: sticky; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 5; box-shadow: 0 -6px 24px rgba(15, 23, 42, .16); }
-.rp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.rp-btns .btn { width: auto; flex: none; }
+/* เลย์เอาต์: แถวบน = แถบเวลา+ความเร็ว (อยู่เหนือโจทย์) / แถวล่าง = ปุ่มควบคุมแนวตั้งทางซ้าย + การ์ดโจทย์ */
+.rp-main { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; margin-top: 12px; align-items: start; }
+.rp-top-ctl { display: grid; gap: 10px; margin-top: 0; }
+.rp-side { display: grid; gap: 8px; position: sticky; top: 12px; }
+.rp-side .btn { width: 100%; white-space: nowrap; padding-left: 6px; padding-right: 6px; }
+.rp-main .rp-stage { margin-top: 0; min-width: 0; }
+@media (max-width: 480px) {
+  .rp-main { grid-template-columns: 84px minmax(0, 1fr); gap: 8px; }
+  .rp-side .btn { font-size: 13px; padding: 10px 2px; }
+}
 .rp-scrub { display: flex; align-items: center; gap: 12px; }
 .rp-slider { flex: 1; min-width: 0; accent-color: var(--primary); }
 .rp-time { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--primary-d); font-size: 14px; }
@@ -302,7 +309,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rp-log.good { color: #15803d; }
 .rp-log.bad { color: #b91c1c; }
 .rp-log.warn { color: #b45309; }
-.rp-lt { flex: none; width: 52px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rp-lt { flex: none; width: 38px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .rp-body.flip { animation: rpIn .3s ease both; }
 @keyframes rpIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rp-body.flip { animation: none; } }

@@ -507,10 +507,9 @@ function askDeclineWinner(w) {
 const RP_SPEEDS = [1, 1.5, 2, 3, 5];
 let RP_STOP = null;   // ฟังก์ชันหยุด animation ของรอบที่เล่นอยู่
 
-function rpClock(sec) {   // แสดงทศนิยม 1 ตำแหน่ง (ตัดลง ไม่ปัดขึ้น) เช่น 0:02.4
-  const t = Math.max(0, Math.floor(Number(sec) * 10 + 1e-6));
-  const s = Math.floor(t / 10);
-  return Math.floor(s / 60) + ':' + pad2(s % 60) + '.' + (t % 10);
+function rpClock(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  return Math.floor(sec / 60) + ':' + pad2(sec % 60);
 }
 
 async function showWinnerReplay(r, back) {
@@ -604,7 +603,7 @@ function rpBuildTrack(label, data) {
     }
   });
 
-  tr.end = Math.round(Math.max(Math.max(0, ((data && data.end) || 0) - off), lastT) * 10) / 10;
+  tr.end = Math.max(Math.max(0, ((data && data.end) || 0) - off), lastT);
   tr.visits.forEach(function (v) { if (v.t1 === null) v.t1 = tr.end; });
 
   // ข้อความ "มาถึงข้อนี้ได้ยังไง" (ข้ามข้อ / ถัดไป / ย้อนกลับ / เลือกจากรายการ)
@@ -722,7 +721,7 @@ function rpMakeCard(tr, qMap) {
       buildQuestion(qMap[v.q], showQ);
       flip();
     }
-    timer.textContent = 'อยู่หน้านี้ ' + rpClock(st.tin) + ' / ' + rpClock(v.t1 - v.t0);   // เวลาที่ผ่านไป / เวลารวมของการเข้าข้อนี้ครั้งนี้
+    timer.textContent = 'อยู่หน้านี้ ' + rpClock(st.tin);
 
     const a = rpAnsAt(tr, v.q, T);
     const sig = a.v + '|' + a.ok;
@@ -908,12 +907,14 @@ function rpShowPlayer(o) {
     h('div', { class: 'page-title', text: o.title }),
     h('div', { class: 'hint', style: 'margin:2px 4px 0', text: o.sub }),
     pillBar,
-    stage,
-    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม \"ขั้นถัดไป\" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }),
-    h('div', { class: 'panel rp-ctl' },
-      h('div', { class: 'rp-btns' }, playBtn, restartBtn, prevBtn, nextBtn),
-      h('div', { class: 'rp-scrub' }, slider, timeLbl),
-      h('div', { class: 'rp-opts' }, h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns)));
+    h('div', { class: 'rp-main' },
+      h('div', { class: 'rp-spacer' }),
+      h('div', { class: 'panel rp-top-ctl' },
+        h('div', { class: 'rp-scrub' }, slider, timeLbl),
+        h('div', { class: 'rp-opts' }, h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns)),
+      h('div', { class: 'rp-side' }, playBtn, restartBtn, prevBtn, nextBtn),
+      stage),
+    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม \"ขั้นถัดไป\" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }));
 
   mount(root);
   syncSpeed(); syncPlay();
