@@ -344,3 +344,5 @@ body.qm-open { overflow: hidden; }
 .rp-pill.off { border-style: dashed; opacity: .55; cursor: not-allowed; }
 .rp-pill:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
 .rp-stage { margin-top: 12px; }
+.rp-pill.more { border-style: dashed; color: var(--primary-d); }
+.rp-pill.more:disabled { opacity: .6; cursor: wait; }

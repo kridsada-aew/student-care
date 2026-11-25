@@ -783,7 +783,8 @@ function renderReplay(r, res, back) {
   });
 }
 
-// ตัวเล่น replay ทีละคน (ใช้ร่วมกันทุกที่): o = { title, sub, back, qMap, people:[{pill, tr, disabled}], start }
+// ตัวเล่น replay ทีละคน/ทีละรอบ (ใช้ร่วมกันทุกที่): o = { title, sub, back, qMap, people:[{pill, tr, disabled}], start,
+//   hasMore, loadMore() -> Promise<{people, hasMore}> (ปุ่ม "รอบก่อนหน้า" ใส่รายการเพิ่มทางซ้าย) }
 // ปุ่มเล่นและแถบเวลาอยู่ด้านล่างสุด ค้างติดขอบล่างจอ โจทย์แสดงเสมอ
 function rpShowPlayer(o) {
   if (RP_STOP) RP_STOP();
@@ -794,11 +795,37 @@ function rpShowPlayer(o) {
   const P = { sel: -1, T: 0, playing: false, speed: 1, last: 0, raf: 0, maxT: 1, keyTimes: [0] };
 
   const stage = h('div', { class: 'rp-stage' });
-  const pills = people.map(function (x, i) {
-    const b = h('button', { type: 'button', role: 'tab', class: 'rp-pill', text: x.pill, onclick: function () { select(i); } });
-    if (x.disabled) { b.disabled = true; b.classList.add('off'); }
-    return b;
-  });
+  const pillBar = h('div', { class: 'rp-pills', role: 'tablist' });
+  const moreBtn = h('button', { type: 'button', class: 'rp-pill more', text: '‹ รอบก่อนหน้า', onclick: function () { loadMoreClick(); } });
+  let loadingMore = false;
+
+  // แถบปุ่มเลือกคน/รอบ: สร้างใหม่ทุกครั้งที่เลือกหรือโหลดเพิ่ม (มีไม่กี่ปุ่ม)
+  function renderPills() {
+    pillBar.textContent = '';
+    pillBar.style.display = people.length > 1 || o.hasMore ? '' : 'none';
+    if (o.hasMore) pillBar.appendChild(moreBtn);
+    people.forEach(function (x, i) {
+      const b = h('button', { type: 'button', role: 'tab', class: 'rp-pill' + (i === P.sel ? ' on' : ''), text: x.pill,
+                              'aria-selected': i === P.sel ? 'true' : 'false', onclick: function () { select(i); } });
+      if (x.disabled) { b.disabled = true; b.classList.add('off'); }
+      pillBar.appendChild(b);
+    });
+  }
+  function loadMoreClick() {
+    if (loadingMore || !o.loadMore) return;
+    loadingMore = true; moreBtn.disabled = true; moreBtn.textContent = 'กำลังโหลด...';
+    o.loadMore().then(function (r) {
+      loadingMore = false; moreBtn.disabled = false; moreBtn.textContent = '‹ รอบก่อนหน้า';
+      const add = (r && r.people) || [];
+      add.forEach(function (x) { if (x.tr) x.card = rpMakeCard(x.tr, qMap); });
+      Array.prototype.unshift.apply(people, add);
+      P.sel += add.length;
+      o.hasMore = !!(r && r.hasMore);
+      renderPills();
+    }).catch(function () {
+      loadingMore = false; moreBtn.disabled = false; moreBtn.textContent = '‹ รอบก่อนหน้า (ลองใหม่)';
+    });
+  }
 
   const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
   const slider = h('input', { type: 'range', min: '0', max: '1', step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
@@ -855,11 +882,7 @@ function rpShowPlayer(o) {
     slider.max = String(Math.ceil(P.maxT));
     stage.textContent = '';
     stage.appendChild(cur().card.el);
-    pills.forEach(function (b, k) {
-      b.classList.remove('on');
-      b.setAttribute('aria-selected', k === i ? 'true' : 'false');
-      if (k === i) b.classList.add('on');
-    });
+    renderPills();
     if (P.playing) P.last = performance.now();
     paint();
   }
@@ -883,7 +906,7 @@ function rpShowPlayer(o) {
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); if (RP_STOP) RP_STOP(); o.back(); }, text: '‹ กลับ' })),
     h('div', { class: 'page-title', text: o.title }),
     h('div', { class: 'hint', style: 'margin:2px 4px 0', text: o.sub }),
-    people.length > 1 ? h('div', { class: 'rp-pills', role: 'tablist' }, pills) : null,
+    pillBar,
     stage,
     h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม \"ขั้นถัดไป\" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }),
     h('div', { class: 'panel rp-ctl' },
@@ -893,8 +916,48 @@ function rpShowPlayer(o) {
 
   mount(root);
   syncSpeed(); syncPlay();
+  renderPills();
   select(o.start);
   play();
+}
+
+// ย้อนดูการสอบของตัวเอง (โหมดฝึก): เลือกรอบได้ ล่าสุด 5 รอบ และกด "รอบก่อนหน้า" เพื่อโหลดเพิ่มทีละ 5 รอบ
+async function showAttemptReplay(attemptId, setName) {
+  showBusy('กำลังโหลดการสอบ...');
+  let res;
+  try { res = await rpcRetry('exam_attempt_replay', { p_token: S.token, p_attempt_id: attemptId, p_before: null }); }
+  catch (e) {
+    hideBusy();
+    showDialog({ icon: '⚠️', title: 'โหลดไม่สำเร็จ', message: 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+      buttons: [{ text: 'ลองใหม่', cls: 'primary', onClick: function () { showAttemptReplay(attemptId, setName); } }, { text: 'ปิด', cls: 'ghost' }] });
+    return;
+  }
+  hideBusy();
+  if (res && res.expired) { showExpired(); return; }
+  if (!res || !res.ok || !(res.attempts || []).length) {
+    showDialog({ icon: 'ℹ️', title: 'ย้อนดูไม่ได้', message: (res && res.message) || '', buttons: [{ text: 'ตกลง', cls: 'primary' }] });
+    return;
+  }
+  const qMap = {};
+  (res.questions || []).forEach(function (q) { qMap[q.q_order] = q; });
+  function mk(x) {
+    const label = 'รอบที่ ' + x.attempt_no;
+    return { pill: label, no: x.attempt_no, id: x.attempt_id, tr: rpBuildTrack(label, x.replay) };
+  }
+  const people = res.attempts.map(mk);
+  let start = people.findIndex(function (x) { return x.id === attemptId; });
+  if (start < 0) start = people.length - 1;
+
+  rpShowPlayer({
+    title: '🎬 ย้อนดูการสอบ', sub: (setName || '') + '  •  การทำข้อสอบของคุณ',
+    back: function () { showResult(attemptId); },
+    qMap: qMap, people: people, start: start, hasMore: !!res.has_more,
+    loadMore: async function () {
+      const r2 = await rpcRetry('exam_attempt_replay', { p_token: S.token, p_attempt_id: attemptId, p_before: people[0].no });
+      if (!r2 || !r2.ok) throw new Error('load');
+      return { people: (r2.attempts || []).map(mk), hasMore: !!r2.has_more };
+    }
+  });
 }
 
 // หน้ารายละเอียดคะแนน/เวลารายข้อของผู้ชนะ (เห็นเฉพาะผู้ที่ทำชุดเดียวกันจบแล้ว ไม่มีคำตอบที่เลือก)
@@ -1621,6 +1684,7 @@ async function showResult(attemptId, scrollToList) {
     return;
   }
   try { history.replaceState(null, '', '#/r/' + attemptId); } catch (e) { /* ไม่เป็นไร */ }
+  res.my_attempt_id = attemptId;   // renderResult ใช้เปิดตัวย้อนดูการสอบ
   renderResult(res, scrollToList);
 }
 
@@ -1665,6 +1729,12 @@ function renderResult(res, scrollToList) {
       sm.speed_percentile === null || sm.speed_percentile === undefined ? 'ข้อมูลยังไม่พอ' : sm.speed_percentile,
       'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null));
 
+  // โหมดฝึก: ปุ่มย้อนดูการสอบรอบนี้ (เล่น animation ตามลำดับเหตุการณ์จริง)
+  if (!isMini && res.my_attempt_id) {
+    root.appendChild(h('div', { style: 'margin-top:12px' },
+      btn('primary', '🎬 ย้อนดูการสอบ (ดูพฤติกรรมทีละข้อ เทียบกับรอบอื่น)', function () { showAttemptReplay(res.my_attempt_id, a.set_name); })));
+  }
+
   // หมายเหตุ: บรรทัดเดียว
   const notes = [];
   if (fl.timed_out) notes.push('หมดเวลา: ข้อที่ค้างนับเวลาถึงจุดหมดเวลา');
@@ -1677,7 +1747,7 @@ function renderResult(res, scrollToList) {
   if (!isMini) {
     const multi = !!(res.compare && res.compare.length > 1);
     const cmp = multi ? res.compare : [{
-      attempt_id: a.id, attempt_no: a.attempt_no, is_current: true,
+      attempt_id: res.my_attempt_id, attempt_no: a.attempt_no, is_current: true,
       score: sm.score, time_secs: sm.time_secs,
       per_q: qs.map(function (q) { return { correct: q.result === 'correct', answered: !!q.my_answer, secs: q.secs }; })
     }];
