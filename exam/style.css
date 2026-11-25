@@ -273,7 +273,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 @media (max-width: 420px) { .ltab { font-size: 14px; padding: 11px 4px; } }
 
 /* ---------- ย้อนดูการสอบ (replay) ---------- */
-.rp-ctl { display: grid; gap: 12px; position: sticky; top: 8px; z-index: 5; box-shadow: 0 8px 24px rgba(15, 23, 42, .14); }
+.rp-ctl { display: grid; gap: 12px; position: sticky; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 5; box-shadow: 0 -6px 24px rgba(15, 23, 42, .16); }
 .rp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .rp-btns .btn { width: auto; flex: none; }
 .rp-scrub { display: flex; align-items: center; gap: 12px; }
@@ -338,3 +338,9 @@ body.qm-open { overflow: hidden; }
   .qm-overlay { align-items: center; padding: 20px; }
   .qm-sheet { border-radius: 18px; max-height: 88vh; max-height: 88dvh; box-shadow: 0 20px 50px rgba(15, 23, 42, .3); }
 }
+.rp-pills { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; padding: 2px 2px 6px; }
+.rp-pill { flex: none; white-space: nowrap; cursor: pointer; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--muted); font-size: 14px; font-weight: 500; }
+.rp-pill.on { background: var(--primary-l); border-color: var(--primary); color: var(--primary-d); font-weight: 600; }
+.rp-pill.off { border-style: dashed; opacity: .55; cursor: not-allowed; }
+.rp-pill:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+.rp-stage { margin-top: 12px; }

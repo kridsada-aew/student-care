@@ -753,55 +753,67 @@ function rpMakeCard(tr, qMap) {
   return { el: el, update: update };
 }
 
+// หน้าผู้ชนะ: เลือกดูทีละคน (ผู้ชนะที่เปิดเผยแล้ว + คุณ) ค่าเริ่มต้นคือคนที่กดเข้ามา
 function renderReplay(r, res, back) {
-  if (RP_STOP) RP_STOP();
   const qMap = {};
   (res.questions || []).forEach(function (q) { qMap[q.q_order] = q; });
 
-  const tracks = [];
-  const slots = [];   // การ์ดตามลำดับที่วางในผัง: ผู้ชนะทุกอันดับของชุด แล้วตามด้วยการ์ดของผู้ดู
+  const people = [];
+  let start = -1;
   (res.winners || []).forEach(function (w) {
     const medal = MEDAL[w.rank] || '#' + w.rank;
     if (w.shown && w.replay) {
-      const tr = rpBuildTrack(medal + ' อันดับ ' + w.rank + '  ' + w.nickname + (w.is_me ? ' (คุณ)' : ''), w.replay);
-      tr.isMe = !!w.is_me;
-      tracks.push(tr);
-      slots.push({ card: rpMakeCard(tr, qMap), kind: 'win' });
+      const name = w.nickname + (w.is_me ? ' (คุณ)' : '');
+      if (w.id === r.id) start = people.length;
+      people.push({ pill: medal + ' อันดับ ' + w.rank + '  ' + name, tr: rpBuildTrack(medal + ' อันดับ ' + w.rank + '  ' + name, w.replay) });
     } else {
-      slots.push({ kind: 'win', el: h('div', { class: 'rp-card rp-ghost' },
-        h('div', { class: 'rp-who', text: medal + ' อันดับ ' + w.rank }),
-        h('div', { class: 'hint', style: 'margin-top:10px', text: 'ผู้ชนะอันดับนี้ไม่ได้เปิดเผยการสอบ' })) });
+      people.push({ pill: medal + ' อันดับ ' + w.rank + ' (ไม่เปิดเผย)', disabled: true });
     }
   });
-  if (res.me) {
-    const me = rpBuildTrack('🙋 คุณ', res.me);
-    me.isMe = true;
-    tracks.push(me);
-    slots.push({ card: rpMakeCard(me, qMap), kind: 'me' });
+  if (res.me) people.push({ pill: '🙋 คุณ', tr: rpBuildTrack('🙋 คุณ', res.me) });
+  if (start < 0) start = people.findIndex(function (x) { return !x.disabled; });
+  if (start < 0) {
+    showDialog({ icon: 'ℹ️', title: 'ไม่มีข้อมูลให้ย้อนดู', message: 'ผู้ชนะในชุดนี้ไม่ได้เปิดเผยการสอบ',
+      buttons: [{ text: 'ตกลง', cls: 'primary', onClick: back }] });
+    return;
   }
-  const cards = slots.filter(function (x) { return x.card; }).map(function (x) { return x.card; });
-  const maxT = Math.max.apply(null, [1].concat(tracks.map(function (t) { return t.end; })));
-  // 3 ใบขึ้นไป: ซ่อนโจทย์ไว้ก่อนให้หน้าไม่ยาวเกินไป (ติ๊ก "แสดงโจทย์" เมื่ออยากอ่าน)
-  const compact = slots.length >= 3;
+  rpShowPlayer({
+    title: '🎬 ย้อนดูการสอบ', sub: r.set_name + '  •  Season: ' + r.season_name,
+    back: back, qMap: qMap, people: people, start: start
+  });
+}
 
-  const P = { T: 0, playing: false, speed: 1, showQ: !compact, last: 0, raf: 0 };
+// ตัวเล่น replay ทีละคน (ใช้ร่วมกันทุกที่): o = { title, sub, back, qMap, people:[{pill, tr, disabled}], start }
+// ปุ่มเล่นและแถบเวลาอยู่ด้านล่างสุด ค้างติดขอบล่างจอ โจทย์แสดงเสมอ
+function rpShowPlayer(o) {
+  if (RP_STOP) RP_STOP();
+  const qMap = o.qMap;
+  const people = o.people;
+  people.forEach(function (x) { if (x.tr) x.card = rpMakeCard(x.tr, qMap); });
+
+  const P = { sel: -1, T: 0, playing: false, speed: 1, last: 0, raf: 0, maxT: 1, keyTimes: [0] };
+
+  const stage = h('div', { class: 'rp-stage' });
+  const pills = people.map(function (x, i) {
+    const b = h('button', { type: 'button', role: 'tab', class: 'rp-pill', text: x.pill, onclick: function () { select(i); } });
+    if (x.disabled) { b.disabled = true; b.classList.add('off'); }
+    return b;
+  });
 
   const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
-  const slider = h('input', { type: 'range', min: '0', max: String(Math.ceil(maxT)), step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
+  const slider = h('input', { type: 'range', min: '0', max: '1', step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
   const timeLbl = h('div', { class: 'rp-time' });
   const speedBtns = RP_SPEEDS.map(function (sp) {
     return h('button', { type: 'button', class: 'rp-sp', text: '×' + sp, onclick: function () { P.speed = sp; syncSpeed(); } });
   });
-  const showQ = h('input', { type: 'checkbox', id: 'rpShowQ' });
-  showQ.checked = P.showQ;
-  showQ.onchange = function () { P.showQ = showQ.checked; paint(); };
 
+  function cur() { return people[P.sel]; }
   function syncPlay() { playBtn.textContent = P.playing ? '⏸ หยุด' : '▶ เล่น'; }
   function syncSpeed() { speedBtns.forEach(function (b, i) { b.className = 'rp-sp' + (RP_SPEEDS[i] === P.speed ? ' on' : ''); }); }
   function paint() {
-    cards.forEach(function (c) { c.update(P.T, P.showQ); });
+    cur().card.update(P.T, true);
     slider.value = String(P.T);
-    timeLbl.textContent = rpClock(P.T) + ' / ' + rpClock(maxT);
+    timeLbl.textContent = rpClock(P.T) + ' / ' + rpClock(P.maxT);
   }
   function frame(now) {
     P.raf = 0;
@@ -809,63 +821,79 @@ function renderReplay(r, res, back) {
     const dt = Math.min(0.25, (now - P.last) / 1000);
     P.last = now;
     if (P.playing) {
-      P.T = Math.min(maxT, P.T + dt * P.speed);
-      if (P.T >= maxT) { P.playing = false; syncPlay(); }
+      P.T = Math.min(P.maxT, P.T + dt * P.speed);
+      if (P.T >= P.maxT) { P.playing = false; syncPlay(); }
     }
     paint();
     if (P.playing) P.raf = requestAnimationFrame(frame);
   }
   function play() {
-    if (P.T >= maxT) P.T = 0;
+    if (P.T >= P.maxT) P.T = 0;
     P.playing = true; P.last = performance.now(); syncPlay();
     if (!P.raf) P.raf = requestAnimationFrame(frame);
   }
   function pause() { P.playing = false; syncPlay(); }
   RP_STOP = function () { P.playing = false; if (P.raf) cancelAnimationFrame(P.raf); P.raf = 0; };
 
-  slider.oninput = function () { P.T = parseFloat(slider.value) || 0; paint(); };
-  function jump(t) { P.T = Math.max(0, Math.min(maxT, t)); paint(); }
-  // จุดเวลาสำคัญของทุกการ์ด: เริ่ม, เข้าข้อ, ทุกเหตุการณ์ (เลือกตอบ/ติดดาว/ออกจากหน้าจอ ฯลฯ), ส่งข้อสอบ
-  const keyTimes = (function () {
+  // จุดเวลาสำคัญของคนที่เลือก: เริ่ม, เข้าข้อ, ทุกเหตุการณ์ (เลือกตอบ/ติดดาว/ออกจากหน้าจอ ฯลฯ), ส่งข้อสอบ
+  function keyTimesOf(tr) {
     const all = [0];
-    tracks.forEach(function (t) {
-      t.visits.forEach(function (v) {
-        all.push(v.t0);
-        v.logs.forEach(function (l) { all.push(l.t); });
-      });
-      all.push(t.end);
+    tr.visits.forEach(function (v) {
+      all.push(v.t0);
+      v.logs.forEach(function (l) { all.push(l.t); });
     });
+    all.push(tr.end);
     all.sort(function (a, b) { return a - b; });
     return all.filter(function (t, i) { return i === 0 || t - all[i - 1] > 0.05; });
-  })();
+  }
+  function select(i) {
+    if (i === P.sel || !people[i] || people[i].disabled) return;
+    P.sel = i;
+    P.T = 0;
+    P.maxT = Math.max(1, cur().tr.end);
+    P.keyTimes = keyTimesOf(cur().tr);
+    slider.max = String(Math.ceil(P.maxT));
+    stage.textContent = '';
+    stage.appendChild(cur().card.el);
+    pills.forEach(function (b, k) {
+      b.classList.remove('on');
+      b.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      if (k === i) b.classList.add('on');
+    });
+    if (P.playing) P.last = performance.now();
+    paint();
+  }
+
+  slider.oninput = function () { P.T = parseFloat(slider.value) || 0; paint(); };
+  function jump(t) { P.T = Math.max(0, Math.min(P.maxT, t)); paint(); }
   function stepTo(t) { pause(); jump(t); }
   const prevBtn = btn('ghost small', '‹ ขั้นก่อนหน้า', function () {
     let t = 0;
-    for (let i = 0; i < keyTimes.length; i++) if (keyTimes[i] < P.T - 0.05) t = keyTimes[i];
+    for (let i = 0; i < P.keyTimes.length; i++) if (P.keyTimes[i] < P.T - 0.05) t = P.keyTimes[i];
     stepTo(t);
   });
   const nextBtn = btn('ghost small', 'ขั้นถัดไป ›', function () {
-    let t = maxT;
-    for (let i = 0; i < keyTimes.length; i++) if (keyTimes[i] > P.T + 0.05) { t = keyTimes[i]; break; }
+    let t = P.maxT;
+    for (let i = 0; i < P.keyTimes.length; i++) if (P.keyTimes[i] > P.T + 0.05) { t = P.keyTimes[i]; break; }
     stepTo(t);
   });
   const restartBtn = btn('ghost small', '↺ เริ่มใหม่', function () { P.T = 0; paint(); play(); });
 
   const root = h('div', { class: 'wrap wide' },
-    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); if (RP_STOP) RP_STOP(); back(); }, text: '‹ กลับ' })),
-    h('div', { class: 'page-title', text: '🎬 ย้อนดูการสอบ' }),
-    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: r.set_name + '  •  Season: ' + r.season_name }),
+    h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); if (RP_STOP) RP_STOP(); o.back(); }, text: '‹ กลับ' })),
+    h('div', { class: 'page-title', text: o.title }),
+    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: o.sub }),
+    people.length > 1 ? h('div', { class: 'rp-pills', role: 'tablist' }, pills) : null,
+    stage,
+    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม \"ขั้นถัดไป\" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }),
     h('div', { class: 'panel rp-ctl' },
       h('div', { class: 'rp-btns' }, playBtn, restartBtn, prevBtn, nextBtn),
       h('div', { class: 'rp-scrub' }, slider, timeLbl),
-      h('div', { class: 'rp-opts' },
-        h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns,
-        h('label', { class: 'rp-chk', for: 'rpShowQ' }, showQ, h('span', { text: ' แสดงโจทย์' })))),
-    h('div', { class: 'rp-grid' }, slots.map(function (x) { return x.card ? x.card.el : x.el; })),   // เรียงจากบนลงล่าง: อันดับ 1, 2, 3 แล้วตามด้วยคุณ
-    h('div', { class: 'hint', style: 'margin:12px 4px', text: 'ตัวเลขเวลาบนการ์ดเป็นเวลาจริงของการสอบ เร่งความเร็วได้เพื่อไม่ต้องรอ ปุ่ม "ขั้นถัดไป" จะหยุดและเดินไปทีละเหตุการณ์ (เข้าข้อ เลือกตอบ ติดดาว ออกจากหน้าจอ) ลองดูว่าข้ามข้อไหน กลับมาตอนไหน และใช้เวลากับข้อไหนมากที่สุด' }));
+      h('div', { class: 'rp-opts' }, h('span', { class: 'hint', text: 'ความเร็ว' }), speedBtns)));
 
   mount(root);
-  syncSpeed(); syncPlay(); paint();
+  syncSpeed(); syncPlay();
+  select(o.start);
   play();
 }
 
