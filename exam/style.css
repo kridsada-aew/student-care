@@ -296,7 +296,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rp-chip.ok { background: #dcfce7; color: #15803d; }
 .rp-chip.none { background: #f1f5f9; color: #64748b; }
 .rp-chip.warn { background: #fef3c7; color: #b45309; }
-.rp-q { margin-top: 10px; }
+.rp-q { margin-top: 10px; zoom: var(--rp-q-scale, .5); }   /* ย่อโจทย์ใน replay (โหมดฝึกและ Mini Test) ปรับสัดส่วนที่ --rp-q-scale */
 .rp-logs { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 4px; min-height: 20px; }
 .rp-log { display: flex; gap: 10px; font-size: 13px; color: #334155; }
 .rp-log.good { color: #15803d; }

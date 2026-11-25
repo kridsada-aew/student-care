@@ -828,7 +828,7 @@ function rpShowPlayer(o) {
   }
 
   const playBtn = btn('primary small', '▶ เล่น', function () { if (P.playing) pause(); else play(); });
-  const slider = h('input', { type: 'range', min: '0', max: '1', step: '0.1', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
+  const slider = h('input', { type: 'range', min: '0', max: '1', step: 'any', value: '0', 'aria-label': 'ตำแหน่งเวลาในการสอบ', class: 'rp-slider' });
   const timeLbl = h('div', { class: 'rp-time' });
   const speedBtns = RP_SPEEDS.map(function (sp) {
     return h('button', { type: 'button', class: 'rp-sp', text: '×' + sp, onclick: function () { P.speed = sp; syncSpeed(); } });
@@ -879,7 +879,7 @@ function rpShowPlayer(o) {
     P.T = 0;
     P.maxT = Math.max(1, cur().tr.end);
     P.keyTimes = keyTimesOf(cur().tr);
-    slider.max = String(Math.ceil(P.maxT));
+    slider.max = String(P.maxT);   // ใช้ค่าจริง (ไม่ปัดขึ้น) เพื่อให้หลอดเต็มพอดีตอนเล่นจนจบ
     stage.textContent = '';
     stage.appendChild(cur().card.el);
     renderPills();
@@ -917,8 +917,7 @@ function rpShowPlayer(o) {
   mount(root);
   syncSpeed(); syncPlay();
   renderPills();
-  select(o.start);
-  play();
+  select(o.start);   // ไม่เล่นอัตโนมัติ: รอให้กดปุ่ม "เล่น" เอง
 }
 
 // ย้อนดูการสอบของตัวเอง (โหมดฝึก): เลือกรอบได้ ล่าสุด 5 รอบ และกด "รอบก่อนหน้า" เพื่อโหลดเพิ่มทีละ 5 รอบ
