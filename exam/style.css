@@ -296,13 +296,13 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rp-chip.ok { background: #dcfce7; color: #15803d; }
 .rp-chip.none { background: #f1f5f9; color: #64748b; }
 .rp-chip.warn { background: #fef3c7; color: #b45309; }
-.rp-q { margin-top: 10px; zoom: var(--rp-q-scale, .5); }   /* ย่อโจทย์ใน replay (โหมดฝึกและ Mini Test) ปรับสัดส่วนที่ --rp-q-scale */
+.rp-q { margin-top: 10px; zoom: var(--rp-q-scale, .6); }   /* ย่อโจทย์ใน replay (โหมดฝึกและ Mini Test) ปรับสัดส่วนที่ --rp-q-scale */
 .rp-logs { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 4px; min-height: 20px; }
 .rp-log { display: flex; gap: 10px; font-size: 13px; color: #334155; }
 .rp-log.good { color: #15803d; }
 .rp-log.bad { color: #b91c1c; }
 .rp-log.warn { color: #b45309; }
-.rp-lt { flex: none; width: 38px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rp-lt { flex: none; width: 52px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .rp-body.flip { animation: rpIn .3s ease both; }
 @keyframes rpIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rp-body.flip { animation: none; } }

@@ -507,9 +507,10 @@ function askDeclineWinner(w) {
 const RP_SPEEDS = [1, 1.5, 2, 3, 5];
 let RP_STOP = null;   // ฟังก์ชันหยุด animation ของรอบที่เล่นอยู่
 
-function rpClock(sec) {
-  sec = Math.max(0, Math.floor(sec));
-  return Math.floor(sec / 60) + ':' + pad2(sec % 60);
+function rpClock(sec) {   // แสดงทศนิยม 1 ตำแหน่ง (ตัดลง ไม่ปัดขึ้น) เช่น 0:02.4
+  const t = Math.max(0, Math.floor(Number(sec) * 10 + 1e-6));
+  const s = Math.floor(t / 10);
+  return Math.floor(s / 60) + ':' + pad2(s % 60) + '.' + (t % 10);
 }
 
 async function showWinnerReplay(r, back) {
@@ -603,7 +604,7 @@ function rpBuildTrack(label, data) {
     }
   });
 
-  tr.end = Math.max(Math.max(0, ((data && data.end) || 0) - off), lastT);
+  tr.end = Math.round(Math.max(Math.max(0, ((data && data.end) || 0) - off), lastT) * 10) / 10;
   tr.visits.forEach(function (v) { if (v.t1 === null) v.t1 = tr.end; });
 
   // ข้อความ "มาถึงข้อนี้ได้ยังไง" (ข้ามข้อ / ถัดไป / ย้อนกลับ / เลือกจากรายการ)
@@ -721,7 +722,7 @@ function rpMakeCard(tr, qMap) {
       buildQuestion(qMap[v.q], showQ);
       flip();
     }
-    timer.textContent = 'อยู่หน้านี้ ' + rpClock(st.tin);
+    timer.textContent = 'อยู่หน้านี้ ' + rpClock(st.tin) + ' / ' + rpClock(v.t1 - v.t0);   // เวลาที่ผ่านไป / เวลารวมของการเข้าข้อนี้ครั้งนี้
 
     const a = rpAnsAt(tr, v.q, T);
     const sig = a.v + '|' + a.ok;
@@ -845,7 +846,7 @@ function rpShowPlayer(o) {
   function frame(now) {
     P.raf = 0;
     if (!root.isConnected) return;   // ออกจากหน้านี้แล้ว
-    const dt = Math.min(0.25, (now - P.last) / 1000);
+    const dt = Math.max(0, Math.min(0.25, (now - P.last) / 1000));   // กัน dt ติดลบ (rAF timestamp อาจเก่ากว่าตอนกดปุ่ม) ไม่งั้นเวลาถอยต่ำกว่า 0 แล้วการ์ดล้างและวาดใหม่ = กระพริบ
     P.last = now;
     if (P.playing) {
       P.T = Math.min(P.maxT, P.T + dt * P.speed);
@@ -1046,8 +1047,7 @@ function winnerBoardCards(board, mine) {
           h('div', { class: 'hint', text: winnerScoreText(r) })),
         winnerLines(r, false),
         h('div', { class: 'resbtns', style: 'margin-top:10px' },
-          r.can_detail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อ', function () { showWinnerDetail(r); }) : null,
-          me ? btn('ghost small', 'ถอนการประกาศ', function () { askDeclineWinner(me); }) : null)));
+          r.can_detail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อ', function () { showWinnerDetail(r); }) : null)));
     });
     const card = h('div', { class: 'card' },
       h('div', { class: 'name', text: g.set }),
