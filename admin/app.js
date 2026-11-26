@@ -403,10 +403,11 @@ function shell(active, children) {
 }
 
 /* ---------- 8) รายการข้อสอบ ---------- */
-const L = { items: [], more: false, pool: '', q: '', loading: false };
+const L = { items: [], more: false, pool: 'arena', q: '', loading: false };   // pool: 'arena' = ข้อ Mini Test, 'practice' = ข้อฝึก (แยกแท็บ ไม่คละกัน)
 
 async function fetchPage(offset) {
   return api('GET', 'exam_questions?select=id,pool,created_at,exam_question_versions(id,version_no,qtype,body,image_path,choices)' +
+    '&pool=eq.' + encodeURIComponent(L.pool) +
     '&exam_question_versions.order=version_no.desc&order=id.desc&limit=' + PAGE + '&offset=' + offset);
 }
 
@@ -428,15 +429,15 @@ function latest(item) { return (item.exam_question_versions || [])[0] || null; }
 function renderList() {
   const search = h('input', { type: 'search', placeholder: 'ค้นหาในโจทย์ หรือพิมพ์เลขข้อ', value: L.q, 'aria-label': 'ค้นหา' });
   search.oninput = function () { L.q = search.value; renderListBody(); };
-  const sel = h('select', { 'aria-label': 'กลุ่ม', onchange: function () { L.pool = sel.value; renderListBody(); } },
-    h('option', { value: '', text: 'ทุกกลุ่ม' }),
-    h('option', { value: 'practice', text: 'ฝึก' }),
-    h('option', { value: 'arena', text: MINI_NAME }));
-  sel.value = L.pool;
+  const seg = h('div', { class: 'seg', role: 'tablist' },
+    h('button', { type: 'button', role: 'tab', class: 'seg-b' + (L.pool === 'arena' ? ' active' : ''), text: 'ข้อ ' + MINI_NAME,
+      onclick: function () { if (L.pool !== 'arena') { L.pool = 'arena'; showList(); } } }),
+    h('button', { type: 'button', role: 'tab', class: 'seg-b' + (L.pool === 'practice' ? ' active' : ''), text: 'ข้อฝึก',
+      onclick: function () { if (L.pool !== 'practice') { L.pool = 'practice'; showList(); } } }));
 
   const body = h('div', { id: 'listBody' });
   const content = h('div', null,
-    h('div', { class: 'toolbar' }, search, sel, h('span', { class: 'grow' }), btn('primary', '+ เพิ่มข้อใหม่', function () { openEditor(null); })),
+    h('div', { class: 'toolbar' }, seg, search, h('span', { class: 'grow' }), btn('primary', '+ เพิ่มข้อใหม่', function () { openEditor(null); })),
     body);
   mount(shell('bank', content));
   renderListBody();
@@ -454,7 +455,7 @@ function renderListBody() {
   });
   body.textContent = '';
   if (!rows.length) {
-    body.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px', text: L.items.length ? 'ไม่พบข้อที่ตรงกับตัวกรอง' : 'ยังไม่มีข้อสอบ กด "+ เพิ่มข้อใหม่" เพื่อเริ่ม' }));
+    body.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px', text: L.items.length ? 'ไม่พบข้อที่ตรงกับคำค้น (ค้นเฉพาะในแท็บนี้)' : 'ยังไม่มีข้อในกลุ่มนี้ กด "+ เพิ่มข้อใหม่" เพื่อเริ่ม' }));
   }
   rows.forEach(function (it) {
     const v = latest(it);
@@ -468,7 +469,7 @@ function renderListBody() {
           v ? h('span', { class: 'tag gray', text: TYPE_LABEL[v.qtype] || v.qtype }) : null,
           v ? h('span', { class: 'tag gray', text: 'v' + v.version_no + (it.exam_question_versions.length > 1 ? ' (มี ' + it.exam_question_versions.length + ' เวอร์ชัน)' : '') }) : null,
           hasImg ? h('span', { class: 'tag gray', text: '🖼 มีรูป' }) : null)),
-      h('div', { class: 'qact' },
+      h('div', { class: 'qact h' },
         btn('ghost small', 'แก้ไข', function () { openEditor(it.id); }),
         btn('ghost small', 'ลบ', function () { confirmDelete(it); }))));
   });

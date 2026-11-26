@@ -87,7 +87,7 @@ async function showSeasons(msg) {
           h('span', { class: 'tag gray', text: 'ป้ายกินเวลา: เกิน ' + s.slow_factor + ' เท่า' }),
           h('span', { class: 'tag gray', text: 'คนขั้นต่ำ ' + s.min_people + ' คน' }),
           h('span', { class: 'tag gray', text: nSets + ' ชุด' }))),
-      h('div', { class: 'qact' },
+      h('div', { class: 'qact h' },
         btn('ghost small', s.locked ? 'ดู' : 'แก้ไข', function () { openSeasonEditor(s); }),
         btn('ghost small', 'คะแนนทั้งหมด', function () { showSeasonScores(s); }),
         s.locked ? btn('ghost small', 'ผู้ชนะ', function () { showWinners(s); }) : null,
@@ -195,41 +195,75 @@ function validateSeason() {
    ===================================================================== */
 let SE = null;   // state ของตัวแก้ไขชุด
 
+let SETS_SUB = 'arena';   // แท็บในหน้าชุดข้อสอบ: 'arena' = Mini Test, 'practice' = ฝึก
+let SETS_ROWS = [];
+
+function segBtn(active, text, onclick) {
+  return h('button', { type: 'button', role: 'tab', class: 'seg-b' + (active ? ' active' : ''), text: text, onclick: onclick });
+}
+
+function setCard(s, inGroup) {
+  const isMini = s.mode === 'arena';
+  return h('div', { class: 'qitem' },
+    h('div', { class: 'qid', text: '#' + s.id }),
+    h('div', { class: 'qmain' },
+      h('div', { class: 'qsnip', text: s.name }),
+      h('div', { class: 'hint', text: 'เปิด ' + fmtDT(s.opens_at) + (s.closes_at ? '  ปิด ' + fmtDT(s.closes_at) : '  (ไม่กำหนดวันปิด)') }),
+      h('div', { class: 'qmeta' },
+        h('span', { class: 'tag gray', text: s.duration_minutes + ' นาที' }),
+        h('span', { class: 'tag gray', text: s.n_questions + ' ข้อ' }),
+        isMini && !inGroup && s.season_name ? h('span', { class: 'tag gray', text: 'Season: ' + s.season_name }) : null,
+        !isMini ? h('span', { class: 'tag gray', text: 'ฝึกได้ ' + s.practice_attempts_allowed + ' รอบ' }) : null,
+        s.n_attempts_all > 0 ? h('span', { class: 'tag', text: 'มีคนสอบแล้ว ' + s.n_attempts + ' รอบ' }) : null,
+        s.n_questions === 0 ? h('span', { class: 'tag mini', text: 'ยังไม่มีข้อ (นักเรียนเริ่มสอบไม่ได้)' }) : null)),
+    h('div', { class: 'qact h' },
+      btn('ghost small', 'แก้ไข', function () { openSetEditor(s.id); }),
+      btn('ghost small', 'ผู้สอบ', function () { showAttempts(s); }),
+      btn('ghost small', 'ทำสำเนา', function () { openSetEditor(null, null, s.id); }),
+      btn('ghost small', 'ลบ', function () { confirmDeleteSet(s); })));
+}
+
+function drawSets() {
+  const rows = SETS_ROWS;
+  const nMini = rows.filter(function (r) { return r.mode === 'arena'; }).length;
+  const nPrac = rows.length - nMini;
+  const seg = h('div', { class: 'seg', role: 'tablist' },
+    segBtn(SETS_SUB === 'arena', MINI_NAME + ' (' + nMini + ')', function () { SETS_SUB = 'arena'; drawSets(); }),
+    segBtn(SETS_SUB === 'practice', 'ฝึก (' + nPrac + ')', function () { SETS_SUB = 'practice'; drawSets(); }));
+  const body = h('div', null,
+    h('div', { class: 'toolbar' }, seg, h('span', { class: 'grow' }),
+      btn('primary', '+ สร้างชุดข้อสอบ', function () { openSetEditor(null, null, null, SETS_SUB); })));
+
+  const list = rows.filter(function (r) { return r.mode === SETS_SUB; });
+  if (!list.length) {
+    body.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px',
+      text: 'ยังไม่มีชุด' + (SETS_SUB === 'arena' ? ' ' + MINI_NAME : 'ฝึก') + ' กด \"+ สร้างชุดข้อสอบ\" เพื่อเริ่ม' }));
+  } else if (SETS_SUB === 'arena') {
+    // Mini Test: จัดกลุ่มตาม season
+    const groups = [];
+    const idx = {};
+    list.forEach(function (r) {
+      const k = r.season_name || '(ไม่ระบุ season)';
+      if (idx[k] === undefined) { idx[k] = groups.length; groups.push({ name: k, rows: [] }); }
+      groups[idx[k]].rows.push(r);
+    });
+    groups.forEach(function (g) {
+      body.appendChild(h('div', { class: 'hint', style: 'margin:18px 4px 0;font-weight:700', text: 'Season: ' + g.name + '  •  ' + g.rows.length + ' ชุด' }));
+      g.rows.forEach(function (r) { body.appendChild(setCard(r, true)); });
+    });
+  } else {
+    list.forEach(function (r) { body.appendChild(setCard(r, false)); });
+  }
+  mount(shell('sets', body));
+}
+
 async function showSets() {
   SS = null; SE = null;
   showBusy('กำลังโหลดชุดข้อสอบ...');
-  let rows;
-  try { rows = await rpc('exam_admin_list_sets', {}); }
+  try { SETS_ROWS = await rpc('exam_admin_list_sets', {}); }
   catch (e) { hideBusy(); handleErr(e, 'โหลดชุดข้อสอบไม่สำเร็จ'); return; }
   hideBusy();
-
-  const body = h('div', null,
-    h('div', { class: 'toolbar' }, h('span', { class: 'grow' }), btn('primary', '+ สร้างชุดข้อสอบ', function () { openSetEditor(null); })));
-  if (!rows.length) {
-    body.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px', text: 'ยังไม่มีชุดข้อสอบ กด "+ สร้างชุดข้อสอบ" เพื่อเริ่ม' }));
-  }
-  rows.forEach(function (s) {
-    const isMini = s.mode === 'arena';
-    body.appendChild(h('div', { class: 'qitem' },
-      h('div', { class: 'qid', text: '#' + s.id }),
-      h('div', { class: 'qmain' },
-        h('div', { class: 'qsnip', text: s.name }),
-        h('div', { class: 'hint', text: 'เปิด ' + fmtDT(s.opens_at) + (s.closes_at ? '  ปิด ' + fmtDT(s.closes_at) : '  (ไม่กำหนดวันปิด)') }),
-        h('div', { class: 'qmeta' },
-          h('span', { class: 'tag' + (isMini ? ' mini' : ''), text: isMini ? MINI_NAME : 'ฝึก' }),
-          h('span', { class: 'tag gray', text: s.duration_minutes + ' นาที' }),
-          h('span', { class: 'tag gray', text: s.n_questions + ' ข้อ' }),
-          isMini && s.season_name ? h('span', { class: 'tag gray', text: 'Season: ' + s.season_name }) : null,
-          !isMini ? h('span', { class: 'tag gray', text: 'ฝึกได้ ' + s.practice_attempts_allowed + ' รอบ' }) : null,
-          s.n_attempts_all > 0 ? h('span', { class: 'tag', text: 'มีคนสอบแล้ว ' + s.n_attempts + ' รอบ' }) : null,
-          s.n_questions === 0 ? h('span', { class: 'tag mini', text: 'ยังไม่มีข้อ (นักเรียนเริ่มสอบไม่ได้)' }) : null)),
-      h('div', { class: 'qact' },
-        btn('ghost small', 'แก้ไข', function () { openSetEditor(s.id); }),
-        btn('ghost small', 'ผู้สอบ', function () { showAttempts(s); }),
-        btn('ghost small', 'ทำสำเนา', function () { openSetEditor(null, null, s.id); }),
-        btn('ghost small', 'ลบ', function () { confirmDeleteSet(s); }))));
-  });
-  mount(shell('sets', body));
+  drawSets();
 }
 
 function confirmDeleteSet(s) {
@@ -258,7 +292,7 @@ function blankSet() {
   };
 }
 
-async function openSetEditor(id, msg, copyFromId) {
+async function openSetEditor(id, msg, copyFromId, newMode) {
   showBusy('กำลังโหลด...');
   const srcId = id || copyFromId || null;
   let seasons, setRows, listRows, vers = [];
@@ -273,6 +307,7 @@ async function openSetEditor(id, msg, copyFromId) {
   } catch (e) { hideBusy(); handleErr(e, 'โหลดไม่สำเร็จ'); return; }
 
   const se = blankSet();
+  if (!srcId && newMode) se.mode = newMode;   // สร้างใหม่จากแท็บไหน ใช้โหมดของแท็บนั้นเป็นค่าเริ่มต้น
   se.seasons = seasons || [];
   if (srcId) {
     if (!setRows || !setRows.length) { hideBusy(); handleErr(new Error('ไม่พบชุดข้อสอบนี้'), 'โหลดไม่สำเร็จ'); return; }
