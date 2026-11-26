@@ -21,7 +21,7 @@ const MAX_BYTES = 480 * 1024;               // ขนาดไฟล์สูง
 const PAGE = 100;                           // โหลดรายการทีละกี่ข้อ
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const POOL_LABEL = { practice: 'ฝึก', arena: MINI_NAME };
-const TYPE_LABEL = { mcq: 'เลือกตอบ', numeric: 'กรอกตัวเลข' };
+const TYPE_LABEL = { mcq: 'Multiple Choice', numeric: 'Grid-in' };
 
 /* ---------- 2) ตัวช่วย ---------- */
 function $(id) { return document.getElementById(id); }
@@ -665,8 +665,8 @@ function renderEditor() {
 
   // --- ประเภท ---
   const typeSel = h('select', { 'aria-label': 'ประเภท' },
-    h('option', { value: 'mcq', text: 'เลือกตอบ (A ถึง D)' }),
-    h('option', { value: 'numeric', text: 'กรอกตัวเลข' }));
+    h('option', { value: 'mcq', text: 'Multiple Choice' }),
+    h('option', { value: 'numeric', text: 'Grid-in' }));
   typeSel.value = ed.qtype;
   typeSel.onchange = function () { ed.qtype = typeSel.value; markDirty(); renderEditor(); };
 
