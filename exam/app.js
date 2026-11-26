@@ -274,10 +274,18 @@ async function showList() {
   // สิ่งที่ผู้ชนะต้องทำ: ยังไม่ได้ตอบ หรือครูขอให้แก้ข้อความ (ใช้ทำจุดแดง)
   const todo = mine.filter(function (w) { return w.status === 'invited' || w.status === 'rejected'; }).length;
 
+  const openCount = practice.length + arena.length;
+  const doneCount = sets.reduce(function (n, x) { return n + (x.results || []).length; }, 0);
   const root = h('div', { class: 'wrap wide' },
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: HOME_URL, text: '‹ กลับหน้าหลัก' })),
-    h('div', { class: 'page-title', text: 'ข้อสอบ' }),
-    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: 'สวัสดี ' + S.name }));
+    h('div', { class: 'hero' },
+      h('div', { class: 'avatar', 'aria-hidden': 'true', text: avatarOf(S.name) }),
+      h('div', { class: 'hero-txt' },
+        h('div', { class: 'hero-hi', text: 'สวัสดี ' + S.name + ' 👋' }),
+        h('div', { class: 'hero-sub', text: 'พร้อมท้าทายข้อสอบวันนี้หรือยัง?' })),
+      h('div', { class: 'hero-stats' },
+        h('div', { class: 'hstat' }, h('b', { text: String(openCount) }), h('span', { text: 'ชุดที่เปิดอยู่' })),
+        h('div', { class: 'hstat' }, h('b', { text: String(doneCount) }), h('span', { text: 'ผลสอบของฉัน' })))));
 
   const TOPS = [
     { id: 'practice', label: '📝 โหมดฝึก', dot: false },
@@ -388,7 +396,7 @@ function winnerPreview(w) {
 
 // การ์ดของผู้ชนะเอง: แสดงตามสถานะ (ยังไม่ตอบ / รอครูตรวจ / แสดงแล้ว / ครูขอให้แก้ / เลือกไม่ประกาศ)
 function winnerMineCard(w) {
-  const card = h('div', { class: 'card' },
+  const card = h('div', { class: 'card wm' },
     h('div', { class: 'name', text: (MEDAL[w.rank] || '🏆') + ' อันดับ ' + w.rank + ' ของ ' + w.set_name }),
     h('div', { class: 'meta', text: 'Season: ' + w.season_name + '  •  ' + winnerScoreText(w) }));
   const acts = h('div', { class: 'resbtns' });
@@ -1086,6 +1094,18 @@ async function showWinnersDetail(g) {
 
 // กระดานผู้ชนะ: จัดกลุ่มตาม season + ชุดสอบ แล้ววางเป็นโพเดียม (อันดับ 1 บนกลาง อันดับถัดไปแถวล่างซ้าย-ขวา)
 // mine = สิทธิ์ของตัวเอง ใช้ติดป้าย "คุณ" และปุ่มถอนการประกาศ
+// การ์ดผู้ชนะหนึ่งคนบนกระดาน: เหรียญ + อันดับ + ชื่อเล่น + คณะ + คำคม (อันดับ 1 มีมงกุฎ)
+function winnerCell(r, me, first) {
+  const rk = r.rank >= 1 && r.rank <= 3 ? r.rank : 3;
+  return h('div', { class: 'wcell r' + rk + (first ? ' first' : '') + (me ? ' me' : '') },
+    first ? h('div', { class: 'crown', 'aria-hidden': 'true', text: '👑' }) : null,
+    h('div', { class: 'wmedal', 'aria-hidden': 'true', text: MEDAL[r.rank] || '🏅' }),
+    h('div', { class: 'wcell-head' }, 'อันดับ ' + r.rank, me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
+    h('div', { class: 'wnick', text: r.nickname || '-' }),
+    r.faculty ? h('div', { class: 'wfield' }, h('span', { class: 'wlab', text: 'คณะที่อยากเข้า' }), h('span', { class: 'wval', text: r.faculty })) : null,
+    r.message ? h('div', { class: 'wquote' }, h('span', { class: 'wlab', text: 'อยากบอกเพื่อนๆ / คำคม' }), h('span', { class: 'wval', text: r.message })) : null);
+}
+
 function winnerBoardCards(board, mine, sets) {
   const mineById = {};
   (mine || []).forEach(function (w) { mineById[w.id] = w; });
@@ -1101,21 +1121,19 @@ function winnerBoardCards(board, mine, sets) {
     g.rows.forEach(function (r, i) {
       const me = mineById[r.id];
       const first = g.rows.length >= 3 && i === 0;   // 3 คนขึ้นไป: คนแรกอยู่บนกลาง
-      pod.appendChild(h('div', { class: 'wcell' + (first ? ' first' : '') + (me ? ' me' : '') },
-        h('div', { class: 'wcell-head' },
-          (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
-          me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
-        winnerLines(r, false)));
+      pod.appendChild(winnerCell(r, me, first));
     });
     const myRes = (sets || []).filter(function (x) {
       return x.mode !== 'practice' && x.name === g.set && x.season_name === g.season && x.results && x.results.length;
     })[0];
     const canDetail = g.rows.some(function (r) { return r.can_detail; });
-    const card = h('div', { class: 'card' },
-      h('div', { class: 'wc-head' },
-        h('div', null,
-          h('div', { class: 'name', text: g.set }),
-          h('div', { class: 'meta', text: 'Season: ' + g.season })),
+    const card = h('div', { class: 'card wb' },
+      h('div', { class: 'wb-head' },
+        h('div', { class: 'wb-title' },
+          h('div', { class: 'wb-trophy', 'aria-hidden': 'true', text: '🏆' }),
+          h('div', null,
+            h('div', { class: 'name', text: g.set }),
+            h('div', { class: 'meta', text: 'Season: ' + g.season }))),
         h('div', { class: 'wc-btns' },
           canDetail ? btn('ghost small', 'ดูคะแนนและเวลารายข้อของผู้ชนะ', function () { showWinnersDetail(g); }) : null,
           myRes ? btn('ghost small', 'ดูผลของฉัน', function () { showResult(myRes.results[0].attempt_id); }) : null)),
@@ -1127,51 +1145,52 @@ function winnerBoardCards(board, mine, sets) {
   });
 }
 
+const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🦁', '🐙', '🦉', '🐳', '🐰', '🐧'];
+function avatarOf(name) {   // อวาตาร์อัตโนมัติจากชื่อ (ยังไม่ให้เลือกเอง)
+  let n = 0;
+  String(name || '').split('').forEach(function (c) { n += c.charCodeAt(0); });
+  return AVATARS[n % AVATARS.length];
+}
+
 function setCard(s) {
   const isArena = s.mode === 'arena';
-  const meta = ['เวลา ' + s.duration_minutes + ' นาที'];
+  const chips = [h('span', { class: 'chip', text: '⏱ ' + s.duration_minutes + ' นาที' })];
   if (isArena) {
-    if (s.season_name) meta.push('Season: ' + s.season_name);
-    if (s.season_ends_at) meta.push('ปิด ' + fmtDateTime(s.season_ends_at));
+    if (s.season_name) chips.push(h('span', { class: 'chip', text: '📅 ' + s.season_name }));
+    if (s.season_ends_at) chips.push(h('span', { class: 'chip', text: '🔒 ปิด ' + fmtDateTime(s.season_ends_at) }));
   } else if (s.attempts_allowed !== null && s.attempts_allowed !== undefined) {
-    meta.push('ทำไปแล้ว ' + s.attempts_used + ' / ' + s.attempts_allowed + ' รอบ');
+    const dots = h('span', { class: 'dots', 'aria-hidden': 'true' });
+    for (let i = 0; i < s.attempts_allowed; i++) dots.appendChild(h('i', { class: i < s.attempts_used ? 'on' : '' }));
+    chips.push(h('span', { class: 'chip' }, dots, 'ทำแล้ว ' + s.attempts_used + ' / ' + s.attempts_allowed + ' รอบ'));
   }
 
-  const card = h('div', { class: 'card' },
-    h('div', { class: 'name' }, h('span', { class: 'tag' + (isArena ? ' arena' : ''), text: isArena ? MINI_NAME : 'ฝึก' }), s.name),
-    h('div', { class: 'meta', text: meta.join(' • ') }));
+  const status = { start: ['ok', 'พร้อมเริ่ม'], resume: ['warn', '⏳ ทำค้างอยู่'], done: ['done', '✓ ทำแล้ว'], closing: ['off', 'ปิดรับแล้ว'] }[s.action] || ['off', 'ปิดแล้ว'];
 
+  const act = h('div', { class: 'sc-act' });
   if (s.action === 'start') {
-    card.appendChild(btn('primary', 'เริ่มทำข้อสอบ', function () { showRules(s); }));
+    act.appendChild(btn('primary', 'เริ่มทำข้อสอบ  →', function () { showRules(s); }));
   } else if (s.action === 'resume') {
-    card.appendChild(btn('primary', 'ทำต่อ (เหลือ ' + fmtClock(s.seconds_left) + ')', function (ev) {
+    act.appendChild(btn('primary', 'ทำต่อ (เหลือ ' + fmtClock(s.seconds_left) + ')  →', function (ev) {
       startAttempt(s, false, ev.currentTarget);
     }));
-  } else if (s.action === 'done') {
-    const b = btn('ghost', isArena ? 'สอบแล้ว' : 'ทำครบรอบแล้ว', null);
-    b.disabled = true;
-    card.appendChild(b);
-  } else if (s.action === 'closing') {
-    const b = btn('ghost', 'ปิดรับแล้ว', null);
-    b.disabled = true;
-    card.appendChild(b);
-    card.appendChild(h('div', { class: 'note', text: 'เวลาที่เหลือของ season น้อยกว่าเวลาสอบ จึงเริ่มไม่ได้แล้ว' }));
-  } else {
-    const b = btn('ghost', 'ปิดแล้ว', null);
-    b.disabled = true;
-    card.appendChild(b);
   }
-  if (s.results && s.results.length) {
-    const wrap = h('div', { class: 'resbtns' });
-    s.results.forEach(function (r) {
-      wrap.appendChild(h('button', {
-        type: 'button', class: 'btn ghost small',
-        text: isArena ? 'ดูผลของฉัน' : 'ดูผลรอบที่ ' + r.attempt_no,
-        onclick: function () { showResult(r.attempt_id); }
-      }));
-    });
-    card.appendChild(wrap);
-  }
+  (s.results || []).forEach(function (r) {
+    act.appendChild(h('button', {
+      type: 'button', class: 'btn ghost small',
+      text: isArena ? '📊 ดูผลของฉัน' : '📊 ดูผลรอบที่ ' + r.attempt_no,
+      onclick: function () { showResult(r.attempt_id); }
+    }));
+  });
+
+  const card = h('div', { class: 'card sc' + (isArena ? ' arena' : '') },
+    h('div', { class: 'si ' + (isArena ? 'arena' : 'practice'), 'aria-hidden': 'true', text: isArena ? '🏆' : '✏️' }),
+    h('div', { class: 'sc-main' },
+      h('div', { class: 'sc-top' },
+        h('div', { class: 'name', text: s.name }),
+        h('span', { class: 'pill ' + status[0], text: status[1] })),
+      h('div', { class: 'chips' }, h('span', { class: 'chip kind' + (isArena ? ' arena' : ''), text: isArena ? MINI_NAME : 'โหมดฝึก' }), chips),
+      s.action === 'closing' ? h('div', { class: 'note', text: 'เวลาที่เหลือของ season น้อยกว่าเวลาสอบ จึงเริ่มไม่ได้แล้ว' }) : null,
+      act.children.length ? act : null));
   return card;
 }
 
@@ -1785,11 +1804,47 @@ async function loadWinnerCols(a, attemptId) {
   return cols;
 }
 
-function statBox(label, value, sub) {
-  return h('div', { class: 'stat' },
-    h('div', { class: 'sv', text: String(value) }),
-    h('div', { class: 'sl', text: label }),
-    sub ? h('div', { class: 'ss', text: sub }) : null);
+function statBox(label, value, sub, icon) {
+  return h('div', { class: 'stat' + (icon ? ' has-ic' : '') },
+    icon ? h('div', { class: 'sic', 'aria-hidden': 'true', text: icon }) : null,
+    h('div', { class: 'stat-t' },
+      h('div', { class: 'sv', text: String(value) }),
+      h('div', { class: 'sl', text: label }),
+      sub ? h('div', { class: 'ss', text: sub }) : null));
+}
+
+// วงกลมแสดงเปอร์เซ็นต์คะแนน (SVG) เล่นแอนิเมชันเติมวงตอนเปิดหน้า
+function scoreRing(pct, label) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const R = 52, C = 2 * Math.PI * R;
+  function el(tag, attrs) { const e = document.createElementNS(NS, tag); Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); }); return e; }
+  const svg = el('svg', { viewBox: '0 0 120 120', class: 'ring', role: 'img', 'aria-label': 'คะแนน ' + label + ' คิดเป็น ' + pct + ' เปอร์เซ็นต์' });
+  svg.appendChild(el('circle', { cx: 60, cy: 60, r: R, fill: 'none', stroke: 'rgba(255,255,255,.28)', 'stroke-width': 11 }));
+  const arc = el('circle', { cx: 60, cy: 60, r: R, fill: 'none', stroke: '#fff', 'stroke-width': 11, 'stroke-linecap': 'round',
+    transform: 'rotate(-90 60 60)', 'stroke-dasharray': '0 ' + C, 'stroke-opacity': 0, class: 'ring-arc' });
+  svg.appendChild(arc);
+  const t = el('text', { x: 60, y: 60, 'text-anchor': 'middle', 'dominant-baseline': 'central', class: 'ring-t' });
+  t.textContent = label;
+  svg.appendChild(t);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { if (pct > 0) { arc.setAttribute('stroke-opacity', 1); arc.setAttribute('stroke-dasharray', (C * pct / 100) + ' ' + C); } }); });
+  return svg;
+}
+
+// แบนเนอร์สรุปผล: วงคะแนน + ข้อความให้กำลังใจตามผลที่ได้
+function resultHero(a, sm, isMini, parts) {
+  const pct = sm.total > 0 ? Math.round(sm.score * 100 / sm.total) : 0;
+  const mood = pct >= 80 ? { cls: 'great', msg: '🎉 เก่งมาก!', sub: 'ทำได้ยอดเยี่ยม' }
+    : pct >= 50 ? { cls: 'good', msg: '💪 ทำได้ดี', sub: 'อีกนิดเดียวก็เต็มแล้ว' }
+    : { cls: 'try', msg: '🌱 สู้ต่ออีกนิด', sub: 'ดูข้อที่พลาดแล้วจะเก่งขึ้นแน่นอน' };
+  return h('div', { class: 'rhero ' + mood.cls },
+    scoreRing(pct, sm.score + '/' + sm.total),
+    h('div', { class: 'rhero-txt' },
+      h('div', { class: 'rhero-tags' },
+        h('span', { class: 'rtag', text: isMini ? '🏆 ' + MINI_NAME : '✏️ โหมดฝึก' }),
+        isMini ? null : h('span', { class: 'rtag', text: 'รอบที่ ' + a.attempt_no })),
+      h('div', { class: 'rhero-set', text: a.set_name }),
+      h('div', { class: 'rhero-msg', text: mood.msg }),
+      h('div', { class: 'rhero-sub', text: mood.sub + (parts.length ? '  •  ' + parts.join(' • ') : '') })));
 }
 
 function renderResult(res, scrollToList) {
@@ -1811,19 +1866,15 @@ function renderResult(res, scrollToList) {
   const root = h('div', { class: 'wrap' },
     h('div', { class: 'topbar' },
       h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); showList(); }, text: '‹ กลับรายการข้อสอบ' })),
-    h('div', { class: 'page-title', text: 'ผลลัพธ์: ' + a.set_name }),
-    h('div', { class: 'hint', style: 'margin:4px 4px 0' },
-      h('span', { class: 'tag' + (isMini ? ' arena' : ''), text: isMini ? MINI_NAME : 'ฝึก' }),
-      isMini ? '' : 'รอบที่ ' + a.attempt_no));
+    resultHero(a, sm, isMini, parts));
 
-  // สรุป 3 อย่าง (Mini Test เพิ่มเปอร์เซ็นไทล์ความเร็ว)
+  // สรุปเพิ่มเติม (Mini Test เพิ่มเปอร์เซ็นไทล์ความเร็ว) คะแนนอยู่ในแบนเนอร์ด้านบนแล้ว
   root.appendChild(h('div', { class: 'stats' },
-    statBox('คะแนน', sm.score + ' / ' + sm.total, parts.length ? parts.join(' • ') : null),
-    statBox('เวลารวมในข้อ', fmtClock(sm.time_secs)),
+    statBox('เวลารวมในข้อ', fmtClock(sm.time_secs), null, '⏱'),
     isMini ? (function () {
       const noData = sm.speed_percentile === null || sm.speed_percentile === undefined;
       return statBox('เปอร์เซ็นไทล์ความเร็ว', noData ? '–' : sm.speed_percentile,
-        noData ? 'ข้อมูลยังไม่พอ' : 'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)');
+        noData ? 'ข้อมูลยังไม่พอ' : 'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)', '⚡');
     })() : null));
 
   // โหมดฝึก: ปุ่มย้อนดูการสอบรอบนี้ (เล่น animation ตามลำดับเหตุการณ์จริง)
