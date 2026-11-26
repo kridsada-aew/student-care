@@ -89,6 +89,7 @@ async function showSeasons(msg) {
           h('span', { class: 'tag gray', text: nSets + ' ชุด' }))),
       h('div', { class: 'qact' },
         btn('ghost small', s.locked ? 'ดู' : 'แก้ไข', function () { openSeasonEditor(s); }),
+        btn('ghost small', 'คะแนนทั้งหมด', function () { showSeasonScores(s); }),
         s.locked ? btn('ghost small', 'ผู้ชนะ', function () { showWinners(s); }) : null,
         btn('ghost small', s.locked ? 'ปลดล็อกผล' : 'ล็อกผล', function () { confirmSeasonLock(s); }),
         s.locked ? null : btn('ghost small', 'ลบ', function () { confirmDeleteSeason(s, nSets); }))));
@@ -712,7 +713,7 @@ function confirmSeasonLock(s) {
     icon: lock ? '🔒' : '🔓',
     title: lock ? 'ล็อกผล season' : 'ปลดล็อก season',
     message: lock
-      ? 'ล็อกผล "' + s.name + '" ใช่ไหม?\nนักเรียนจะเริ่มสอบใหม่ใน season นี้ไม่ได้ และอันดับถือเป็นผลสุดท้าย ระบบปิดรอบที่เลยเวลาแล้วให้เอง ถ้ายังมีคนกำลังสอบอยู่จะล็อกไม่ได้ ต้องรอให้ครบเวลาก่อน'
+      ? 'ล็อกผล "' + s.name + '" ใช่ไหม?\nนักเรียนจะเริ่มสอบใหม่ใน season นี้ไม่ได้ และอันดับถือเป็นผลสุดท้าย ระบบปิดรอบที่เลยเวลาแล้วให้เอง ถ้ายังมีคนกำลังสอบอยู่จะล็อกไม่ได้ ต้องรอให้ครบเวลาก่อน\n\nดูคะแนนทุกคนก่อนล็อกได้ที่ปุ่ม "คะแนนทั้งหมด" ของ season นี้'
       : 'ปลดล็อก "' + s.name + '" ใช่ไหม?\nใช้เมื่อล็อกผิด จะแก้ไข season ได้อีก และถ้ายังไม่ถึงวันจบ นักเรียนจะเริ่มสอบได้อีก อันดับที่เห็นจะเป็นค่าชั่วคราว',
     buttons: [
       { text: 'ยกเลิก', cls: 'ghost', focus: true },
@@ -815,6 +816,83 @@ function winLine(label, value, bold) {
 function fmtSecs(sec) {
   sec = Math.max(0, Math.round(sec || 0));
   return Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
+}
+
+/* =====================================================================
+   คะแนนทั้งหมดของ season (ดูได้ทั้งก่อนและหลังล็อกผล)
+   - ข้อมูลจาก exam_admin_season_scores (อ่านอย่างเดียว ใช้สูตรเดียวกับ exam_compute_winners_)
+   - ก่อนล็อก = อันดับชั่วคราว  /  ไม่เปลี่ยนตรรกะการล็อกหรือการสร้างผู้ชนะเดิม
+   ===================================================================== */
+async function showSeasonScores(s) {
+  SS = null; SE = null;
+  showBusy('กำลังโหลดคะแนน...');
+  let res;
+  try { res = await rpc('exam_admin_season_scores', { p_season_id: s.id }); }
+  catch (e) { hideBusy(); handleErr(e, 'โหลดคะแนนไม่สำเร็จ'); return; }
+  hideBusy();
+  const rows = (res && res.rows) || [];
+  const minP = res && res.min_people !== undefined && res.min_people !== null ? res.min_people : s.min_people;
+  const locked = !!(res && res.locked);
+
+  const sets = [];
+  const idx = {};
+  rows.forEach(function (r) {
+    if (idx[r.set_id] === undefined) { idx[r.set_id] = sets.length; sets.push({ id: r.set_id, name: r.set_name, rows: [] }); }
+    sets[idx[r.set_id]].rows.push(r);
+  });
+
+  const search = h('input', { type: 'search', placeholder: 'ค้นหาชื่อหรือรหัสนักเรียน', 'aria-label': 'ค้นหา' });
+  const list = h('div', null);
+
+  function draw() {
+    const q = search.value.trim().toLowerCase();
+    list.textContent = '';
+    let shown = 0;
+    sets.forEach(function (g) {
+      const part = g.rows[0].participants;
+      const vis = g.rows.filter(function (r) {
+        return !q || ((r.name || '') + ' ' + r.student_id).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!vis.length) return;
+      list.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px 2px;font-weight:700', text: 'ชุด: ' + g.name + '  •  ผู้สอบ ' + part + ' คน' }));
+      list.appendChild(h('div', { class: 'hint', style: 'margin:0 4px 6px',
+        text: part >= minP
+          ? 'ครบเกณฑ์ขั้นต่ำ ' + minP + ' คน  •  อันดับ 1-3 จะเป็นผู้ชนะของชุดนี้'
+          : 'น้อยกว่าเกณฑ์ขั้นต่ำ ' + minP + ' คน  •  ชุดนี้จะไม่มีผู้ชนะ (นักเรียนยังดูผลของตัวเองได้)' }));
+      vis.forEach(function (r) {
+        shown++;
+        const st = ATT_STATUS[r.status] || { t: r.status, c: 'gray' };
+        list.appendChild(h('div', { class: 'qitem' },
+          h('div', { class: 'qid', text: 'อันดับ ' + r.rank }),
+          h('div', { class: 'qmain' },
+            h('div', { class: 'qsnip', text: (r.name || '(ไม่พบชื่อในระบบ)') + '  (รหัส ' + r.student_id + ')' }),
+            h('div', { class: 'hint', text: 'คะแนน ' + r.score + '/' + r.total + '  •  เวลารวม ' + fmtSecs(r.total_secs) +
+              (r.submitted_at ? '  •  ส่ง ' + fmtDT(r.submitted_at) : '') }),
+            h('div', { class: 'qmeta' },
+              h('span', { class: 'tag ' + st.c, text: st.t }),
+              r.is_top3 ? h('span', { class: 'tag', text: '🏆 Top 3' }) : null))));
+      });
+    });
+    if (!shown) {
+      list.appendChild(h('div', { class: 'hint', style: 'margin:16px 4px',
+        text: rows.length ? 'ไม่พบรายการที่ตรงกับคำค้น' : 'ยังไม่มีผู้ที่สอบเสร็จใน season นี้' }));
+    }
+  }
+  search.oninput = draw;
+  draw();
+
+  const back = btn('ghost small', '‹ กลับรายการ season', function () { showSeasons(); });
+  mount(h('div', { class: 'wrap' },
+    h('div', { class: 'topbar' }, back, h('div', { class: 'who', text: 'เข้าสู่ระบบ: ' + (SESS ? SESS.user.email : '') })),
+    h('div', { class: 'card', style: 'margin-top:12px' },
+      h('h3', { text: 'คะแนนทั้งหมด: ' + s.name }),
+      h('div', { class: 'hint', text: locked
+        ? 'ล็อกผลแล้ว: อันดับด้านล่างเป็นผลสุดท้าย (ผู้ชนะถูกสร้างแล้วในหน้า \"ผู้ชนะ\")'
+        : 'ยังไม่ล็อกผล: อันดับด้านล่างเป็นค่าชั่วคราว ระบบจะสรุป Top 3 ของแต่ละชุดเมื่อกด \"ล็อกผล\"' }),
+      h('div', { class: 'hint', style: 'margin-top:6px',
+        text: 'เรียงตามเกณฑ์เดียวกับการหาผู้ชนะ (คะแนนมากสุด เสมอกันดูเวลารวมน้อยกว่า) แสดงเฉพาะรอบที่ส่งแล้วหรือหมดเวลา ไม่รวมคนที่กำลังสอบและรอบที่ถูกยกเลิก' })),
+    h('div', { class: 'toolbar' }, search),
+    list));
 }
 
 async function showWinners(s, msg) {
