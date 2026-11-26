@@ -192,7 +192,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rq.correct { border-left-color: #22c55e; }
 .rq.wrong { border-left-color: #ef4444; }
 .rq.out_of_time, .rq.blank { border-left-color: #94a3b8; }
-.rq-sum { list-style: none; cursor: pointer; padding: 12px 14px; }
+.rq-sum { list-style: none; padding: 12px 14px; }
 .rq-sum::-webkit-details-marker { display: none; }
 .rq-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .rq-n { font-weight: 600; }
@@ -200,6 +200,7 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rq-times { margin-left: auto; font-variant-numeric: tabular-nums; }
 .rq-tl { font-size: 13px; font-weight: 600; color: var(--muted); }
 .rq-tv { display: flex; flex-wrap: wrap; gap: 2px 14px; font-weight: 500; }
+.rq-tv span { overflow-wrap: anywhere; }
 .rq-tv b { margin-right: 6px; font-weight: 700; }
 .rq-tv .ok { color: #15803d; }
 .rq-tv .bad { color: #b91c1c; }
@@ -361,3 +362,13 @@ body.qm-open { overflow: hidden; }
 .rp-stage { margin-top: 12px; }
 .rp-pill.more { border-style: dashed; color: var(--primary-d); }
 .rp-pill.more:disabled { opacity: .6; cursor: wait; }
+
+/* รายข้อ Mini Test แบบการ์ดทีละหน้า */
+.qp-chips { position: relative; display: flex; gap: 8px; margin-top: 8px; overflow-x: auto; padding: 2px 2px 6px; }
+.qp-chip { flex: none; min-width: 42px; height: 42px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--muted); font-size: 15px; font-weight: 600; cursor: pointer; }
+.qp-chip.correct { border-color: #22c55e; color: #15803d; }
+.qp-chip.wrong { border-color: #ef4444; color: #b91c1c; }
+.qp-chip.on { background: var(--primary-l); box-shadow: 0 0 0 2px var(--primary); }
+.qp-chip:focus-visible { outline: 3px solid rgba(79, 70, 229, .4); outline-offset: 2px; }
+.qp-nav { display: flex; gap: 8px; margin-top: 12px; }
+.qp-nav .btn { flex: 1 1 0; width: auto; margin-top: 0; }

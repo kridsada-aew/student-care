@@ -241,6 +241,7 @@ function boot() {
 // LIST_TAB: 'practice' | 'arena'   LIST_SUB (เฉพาะ Mini Test): 'open' | 'ended' | 'win'
 let LIST_TAB = 'practice';
 let LIST_SUB = 'open';
+let LAST_SETS = null;   // รายการชุดล่าสุดจาก showList (ใช้หา season ของผลที่เปิดดู)
 try {
   LIST_TAB = sessionStorage.getItem('exam_list_tab') || 'practice';
   LIST_SUB = sessionStorage.getItem('exam_list_sub') || 'open';
@@ -262,6 +263,7 @@ async function showList() {
   if (!win || !win.ok) win = null;
 
   const sets = res.sets || [];
+  LAST_SETS = sets;
   const practice = sets.filter(function (s) { return s.mode === 'practice' && s.phase === 'open'; });
   const arena = sets.filter(function (s) { return s.mode === 'arena' && s.phase === 'open'; });
   const endedPractice = sets.filter(function (s) { return s.mode === 'practice' && s.phase !== 'open'; });
@@ -1751,7 +1753,38 @@ async function showResult(attemptId, scrollToList) {
   }
   try { history.replaceState(null, '', '#/r/' + attemptId); } catch (e) { /* ไม่เป็นไร */ }
   res.my_attempt_id = attemptId;   // renderResult ใช้เปิดตัวย้อนดูการสอบ
+  res.winner_cols = [];
+  if (res.attempt && res.attempt.mode === 'arena') {
+    try { res.winner_cols = await loadWinnerCols(res.attempt, attemptId); } catch (e) { res.winner_cols = []; }   // โหลดไม่ได้ก็แสดงแค่เวลาของคุณ
+  }
   renderResult(res, scrollToList);
+}
+
+// เวลารายข้อของผู้ชนะที่ประกาศแล้วในชุดเดียวกัน (ใช้ชื่อเล่นแทน A/B/C) ยังไม่มีผู้ชนะ = ไม่มีคอลัมน์
+async function loadWinnerCols(a, attemptId) {
+  let season = a.season_name || null;
+  if (!season && LAST_SETS) {
+    const s = LAST_SETS.filter(function (x) {
+      return (x.results || []).some(function (r) { return String(r.attempt_id) === String(attemptId); });
+    })[0];
+    if (s) season = s.season_name;
+  }
+  const ov = await rpcRetry('exam_winner_overview', { p_token: S.token }, 2);
+  if (!ov || !ov.ok) return [];
+  const rows = (ov.board || []).filter(function (r) {
+    return r.set_name === a.set_name && (!season || r.season_name === season) && r.can_detail;
+  }).sort(function (x, y) { return x.rank - y.rank; });
+  const dets = await Promise.all(rows.map(function (r) {
+    return rpcRetry('exam_winner_detail', { p_token: S.token, p_winner_id: r.id });
+  }));
+  const cols = [];
+  dets.forEach(function (d) {
+    if (!d || !d.ok || d.is_me) return;   // ของตัวเองมีคอลัมน์ "คุณ" อยู่แล้ว
+    const byQ = {};
+    (d.questions || []).forEach(function (q) { byQ[q.q_order] = q; });
+    cols.push({ label: d.nickname || ('#' + d.rank), byQ: byQ });
+  });
+  return cols;
 }
 
 function statBox(label, value, sub) {
@@ -1789,11 +1822,11 @@ function renderResult(res, scrollToList) {
   root.appendChild(h('div', { class: 'stats' },
     statBox('คะแนน', sm.score + ' / ' + sm.total, parts.length ? parts.join(' • ') : null),
     statBox('เวลารวมในข้อ', fmtClock(sm.time_secs)),
-    isMini ? statBox('เวลาที่เสียไปกับข้อผิด', fmtClock(sm.wrong_secs),
-      sm.wrong_slow_count > 0 ? 'ติดป้ายกินเวลา ' + sm.wrong_slow_count + ' ข้อ (' + fmtClock(sm.wrong_slow_secs) + ')' : null) : null,
-    isMini ? statBox('เปอร์เซ็นไทล์ความเร็ว',
-      sm.speed_percentile === null || sm.speed_percentile === undefined ? 'ข้อมูลยังไม่พอ' : sm.speed_percentile,
-      'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)') : null));
+    isMini ? (function () {
+      const noData = sm.speed_percentile === null || sm.speed_percentile === undefined;
+      return statBox('เปอร์เซ็นไทล์ความเร็ว', noData ? '–' : sm.speed_percentile,
+        noData ? 'ข้อมูลยังไม่พอ' : 'ยิ่งสูงยิ่งเร็ว (วัดเฉพาะข้อที่ตอบถูก)');
+    })() : null));
 
   // โหมดฝึก: ปุ่มย้อนดูการสอบรอบนี้ (เล่น animation ตามลำดับเหตุการณ์จริง)
   if (!isMini && res.my_attempt_id) {
@@ -1871,19 +1904,14 @@ function renderResult(res, scrollToList) {
     }
   }
 
-  // Mini Test: วิธีทำข้อสอบของผู้ทำคะแนนสูงสุด (ไม่แสดงอะไรเลยถ้าคนทำน้อยกว่าเกณฑ์)
-  const tpSec = isMini ? topProfileSection(res, qs) : null;
-  if (tpSec) root.appendChild(tpSec);
-
   // รายข้อ (เฉพาะ Mini Test: มีสถิติและ Top 3 ต่อข้อ / โหมดฝึกใช้ตารางด้านบนแทน)
   if (isMini) {
-    root.appendChild(h('div', { class: 'sec', id: 'qlist', text: hidden ? 'รายข้อ (แตะเพื่อดูโจทย์และสถิติ)' : 'รายข้อ (แตะเพื่อดูโจทย์ เฉลย และสถิติ)' }));
+    root.appendChild(h('div', { class: 'sec', id: 'qlist', text: 'รายข้อ' }));
     if (hidden) {
       root.appendChild(h('div', { class: 'hint', style: 'margin:2px 4px 8px',
         text: '🔒 เฉลยและคำอธิบายของ ' + MINI_NAME + ' จะเปิดให้ดูเมื่อ season ถูกล็อกผล กลับมาดูอีกครั้งได้ที่ \"ดูผลของฉัน\"' }));
     }
-    const tcols = questionTimeCols(res);
-    qs.forEach(function (q) { root.appendChild(resultQuestion(q, a, isMini, hidden, tcols)); });
+    root.appendChild(questionPager(qs, a, isMini, hidden, res.winner_cols || []));
   }
 
   mount(root);
@@ -2008,19 +2036,39 @@ function openQuestionModal(qs, idx) {
   closeB.focus();
 }
 
-// คอลัมน์เวลาของผู้ทำคะแนนสูงสุด (A, B, C ตามลำดับเดียวกับตาราง "วิธีทำข้อสอบของผู้ทำคะแนนสูงสุด" ไม่รวมตัวเอง)
-function questionTimeCols(res) {
-  const tp = res && res.top_profiles;
-  if (!tp || !tp.people) return [];
-  const out = [];
-  let letter = 0;
-  tp.people.forEach(function (p) {
-    if (p.is_me) return;
-    const byQ = {};
-    (p.questions || []).forEach(function (q) { byQ[q.q_order] = q; });
-    out.push({ label: String.fromCharCode(65 + (letter++)), byQ: byQ });
+// รายข้อแบบการ์ดทีละหน้า: แถบเลขข้อด้านบน + ปุ่มก่อนหน้า/ถัดไป (การ์ดแสดงโจทย์เต็ม ตัวเลือก เฉลย และสถิติ)
+function questionPager(qs, a, isMini, hidden, tcols) {
+  if (!qs.length) return h('div', null);
+  let cur = 0;
+  const chips = h('div', { class: 'qp-chips', role: 'tablist' });
+  const cardBox = h('div', null);
+  const prev = btn('ghost', '‹ ข้อก่อนหน้า', function () { go(cur - 1, true); });
+  const next = btn('primary', 'ข้อถัดไป ›', function () { go(cur + 1, true); });
+  const box = h('div', null, chips, cardBox, h('div', { class: 'qp-nav' }, prev, next));
+
+  function draw() {
+    Array.prototype.forEach.call(chips.children, function (c, i) {
+      c.className = 'qp-chip ' + (qs[i].result || '') + (i === cur ? ' on' : '');
+      c.setAttribute('aria-selected', i === cur ? 'true' : 'false');
+    });
+    const el = chips.children[cur];
+    if (el) chips.scrollLeft = el.offsetLeft - chips.clientWidth / 2 + el.offsetWidth / 2;
+    cardBox.textContent = '';
+    cardBox.appendChild(resultQuestion(qs[cur], a, isMini, hidden, tcols));
+    prev.disabled = cur === 0;
+    next.disabled = cur === qs.length - 1;
+  }
+  function go(i, scroll) {
+    if (i < 0 || i >= qs.length) return;
+    cur = i;
+    draw();
+    if (scroll && chips.scrollIntoView) chips.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  qs.forEach(function (q, i) {
+    chips.appendChild(h('button', { type: 'button', role: 'tab', text: String(q.q_order), onclick: function () { go(i, false); } }));
   });
-  return out;
+  draw();
+  return box;
 }
 
 function resultQuestion(q, a, isMini, hidden, tcols) {
@@ -2032,7 +2080,7 @@ function resultQuestion(q, a, isMini, hidden, tcols) {
   if (q.slow) badges.push('⏱ ใช้เวลานานเกิน ' + (a.slow_factor ? a.slow_factor + ' เท่า' : 'เกณฑ์') + 'ของค่าเฉลี่ย');
   if (q.marked) badges.push('⚑ ติดดาว');
 
-  const sum = h('summary', { class: 'rq-sum' },
+  const sum = h('div', { class: 'rq-sum' },
     h('div', { class: 'rq-row' },
       h('span', { class: 'rq-ic', text: icons[q.result] || '' }),
       h('span', { class: 'rq-n', text: 'ข้อ ' + q.q_order }),
@@ -2040,12 +2088,7 @@ function resultQuestion(q, a, isMini, hidden, tcols) {
       timesBlock(q, tcols)),
     badges.length ? h('div', { class: 'rq-badges' }, badges.map(function (b) { return h('span', { class: 'bd', text: b }); })) : null);
 
-  const det = h('details', { class: 'rq ' + q.result }, sum);
-  let built = false;
-  det.ontoggle = function () {
-    if (det.open && !built) { built = true; det.appendChild(resultBody(q, isMini, hidden)); }
-  };
-  return det;
+  return h('div', { class: 'rq ' + q.result }, sum, resultBody(q, isMini, hidden));
 }
 
 function timesBlock(q, tcols) {
