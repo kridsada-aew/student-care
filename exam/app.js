@@ -1097,16 +1097,14 @@ function winnerBoardCards(board, mine, sets) {
     groups[index[key]].rows.push(r);
   });
   return groups.map(function (g) {
-    const pod = h('div', { class: 'wpod' });
+    const pod = h('div', { class: 'wpod' + (g.rows.length >= 3 ? ' pod3' : '') });
     g.rows.forEach(function (r, i) {
       const me = mineById[r.id];
       const first = g.rows.length >= 3 && i === 0;   // 3 คนขึ้นไป: คนแรกอยู่บนกลาง
       pod.appendChild(h('div', { class: 'wcell' + (first ? ' first' : '') + (me ? ' me' : '') },
         h('div', { class: 'wcell-head' },
-          h('div', { style: 'font-weight:700;font-size:16px' },
-            (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
-            me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
-          h('div', { class: 'hint', text: winnerScoreText(r) })),
+          (MEDAL[r.rank] || '#' + r.rank) + ' อันดับ ' + r.rank + (me ? '  ' : ''),
+          me ? h('span', { class: 'tag', text: 'คุณ' }) : null),
         winnerLines(r, false)));
     });
     const myRes = (sets || []).filter(function (x) {
