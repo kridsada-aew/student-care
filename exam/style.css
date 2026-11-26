@@ -194,10 +194,18 @@ body.in-exam .wrap { padding-top: 0; padding-bottom: 0; max-width: 1000px; }
 .rq.out_of_time, .rq.blank { border-left-color: #94a3b8; }
 .rq-sum { list-style: none; cursor: pointer; padding: 12px 14px; }
 .rq-sum::-webkit-details-marker { display: none; }
-.rq-row { display: flex; align-items: center; gap: 10px; }
+.rq-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .rq-n { font-weight: 600; }
 .rq-l { color: var(--muted); font-size: 14px; }
-.rq-t { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 500; }
+.rq-times { margin-left: auto; font-variant-numeric: tabular-nums; }
+.rq-tl { font-size: 13px; font-weight: 600; color: var(--muted); }
+.rq-tv { display: flex; flex-wrap: wrap; gap: 2px 14px; font-weight: 500; }
+.rq-tv b { margin-right: 6px; font-weight: 700; }
+.rq-tv .ok { color: #15803d; }
+.rq-tv .bad { color: #b91c1c; }
+.wc-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }
+.wc-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.wc-btns .btn { width: auto; flex: none; }
 .rq-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .bd { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; background: var(--warn-bg); color: var(--warn); }
 .rq-body { padding: 0 14px 14px; }
