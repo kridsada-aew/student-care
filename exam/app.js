@@ -917,8 +917,11 @@ function rpShowPlayer(o) {
 
   const root = h('div', { class: 'wrap wide' },
     h('div', { class: 'topbar' }, h('a', { class: 'back', href: '#/', onclick: function (e) { e.preventDefault(); if (RP_STOP) RP_STOP(); o.back(); }, text: '‹ กลับ' })),
-    h('div', { class: 'page-title', text: o.title }),
-    h('div', { class: 'hint', style: 'margin:2px 4px 0', text: o.sub }),
+    h('div', { class: 'rp-banner' },
+      h('div', { class: 'rp-banner-ic', 'aria-hidden': 'true', text: '🎬' }),
+      h('div', { class: 'rp-banner-txt' },
+        h('div', { class: 'rp-banner-t', text: String(o.title).replace(/^\s*\S+\s/, '') }),
+        h('div', { class: 'rp-banner-s', text: o.sub }))),
     pillBar,
     h('div', { class: 'rp-main' },
       h('div', { class: 'rp-spacer' }),
@@ -1412,7 +1415,8 @@ function buildShell() {
       h('div', { class: 'ex-title', text: E.setName || 'ข้อสอบ' }),
       h('a', { class: 'tool', href: DESMOS_URL, target: '_blank', rel: 'noopener', text: '🧮 Desmos' }),
       h('div', { class: 'timer', id: 'timer', text: '--:--' }),
-      h('button', { type: 'button', class: 'tool submit', text: 'ส่ง', onclick: openSubmitDialog })),
+      h('button', { type: 'button', class: 'tool submit', text: 'ส่ง', onclick: openSubmitDialog }),
+      h('div', { class: 'ex-prog', 'aria-hidden': 'true' }, h('i', { id: 'exProg' }))),
     h('div', { class: 'net', id: 'net', text: 'เชื่อมต่อไม่ได้ ระบบจะบันทึกให้อัตโนมัติเมื่อเน็ตกลับมา (เวลายังเดินต่อ)' }),
     h('div', { class: 'ex-body' },
       h('div', { class: 'qcard', id: 'qwrap' }),
@@ -1631,6 +1635,8 @@ function renderNav() {
     });
   }));
   p.appendChild(grid);
+  const pgBar = $('exProg');   // แถบความคืบหน้า (จำนวนข้อที่ตอบแล้ว) ใต้หัวหน้าสอบ
+  if (pgBar) pgBar.style.width = (E.q.length ? answered * 100 / E.q.length : 0) + '%';
   p.appendChild(h('div', { class: 'legend', text: 'ตอบแล้ว ' + answered + ' / ' + E.q.length + ' ข้อ • สีม่วงอ่อน = ตอบแล้ว • ⚑ = ติดดาวไว้' }));
   const t = $('navToggle');
   if (t) t.textContent = 'ทุกข้อ (' + answered + '/' + E.q.length + ')';

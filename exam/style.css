@@ -506,3 +506,82 @@ body.qm-open { overflow: hidden; }
 .sic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px; border-radius: 14px; background: var(--primary-l); }
 .stat-t { min-width: 0; }
 .stat .sv { font-size: 26px; }
+
+
+/* =====================================================================
+   รีดีไซน์: หน้ากติกา + หน้าทำข้อสอบ (เน้นอ่านง่าย ไม่รบกวนสมาธิ)
+   ===================================================================== */
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rules li { position: relative; padding: 10px 12px 10px 44px; border-radius: 14px; background: #f8fafc; line-height: 1.55; }
+.rules li::before { content: '✓'; position: absolute; left: 10px; top: 9px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: #dcfce7; color: #166534; font-size: 14px; font-weight: 700; }
+
+.ex-head { padding-bottom: 12px; }
+.ex-title { font-size: 15px; font-weight: 600; }
+.timer::before { content: '\23F1  '; font-size: .75em; }
+.timer { border-radius: 12px; }
+.tool { border-radius: 999px; padding: 8px 14px; }
+.tool.submit { background: linear-gradient(135deg, #4f46e5, #7c3aed); box-shadow: 0 4px 10px rgba(79, 70, 229, .3); font-weight: 600; }
+.ex-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #eef2ff; }
+.ex-prog i { display: block; width: 0; height: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, #22c55e, #4f46e5); transition: width .4s ease; }
+
+.qcard { position: relative; overflow: hidden; padding: 20px 18px 18px; border-radius: 22px; box-shadow: 0 6px 22px rgba(15, 23, 42, .08); }
+.qcard::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #4f46e5, #a855f7); }
+.q-num { padding: 5px 14px; border-radius: 999px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-size: 14px; }
+.q-body { font-size: 18px; }
+
+.choice { transition: border-color .12s ease, background .12s ease, box-shadow .12s ease, transform .12s ease; border-radius: 16px; align-items: center; }
+.choice .letter { flex-basis: 34px; width: 34px; height: 34px; font-size: 15px; }
+@media (hover: hover) { .choice:not(.rs):hover { border-color: #a5b4fc; background: #f8f9ff; transform: translateY(-1px); } }
+.choice.sel { box-shadow: 0 0 0 2px rgba(79, 70, 229, .22), 0 8px 18px rgba(79, 70, 229, .14); }
+.choice.sel:not(.rs)::after { content: '\2713'; flex: none; margin-left: auto; color: var(--primary); font-size: 22px; font-weight: 700; }
+
+.numinput { padding: 15px 16px; font-size: 26px; font-weight: 600; text-align: center; letter-spacing: .04em; border-radius: 16px; }
+.numinput::placeholder { font-size: 14px; font-weight: 400; letter-spacing: 0; }
+
+.navpanel { border-radius: 20px; box-shadow: 0 6px 22px rgba(15, 23, 42, .08); }
+.qnav button { border-radius: 12px; transition: transform .1s ease; }
+.qnav button.ans { background: #e0e7ff; }
+.qnav button.cur { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 10px rgba(79, 70, 229, .35); }
+
+.ex-foot { gap: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+.ex-foot .btn { border-radius: 14px; }
+@media (prefers-reduced-motion: reduce) { .ex-prog i, .choice { transition: none; } }
+/* ปุ่ม "ทุกข้อ (n/m)" บนมือถือไม่ตัดบรรทัด */
+.ex-foot .btn.mid { flex: 0 0 auto; white-space: nowrap; padding-left: 14px; padding-right: 14px; }
+.ex-foot .btn:not(.mid) { flex: 1 1 0; }
+
+
+/* =====================================================================
+   รีดีไซน์: หน้าย้อนดูการสอบ (replay)
+   ===================================================================== */
+.rp-banner { display: flex; align-items: center; gap: 14px; margin-top: 12px; padding: 14px 18px; border-radius: 20px; color: #fff;
+  background: linear-gradient(135deg, #0f172a, #312e81 55%, #6d28d9); box-shadow: 0 12px 26px rgba(49, 46, 129, .3); }
+.rp-banner-ic { flex: none; width: 46px; height: 46px; display: grid; place-items: center; font-size: 25px; border-radius: 14px; background: rgba(255, 255, 255, .16); }
+.rp-banner-t { font-size: 20px; font-weight: 600; }
+.rp-banner-s { margin-top: 1px; font-size: 13px; opacity: .85; overflow-wrap: anywhere; }
+
+.rp-pill { transition: background .12s ease, border-color .12s ease; }
+.rp-pill.on { background: linear-gradient(135deg, #4f46e5, #7c3aed); border-color: transparent; color: #fff; box-shadow: 0 6px 14px rgba(79, 70, 229, .3); }
+
+.rp-top-ctl { padding: 14px 16px; border-radius: 20px; }
+.rp-slider { height: 28px; }
+.rp-time { font-size: 15px; padding: 3px 10px; border-radius: 10px; background: var(--primary-l); }
+.rp-sp { transition: background .12s ease; }
+.rp-sp.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.rp-side .btn { border-radius: 14px; }
+.rp-side .btn.primary { padding-top: 13px; padding-bottom: 13px; font-weight: 600; box-shadow: 0 8px 18px rgba(79, 70, 229, .3); }
+
+.rp-card { position: relative; overflow: hidden; padding: 16px 16px 14px; border-radius: 20px; box-shadow: 0 6px 22px rgba(15, 23, 42, .08); }
+.rp-card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #4f46e5, #a855f7); }
+.rp-who { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--primary-l); font-size: 12px; }
+.rp-qno { font-size: 22px; }
+.rp-timer { padding: 3px 12px; border-radius: 12px; background: var(--primary-l); font-size: 17px; }
+.rp-chip { padding: 3px 11px; font-weight: 600; }
+.rp-logs { gap: 6px; }
+.rp-log { align-items: baseline; padding: 6px 10px; border-radius: 10px; background: #f8fafc; }
+.rp-log.good { background: #f0fdf4; }
+.rp-log.bad { background: #fef2f2; }
+.rp-log.warn { background: #fffbeb; }
+.rp-card.mine { box-shadow: 0 0 0 2px var(--primary), 0 6px 22px rgba(79, 70, 229, .16); }
+@media (prefers-reduced-motion: reduce) { .rp-pill { transition: none; } }
