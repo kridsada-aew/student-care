@@ -525,6 +525,23 @@
     @media (max-width: 420px) {
       .tab { font-size: 14px; padding: 11px 4px; }
     }
+    /* ---- ปุ่มไปทำข้อสอบ (เด่นกว่าเมนูอื่น) ---- */
+    .examcta { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 14px 18px; border-radius: 20px; text-decoration: none; color: #fff;
+      background: linear-gradient(135deg, #f59e0b, #f97316 60%, #ef6a3a); box-shadow: 0 10px 24px rgba(249, 115, 22, .3); transition: transform .15s ease, box-shadow .15s ease; }
+    .examcta::before { content: ''; position: absolute; right: -30px; top: -50px; width: 150px; height: 150px; border-radius: 50%; background: rgba(255, 255, 255, .16); }
+    .ec-ic { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; font-size: 26px; border-radius: 15px; background: rgba(255, 255, 255, .25); }
+    .ec-txt { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .ec-txt b { font-size: 19px; font-weight: 600; }
+    .ec-txt small { margin-top: 1px; font-size: 13px; opacity: .92; }
+    .ec-go { position: relative; flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #fff; color: #ea580c; font-size: 20px; font-weight: 700; transition: transform .15s ease; }
+    @media (hover: hover) {
+      .examcta:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(249, 115, 22, .38); }
+      .examcta:hover .ec-go { transform: translateX(3px); }
+    }
+    .examcta:active { transform: scale(.98); }
+    .examcta:focus-visible { outline: 3px solid rgba(249, 115, 22, .45); outline-offset: 3px; }
+    /* กันชื่อเมนูยาว (เช่น รวมเฉลย Bluebook) ชนลูกศร */
+    .mcard .m-title, .mcard .m-sub { padding-right: 30px; }
   </style>
 </head>
 <body>
@@ -563,7 +580,11 @@
       <button class="out" id="logout" onclick="doLogout()">ออกจากระบบ</button>
     </div>
 
-    <a class="btn primary" href="exam/" style="margin-top:14px;text-decoration:none">📝 ไปทำข้อสอบ</a>  
+    <a class="examcta" href="exam/">
+      <span class="ec-ic" aria-hidden="true">📝</span>
+      <span class="ec-txt"><b>ไปทำข้อสอบ</b><small>Mini Test และโหมดฝึก SAT Math</small></span>
+      <span class="ec-go" aria-hidden="true">→</span>
+    </a>  
     <div class="layout">
       <div class="nav" role="tablist">
         <button class="tab active" id="tabLinks" role="tab" aria-selected="true" onclick="showTab('links')">🔗 ลิงก์</button>
