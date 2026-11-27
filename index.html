@@ -542,6 +542,12 @@
     .examcta:focus-visible { outline: 3px solid rgba(249, 115, 22, .45); outline-offset: 3px; }
     /* กันชื่อเมนูยาว (เช่น รวมเฉลย Bluebook) ชนลูกศร */
     .mcard .m-title, .mcard .m-sub { padding-right: 30px; }
+    /* ---- จอกว้าง/ความละเอียดสูง: ขยายการ์ดให้สมดุลกับขนาดจอ ---- */
+    /* หน้า login: ขยายความกว้างกรอบ (480px x อัตราขยาย) ควบคู่กับ zoom ของการ์ด ไม่งั้นการ์ดจะแคบแต่ตัวใหญ่ */
+    @media (min-width: 1800px) { #loginBox { max-width: 576px; }  #loginCard, #homeBox { zoom: 1.2; } }
+    @media (min-width: 2300px) { #loginBox { max-width: 720px; }  #loginCard, #homeBox { zoom: 1.5; } }
+    @media (min-width: 2900px) { #loginBox { max-width: 864px; }  #loginCard, #homeBox { zoom: 1.8; } }
+    @media (min-width: 3500px) { #loginBox { max-width: 1008px; } #loginCard, #homeBox { zoom: 2.1; } }
   </style>
 </head>
 <body>
