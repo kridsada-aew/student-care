@@ -604,3 +604,9 @@ body.qm-open { overflow: hidden; }
   .rp-banner { padding: 10px 16px; margin-top: 8px; }
   .rp-banner-ic { width: 38px; height: 38px; font-size: 21px; }
 }
+
+/* จอกว้าง/ความละเอียดสูง (เช่น 4K): ขยายทั้งหน้าให้ไม่เล็กเกินไป */
+@media (min-width: 1800px) { #app, .dlg-win { zoom: 1.2; } }
+@media (min-width: 2300px) { #app, .dlg-win { zoom: 1.5; } }
+@media (min-width: 2900px) { #app, .dlg-win { zoom: 1.8; } }
+@media (min-width: 3500px) { #app, .dlg-win { zoom: 2.1; } }
